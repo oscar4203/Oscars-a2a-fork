@@ -4,11 +4,12 @@
 
 # Workspace
 .vscode
-/*.code-workspace
+*.code-workspace
 
 # Large files
-apples/GoogleNews-vectors-negative300.bin
 apples/GoogleNews-vectors-negative300.bin.gz
+apples/GoogleNews-vectors-negative300.bin
+apples/vectors.bin
 
 # Executables
 *.exe
