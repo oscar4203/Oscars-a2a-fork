@@ -8,26 +8,10 @@ import argparse
 
 # Local Modules
 from config import configure_logging
-from results import GameResults, log_results
-from agent import Player
+from source.apples import GreenApple, RedApple
+from source.agent import Player
+from source.results import GameResults, log_results
 
-
-class GreenApple:
-    def __init__(self, adjective: str, synonyms: list[str] | None = None) -> None:
-        self.adjective: str = adjective
-        self.synonyms: list[str] | None = synonyms
-
-    def __str__(self) -> str:
-        return f"GreenApple(adjective={self.adjective}, synonyms={self.synonyms})"
-
-
-class RedApple:
-    def __init__(self, noun: str, description: str | None = None) -> None:
-        self.noun: str = noun
-        self.description: str | None = description
-
-    def __str__(self) -> str:
-        return f"RedApple(noun={self.noun}, description={self.description})"
 
 class ApplesToApples:
     def __init__(self, number_of_players: int, points_to_win: int, green_expansion: str = '', red_expansion: str = '') -> None:
@@ -39,8 +23,8 @@ class ApplesToApples:
         self.players: list[Player] = []
         self.round: int = 0
         self.current_judge: Player | None = None
-        self.green_apples_in_play: GreenApple | None = None
-        self.red_apples_in_play: list[RedApple] = []
+        self.green_apples_in_play: dict[str, GreenApple] | None = None
+        self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
 
@@ -67,21 +51,13 @@ class ApplesToApples:
         logging.info("The other players are:")
 
         # Create the players
-        for i in range(self.number_of_players - 1):
+        for i in range(self.number_of_players):
             self.players.append(Player(f"Player {i + 1}"))
             print(self.players[i].name + ",", end=' ')
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
             self.players[i].pickup_red_apples()
-
-        # Add the last player
-        self.players.append(Player(f"Player {self.number_of_players}"))
-        print(self.players[-1].name)
-        logging.info(self.players[-1])
-
-        # Have the last player pick up 7 red cards
-        self.players[-1].pickup_red_apples()
 
     def __choose_judge(self) -> None:
         # Choose the starting judge
@@ -115,7 +91,7 @@ class ApplesToApples:
         logging.info(f"\n{self.current_judge.name}, please select a green card.")
 
         # Set the green card in play
-        self.green_apples_in_play = GreenApple("Green card")
+        self.green_apples_in_play = {self.current_judge.name: self.current_judge.choose_green_apple()}
         print(f"Green card: {self.green_apples_in_play}")
         logging.info(f"Green card: {self.green_apples_in_play}")
 
@@ -130,7 +106,7 @@ class ApplesToApples:
 
             # Set the red cards in play
             red_apple = player.choose_red_apple()
-            self.red_apples_in_play.append(red_apple)
+            self.red_apples_in_play.append({player.name: red_apple})
             logging.info(f"Red card: {red_apple}")
 
             # Prompt the player to pick up a new red card
@@ -143,13 +119,6 @@ class ApplesToApples:
             # Increment the round
             self.round += 1
 
-            # Check if the game is over
-            self.winner = self.__is_game_over()
-            if self.winner is not None:
-                print(f"{self.winner.name} has won the game!")
-                logging.info(f"{self.winner.name} has won the game!")
-                break
-
             # Play the round
             print(f"Round {self.round}:")
             logging.info(f"Round {self.round}:")
@@ -160,6 +129,58 @@ class ApplesToApples:
             # Prompt the players to select a red card
             self.__player_prompt()
 
+            # Prompt the judge to select the winning red card
+            if self.current_judge is None:
+                logging.error("The current judge is None.")
+                raise ValueError("The current judge is None.")
+            winning_red_card = self.current_judge.choose_winning_red_apple(self.red_apples_in_play)
+
+            # Award points to the winning player
+            for player in self.players:
+                if winning_red_card.keys() == player.name:
+                    player.points += 1
+                    print(f"{player.name} has won the round!")
+                    logging.info(f"{player.name} has won the round!")
+
+            # Check for None values
+            if self.green_apples_in_play is None:
+                logging.error("The green apples in play is None.")
+                raise ValueError("The green apples in play is None.")
+
+            if self.red_apples_in_play is None:
+                logging.error("The red apples in play is None.")
+                raise ValueError("The red apples in play is None.")
+            else:
+                red_apples_list = []
+                for red_apple in self.red_apples_in_play:
+                    red_apples_list.append(list(red_apple.values())[0])
+
+            winning_red_card = list(winning_red_card.values())[0]
+
+            # Log the results
+            results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge.name],
+                                  red_apples_list, winning_red_card, self.current_judge)
+            log_results(results)
+
+            # Discard the green cards
+            self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge.name])
+            self.green_apples_in_play = None
+
+            # Discard the red cards
+            self.discarded_red_apples.extend(red_apples_list)
+            self.red_apples_in_play = []
+
+             # Check if the game is over
+            self.winner = self.__is_game_over()
+            if self.winner is not None:
+                print(f"{self.winner.name} has won the game!")
+                logging.info(f"{self.winner.name} has won the game!")
+                break
+
+            # Choose the next judge
+            self.current_judge = self.players[(self.players.index(self.current_judge) + 1) % self.number_of_players]
+            print(f"\n{self.current_judge.name} is the next judge.")
+            logging.info(f"\n{self.current_judge.name} is the next judge.")
 
 
 def main() -> None:
