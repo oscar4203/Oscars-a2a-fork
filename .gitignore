@@ -15,9 +15,9 @@ apples/vectors.bin
 *.exe
 *_debug
 
-# Text files
-source/unicorn_training_set.txt
-source/unicorn_vectors.bin
+# Log files
+*.log
+results.csv
 
 
 ##########

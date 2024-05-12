@@ -30,9 +30,9 @@ class GameResults:
         logging.debug(f"Created GameResults object: {self}")
 
     def __str__(self) -> str:
-        return f"GameResults(players={self.players}, points_to_win={self.points_to_win}, round={self.round},
-                 green_card={self.green_card}, red_cards={self.red_cards},
-                 winning_red_card={self.winning_red_card}, winning_player={self.winning_player})"
+        return f"GameResults(players={self.players}, points_to_win={self.points_to_win}, round={self.round}, " \
+               f"green_card={self.green_card}, red_cards={self.red_cards}, " \
+               f"winning_red_card={self.winning_red_card}, winning_player={self.winning_player})"
 
     def to_dict(self) -> dict:
         return {

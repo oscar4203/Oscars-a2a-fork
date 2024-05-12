@@ -13,7 +13,7 @@ DEBUG_MODE = True
 LOGGING_LEVEL = logging.INFO
 LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s - %(message)s"
 LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-LOGGING_FILENAME = "./logs/apples_to_apples.log"
+LOGGING_FILENAME = "../logs/apples_to_apples.log"
 
 
 def configure_logging() -> None:
@@ -23,7 +23,7 @@ def configure_logging() -> None:
     Example usage:
     ```python
     def main() -> None:
-        # Configure logging
+        # Configure and initialize the logging module
         configure_logging()
     ```
     """
