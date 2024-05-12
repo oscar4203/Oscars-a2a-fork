@@ -1,6 +1,7 @@
 # Description: Green and Red 'Apple' cards.
 
 # Standard Libraries
+import random
 
 # Third-party Libraries
 
@@ -23,6 +24,23 @@ class RedApple:
 
     def __str__(self) -> str:
         return f"RedApple(noun={self.noun}, description={self.description})"
+
+
+class Deck:
+    def __init__(self) -> None:
+        self.apples: list[GreenApple | RedApple] = []
+
+    def __str__(self) -> str:
+        return f"Deck(apples={self.apples})"
+
+    def add_apple(self, apple: GreenApple | RedApple) -> None:
+        self.apples.append(apple)
+
+    def draw_apple(self) -> GreenApple | RedApple:
+        return self.apples.pop()
+
+    def shuffle(self) -> None:
+        random.shuffle(self.apples)
 
 
 if __name__ == "__main__":

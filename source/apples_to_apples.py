@@ -8,7 +8,7 @@ import argparse
 
 # Local Modules
 from config import configure_logging
-from source.apples import GreenApple, RedApple
+from source.apples import GreenApple, RedApple, Deck
 from source.agent import Player
 from source.results import GameResults, log_results
 
@@ -19,6 +19,8 @@ class ApplesToApples:
         self.points_to_win: int = points_to_win
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
+        self.green_apples_deck: Deck = Deck()
+        self.red_apples_deck: Deck = Deck()
         self.winner: Player | None = None
         self.players: list[Player] = []
         self.round: int = 0
