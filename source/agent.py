@@ -21,6 +21,9 @@ class Player:
     def __str__(self) -> str:
         return f"Player(name={self.name}, points={self.points}, judge={self.judge}, red_apples={self.red_apples})"
 
+    def __repr__(self) -> str:
+        return f"Player(name={self.name}, points={self.points}, judge={self.judge}, red_apples={self.red_apples})"
+
     def pickup_red_apples(self) -> None:
         diff = 7 - len(self.red_apples)
         if diff > 0:
@@ -33,13 +36,18 @@ class Player:
             logging.info(f"{self.name} cannot pick up the red card. Player already has 7 red cards")
 
     def choose_green_apple(self) -> GreenApple:
-        # Choose a green card
-        # Logic to choose a green card goes here #
-        self.green_apple = GreenApple("Green Card")
-        print(f"{self.name} chose the green card '{self.green_apple.adjective}'.")
-        logging.info(f"{self.name} chose the green card '{self.green_apple}'.")
+        # Check if the player is a judge
+        if self.judge:
+            ### Logic to choose a green card goes here ###
+            self.green_apple = GreenApple("Green Card")
+            print(f"{self.name} chose the green card '{self.green_apple.adjective}'.")
+            logging.info(f"{self.name} chose the green card '{self.green_apple}'.")
 
-        return self.green_apple
+            return self.green_apple
+
+        else:
+            logging.error(f"{self.name} is the judge.")
+            raise ValueError(f"{self.name} is the judge.")
 
     def choose_red_apple(self) -> RedApple:
         # Choose a red card

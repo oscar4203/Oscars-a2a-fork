@@ -16,6 +16,9 @@ class GreenApple:
     def __str__(self) -> str:
         return f"GreenApple(adjective={self.adjective}, synonyms={self.synonyms})"
 
+    def __repr__(self) -> str:
+        return f"GreenApple(adjective={self.adjective}, synonyms={self.synonyms})"
+
 
 class RedApple:
     def __init__(self, noun: str, description: str | None = None) -> None:
@@ -25,12 +28,18 @@ class RedApple:
     def __str__(self) -> str:
         return f"RedApple(noun={self.noun}, description={self.description})"
 
+    def __repr__(self) -> str:
+        return f"RedApple(noun={self.noun}, description={self.description})"
+
 
 class Deck:
     def __init__(self) -> None:
         self.apples: list[GreenApple | RedApple] = []
 
     def __str__(self) -> str:
+        return f"Deck(apples={self.apples})"
+
+    def __repr__(self) -> str:
         return f"Deck(apples={self.apples})"
 
     def add_apple(self, apple: GreenApple | RedApple) -> None:

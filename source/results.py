@@ -13,7 +13,7 @@ from apples import GreenApple, RedApple
 from agent import Player
 
 # Results constants
-RESULTS_FILENAME = "./logs/results.csv"
+RESULTS_FILENAME = "../logs/results.csv"
 
 
 # Game Results Datatype
@@ -35,6 +35,11 @@ class GameResults:
                f"green_apple={self.green_apple}, red_apples={self.red_apples}, " \
                f"winning_red_apple={self.winning_red_apple}, winning_player={self.winning_player})"
 
+    def __repr__(self) -> str:
+        return f"GameResults(players={self.players}, points_to_win={self.points_to_win}, round={self.round}, " \
+               f"green_apple={self.green_apple}, red_apples={self.red_apples}, " \
+               f"winning_red_apple={self.winning_red_apple}, winning_player={self.winning_player}"
+
     def to_dict(self) -> dict:
         return {
             "players": self.players,
@@ -48,8 +53,8 @@ class GameResults:
 
 
 def log_results(game_results: GameResults) -> None:
-    # Check if file exists
-    file_exists = os.path.isfile(RESULTS_FILENAME)
+    # # Check if file exists
+    # file_exists = os.path.isfile(RESULTS_FILENAME)
 
     # Ensure the directory exists
     os.makedirs(os.path.dirname(RESULTS_FILENAME), exist_ok=True)
