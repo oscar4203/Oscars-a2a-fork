@@ -8,9 +8,9 @@ import argparse
 
 # Local Modules
 from config import configure_logging
-from source.apples import GreenApple, RedApple, Deck
-from source.agent import Player
-from source.results import GameResults, log_results
+from apples import GreenApple, RedApple, Deck
+from agent import Player
+from results import GameResults, log_results
 
 
 class ApplesToApples:
@@ -37,7 +37,7 @@ class ApplesToApples:
 
         # Intro to the game
         print("\nI assume I am player 1!")
-        logging.info("\nI assume I am player 1!")
+        logging.info("I assume I am player 1!")
 
         # Initialize the players
         self.__initialize_players()
@@ -64,7 +64,7 @@ class ApplesToApples:
     def __choose_judge(self) -> None:
         # Choose the starting judge
         choice = input(f"\nPlease choose the starting judge (1-{self.number_of_players}): ")
-        logging.info(f"\nPlease choose the starting judge (1-{self.number_of_players}): {choice}")
+        logging.info(f"Please choose the starting judge (1-{self.number_of_players}): {choice}")
 
         # Validate the user input
         while not choice.isdigit() or int(choice) < 1 or int(choice) > self.number_of_players:
@@ -75,6 +75,22 @@ class ApplesToApples:
         self.current_judge = self.players[int(choice) - 1]
         self.players[int(choice) - 1].judge = True
         print(f"{self.players[int(choice) - 1].name} is the starting judge.")
+
+    def __assign_next_judge(self) -> None:
+        # Check if the current judge is None
+        if self.current_judge is None:
+            logging.error("The current judge is None.")
+            raise ValueError("The current judge is None.")
+
+        # Calculate the next judge
+        next_judge: Player = self.players[(self.players.index(self.current_judge) + 1) % self.number_of_players]
+        print(f"\n{next_judge.name} is the next judge.")
+        logging.info(f"{next_judge.name} is the next judge.")
+
+        # Assign the next judge
+        self.current_judge.judge = False
+        next_judge.judge = True
+        self.current_judge = next_judge
 
     def __is_game_over(self) -> Player | None:
         for player in self.players:
@@ -104,7 +120,7 @@ class ApplesToApples:
                 continue
 
             print(f"\n{player.name}, please select a red card.")
-            logging.info(f"\n{player.name}, please select a red card.")
+            logging.info(f"{player.name}, please select a red card.")
 
             # Set the red cards in play
             red_apple = player.choose_red_apple()
@@ -179,10 +195,8 @@ class ApplesToApples:
                 logging.info(f"{self.winner.name} has won the game!")
                 break
 
-            # Choose the next judge
-            self.current_judge = self.players[(self.players.index(self.current_judge) + 1) % self.number_of_players]
-            print(f"\n{self.current_judge.name} is the next judge.")
-            logging.info(f"\n{self.current_judge.name} is the next judge.")
+            # Assign the next judge
+            self.__assign_next_judge()
 
 
 def main() -> None:

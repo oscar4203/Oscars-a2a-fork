@@ -9,8 +9,8 @@ import csv
 # Third-party Libraries
 
 # Local Modules
-from source.apples import GreenApple, RedApple
-from source.agent import Player
+from apples import GreenApple, RedApple
+from agent import Player
 
 # Results constants
 RESULTS_FILENAME = "./logs/results.csv"
@@ -48,16 +48,20 @@ class GameResults:
 
 
 def log_results(game_results: GameResults) -> None:
-    # Check if file exists and if it's empty
+    # Check if file exists
     file_exists = os.path.isfile(RESULTS_FILENAME)
-    file_empty = os.path.getsize(RESULTS_FILENAME) == 0
+
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(RESULTS_FILENAME), exist_ok=True)
 
     # Open the file in append mode. This will create the file if it doesn't exist
     with open(RESULTS_FILENAME, 'a') as file:
+        # Create a CSV writer object
         writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
 
-        # If file didn't exist or was empty, write the header
-        if not file_exists or file_empty:
+        # Check if the file is empty
+        file_empty = os.path.getsize(RESULTS_FILENAME) == 0
+        if file_empty:
             writer.writeheader()
 
         # Write the game results

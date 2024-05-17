@@ -7,7 +7,7 @@ import random
 # Third-party Libraries
 
 # Local Modules
-from source.apples import GreenApple, RedApple
+from apples import GreenApple, RedApple
 
 
 class Player:
