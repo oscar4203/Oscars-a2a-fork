@@ -7,7 +7,7 @@ import random
 # Third-party Libraries
 
 # Local Modules
-from apples import GreenApple, RedApple
+from apples import GreenApple, RedApple, Deck
 
 
 class Player:
@@ -24,22 +24,24 @@ class Player:
     def __repr__(self) -> str:
         return f"Player(name={self.name}, points={self.points}, judge={self.judge}, red_apples={self.red_apples})"
 
-    def pickup_red_apples(self) -> None:
+    def draw_red_apples(self, red_apple_deck: Deck) -> Deck:
+        # Calculate the number of red cards to pick up
         diff = 7 - len(self.red_apples)
         if diff > 0:
             for _ in range(diff):
-                self.red_apples.append(RedApple("Red Card"))
+                # Pick up a red card
+                self.red_apples.append(red_apple_deck.draw_apple())
             print(f"{self.name} picked up {diff} red cards.")
             logging.info(f"{self.name} picked up {diff} red cards.")
         else:
             print(f"{self.name} cannot pick up any more red cards. Player already has 7 red cards")
             logging.info(f"{self.name} cannot pick up the red card. Player already has 7 red cards")
 
-    def choose_green_apple(self) -> GreenApple:
+    def draw_green_apple(self, green_apple_deck: Deck) -> GreenApple:
         # Check if the player is a judge
         if self.judge:
             ### Logic to choose a green card goes here ###
-            self.green_apple = GreenApple("Green Card")
+            self.green_apple = green_apple_deck.draw_apple()
             print(f"{self.name} chose the green card '{self.green_apple.adjective}'.")
             logging.info(f"{self.name} chose the green card '{self.green_apple}'.")
 

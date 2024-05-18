@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import random
+import csv
 
 # Third-party Libraries
 
@@ -45,6 +46,27 @@ class Deck:
 
     def __repr__(self) -> str:
         return f"Deck(apples={self.apples})"
+
+    def load_deck(self, apple_type: str, filename: str) -> None:
+        with open(filename, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                if apple_type == "Green Apples":
+                    # Extract the synomyms to a list
+                    synonyms: list[str] = row["synonyms"].strip().split(", ")
+                    # Append the GreenApple object to the list
+                    self.apples.append(GreenApple(row["set"], row["green apples/adjectives"], synonyms))
+                elif apple_type == "Red Apples":
+                    # Append the RedApple object to the list
+                    self.apples.append(RedApple(row["set"], row["red apples/nouns"], row["description"]))
+                elif apple_type == "Green Apples Expansion":
+                    # Extract the synomyms to a list
+                    synonyms: list[str] = row["synonyms"].strip().split(", ")
+                    # Append the GreenApple object to the list
+                    self.apples.append(GreenApple(row["set"], row["adjective"], synonyms))
+                elif apple_type == "Red Apples Expansion":
+                    # Append the RedApple object to the list
+                    self.apples.append(RedApple(row["set"], row["red apples/nouns"], row["description"]))
 
     def add_apple(self, apple: GreenApple | RedApple) -> None:
         self.apples.append(apple)

@@ -39,6 +39,9 @@ class ApplesToApples:
         print("\nI assume I am player 1!")
         logging.info("I assume I am player 1!")
 
+        # Initialize the decks
+        self.__initialize_decks()
+
         # Initialize the players
         self.__initialize_players()
 
@@ -47,6 +50,33 @@ class ApplesToApples:
 
         # Start the game loop
         self.__game_loop()
+
+    def __initialize_decks(self) -> None:
+        # Load the green apples deck
+        self.green_apples_deck.load_deck("Green Apples", "../apples/green_apples.csv")
+        print(f"Loaded {len(self.green_apples_deck.apples)} green apples.")
+        logging.info(f"Loaded {len(self.green_apples_deck.apples)} green apples.")
+
+        # Load the red apples deck
+        self.red_apples_deck.load_deck("Red Apples", "../apples/red_apples.csv")
+        print(f"Loaded {len(self.red_apples_deck.apples)} red apples.")
+        logging.info(f"Loaded {len(self.red_apples_deck.apples)} red apples.")
+
+        # Load the green apples expansion deck
+        if self.green_expansion_filename:
+            self.green_apples_deck.load_deck("Green Apples Expansion", self.green_expansion_filename)
+            print(f"Loaded {len(self.green_apples_deck.apples)} green apples from the expansion.")
+            logging.info(f"Loaded {len(self.green_apples_deck.apples)} green apples from the expansion.")
+
+        # Load the red apples expansion deck
+        if self.red_expansion_filename:
+            self.red_apples_deck.load_deck("Red Apples Expansion", self.red_expansion_filename)
+            print(f"Loaded {len(self.red_apples_deck.apples)} red apples from the expansion.")
+            logging.info(f"Loaded {len(self.red_apples_deck.apples)} red apples from the expansion.")
+
+        # Shuffle the decks
+        self.green_apples_deck.shuffle()
+        self.red_apples_deck.shuffle()
 
     def __initialize_players(self) -> None:
         print("The other players are:")
@@ -59,7 +89,7 @@ class ApplesToApples:
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
-            self.players[i].pickup_red_apples()
+            self.players[i].draw_red_apples(self.red_apples_deck)
 
     def __choose_judge(self) -> None:
         # Choose the starting judge
@@ -109,7 +139,7 @@ class ApplesToApples:
         logging.info(f"\n{self.current_judge.name}, please select a green card.")
 
         # Set the green card in play
-        self.green_apples_in_play = {self.current_judge.name: self.current_judge.choose_green_apple()}
+        self.green_apples_in_play = {self.current_judge.name: self.current_judge.draw_green_apple(self.green_apples_deck)}
         print(f"Green card: {self.green_apples_in_play}")
         logging.info(f"Green card: {self.green_apples_in_play}")
 
@@ -129,7 +159,7 @@ class ApplesToApples:
 
             # Prompt the player to pick up a new red card
             if len(player.red_apples) < 7:
-                player.pickup_red_apples()
+                player.draw_red_apples(self.red_apples_deck)
 
     def __game_loop(self) -> None:
         # Start the game loop
