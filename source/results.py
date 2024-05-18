@@ -31,24 +31,24 @@ class GameResults:
         logging.debug(f"Created GameResults object: {self}")
 
     def __str__(self) -> str:
-        return f"GameResults(players={self.players}, points_to_win={self.points_to_win}, round={self.round}, " \
-               f"green_apple={self.green_apple}, red_apples={self.red_apples}, " \
-               f"winning_red_apple={self.winning_red_apple}, winning_player={self.winning_player})"
+        return f"GameResults(players={[player.name for player in self.players]}, points_to_win={self.points_to_win}, round={self.round}, " \
+               f"green_apple={self.green_apple.adjective}, red_apples={[apple.noun for apple in self.red_apples]}, " \
+               f"winning_red_apple={self.winning_red_apple.noun}, winning_player={self.winning_player.name})"
 
     def __repr__(self) -> str:
-        return f"GameResults(players={self.players}, points_to_win={self.points_to_win}, round={self.round}, " \
-               f"green_apple={self.green_apple}, red_apples={self.red_apples}, " \
-               f"winning_red_apple={self.winning_red_apple}, winning_player={self.winning_player}"
+        return f"GameResults(players={[player.name for player in self.players]}, points_to_win={self.points_to_win}, round={self.round}, " \
+               f"green_apple={self.green_apple}, red_apples={[apple.noun for apple in self.red_apples]}, " \
+               f"winning_red_apple={self.winning_red_apple.noun}, winning_player={self.winning_player.name}"
 
     def to_dict(self) -> dict:
         return {
-            "players": self.players,
+            "players": [player.name for player in self.players],
             "points_to_win": self.points_to_win,
             "round": self.round,
-            "green_apple": self.green_apple,
-            "red_apples": self.red_apples,
-            "winning_red_apple": self.winning_red_apple,
-            "winning_player": self.winning_player
+            "green_apple": self.green_apple.adjective,
+            "red_apples": [apple.noun for apple in self.red_apples],
+            "winning_red_apple": self.winning_red_apple.noun,
+            "winning_player": self.winning_player.name
         }
 
 
