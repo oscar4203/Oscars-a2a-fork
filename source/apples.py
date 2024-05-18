@@ -8,28 +8,32 @@ import random
 # Local Modules
 
 
+# All apples retrieved from: http://www.com-www.com/applestoapples/
+# All known sets: https://boardgamegeek.com/wiki/page/Apples_to_Apples_Series
 class GreenApple:
-    def __init__(self, adjective: str, synonyms: list[str] | None = None) -> None:
+    def __init__(self, set: str, adjective: str, synonyms: list[str] | None = None) -> None:
+        self.set: str = set
         self.adjective: str = adjective
         self.synonyms: list[str] | None = synonyms
 
     def __str__(self) -> str:
-        return f"GreenApple(adjective={self.adjective}, synonyms={self.synonyms})"
+        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
 
     def __repr__(self) -> str:
-        return f"GreenApple(adjective={self.adjective}, synonyms={self.synonyms})"
+        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
 
 
 class RedApple:
-    def __init__(self, noun: str, description: str | None = None) -> None:
+    def __init__(self, set: str, noun: str, description: str | None = None) -> None:
+        self.set: str = set
         self.noun: str = noun
         self.description: str | None = description
 
     def __str__(self) -> str:
-        return f"RedApple(noun={self.noun}, description={self.description})"
+        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
 
     def __repr__(self) -> str:
-        return f"RedApple(noun={self.noun}, description={self.description})"
+        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
 
 
 class Deck:
