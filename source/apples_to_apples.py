@@ -178,8 +178,12 @@ class ApplesToApples:
             self.round += 1
 
             # Play the round
-            print(f"\nROUND {self.round}:")
+            print("\n===================")
+            print(f"ROUND {self.round}:")
+            print("===================")
+            logging.info("===================")
             logging.info(f"ROUND {self.round}:")
+            logging.info("===================")
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
@@ -237,8 +241,12 @@ class ApplesToApples:
              # Check if the game is over
             self.winner = self.__is_game_over()
             if self.winner is not None:
-                print(f"{self.winner.name} has won the game!")
-                logging.info(f"{self.winner.name} has won the game!")
+                print("\n##############################")
+                print(f"# {self.winner.name} has won the game! #")
+                print("##############################")
+                logging.info("##############################")
+                logging.info(f"# {self.winner.name} has won the game! #")
+                logging.info("##############################")
                 break
 
             # Assign the next judge
