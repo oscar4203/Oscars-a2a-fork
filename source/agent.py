@@ -32,8 +32,12 @@ class Player:
             for _ in range(diff):
                 # Pick up a red card
                 self.red_apples.append(red_apple_deck.draw_apple())
-            print(f"{self.name} picked up {diff} red cards.")
-            logging.info(f"{self.name} picked up {diff} red cards.")
+            if diff == 1:
+                print(f"{self.name} picked up 1 red card.")
+                logging.info(f"{self.name} picked up 1 red card.")
+            else:
+                print(f"{self.name} picked up {diff} red cards.")
+                logging.info(f"{self.name} picked up {diff} red cards.")
         else:
             print(f"{self.name} cannot pick up any more red cards. Player already has 7 red cards")
             logging.info(f"{self.name} cannot pick up the red card. Player already has 7 red cards")
@@ -59,6 +63,7 @@ class Player:
             raise ValueError(f"{self.name} is the judge.")
 
         # Check what type of player the player is
+        red_apple: RedApple = None
         if self.type == 1: # Human
             pass
         elif self.type == 2: # AI
@@ -70,7 +75,7 @@ class Player:
             raise ValueError(f"{self.type} is not a valid player type.")
 
         # Display the red card chosen
-        print(f"{self.name} chose the red card '{red_apple}'.")
+        print(f"{self.name} chose a red card.")
         logging.info(f"{self.name} chose the red card '{red_apple}'.")
 
         return red_apple
@@ -82,6 +87,7 @@ class Player:
             raise ValueError(f"{self.name} is not the judge.")
 
         # Check what type of player the player is
+        winning_red_apple: dict[str, RedApple] = {}
         if self.type == 1: # Human
             pass
         elif self.type == 2: # AI
@@ -93,7 +99,10 @@ class Player:
             raise ValueError(f"{self.type} is not a valid player type.")
 
         # Display the red card chosen
-        print(f"{self.name} chose the winning red card '{winning_red_apple}'.")
+        logging.debug(f"winning_red_apple: {winning_red_apple}")
+        round_winner = list(winning_red_apple.keys())[0]
+        winning_red_apple_noun = winning_red_apple[round_winner].noun
+        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple

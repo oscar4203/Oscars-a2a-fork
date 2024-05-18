@@ -85,7 +85,7 @@ class ApplesToApples:
         # Create the players
         for i in range(self.number_of_players):
             # Prompt the user to select the player type
-            print(f"What type is Player {i + 1}?")
+            print(f"\nWhat type is Player {i + 1}?")
             logging.info(f"What type is Player {i + 1}?")
             player_type = input("Please enter the player type (1: Human, 2: AI, 3: Random): ")
             logging.info(f"Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
@@ -146,14 +146,12 @@ class ApplesToApples:
             logging.error("The current judge is None.")
             raise ValueError("The current judge is None.")
 
-        # Prompt the judge to select a green card
-        print(f"\n{self.current_judge.name}, please select a green card.")
-        logging.info(f"{self.current_judge.name}, please select a green card.")
+        # Prompt the judge to draw a green card
+        print(f"\n{self.current_judge.name}, please draw a green card.")
+        logging.info(f"{self.current_judge.name}, please draw a green card.")
 
         # Set the green card in play
         self.green_apples_in_play = {self.current_judge.name: self.current_judge.draw_green_apple(self.green_apples_deck)}
-        print(f"Green card: {self.green_apples_in_play}")
-        logging.info(f"Green card: {self.green_apples_in_play}")
 
     def __player_prompt(self) -> None:
         # Prompt the players to select a red card
@@ -181,7 +179,7 @@ class ApplesToApples:
 
             # Play the round
             print(f"\nROUND {self.round}:")
-            logging.info(f"\nROUND {self.round}:")
+            logging.info(f"ROUND {self.round}:")
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
@@ -193,11 +191,17 @@ class ApplesToApples:
             if self.current_judge is None:
                 logging.error("The current judge is None.")
                 raise ValueError("The current judge is None.")
+
+            print(f"\n{self.current_judge.name}, please select the winning red card.")
+            logging.info(f"{self.current_judge.name}, please select the winning red card.")
             winning_red_card = self.current_judge.choose_winning_red_apple(self.red_apples_in_play)
 
             # Award points to the winning player
             for player in self.players:
-                if winning_red_card.keys() == player.name:
+                logging.debug(f"Player.name: {player.name}, datatype: {type(player.name)}")
+                logging.debug(f"Winning Red Card: {winning_red_card}, datatype: {type(winning_red_card)}")
+                logging.debug(f"Winnning Red Card Keys: {winning_red_card.keys()}, datatype: {type(winning_red_card.keys())}")
+                if player.name in winning_red_card.keys():
                     player.points += 1
                     print(f"{player.name} has won the round!")
                     logging.info(f"{player.name} has won the round!")
