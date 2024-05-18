@@ -11,8 +11,9 @@ from apples import GreenApple, RedApple, Deck
 
 
 class Player:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, type: int) -> None:
         self.name: str = name
+        self.type: int = type
         self.points: int = 0
         self.judge: bool = False
         self.green_apple: GreenApple | None = None
@@ -40,21 +41,35 @@ class Player:
     def draw_green_apple(self, green_apple_deck: Deck) -> GreenApple:
         # Check if the player is a judge
         if self.judge:
-            ### Logic to choose a green card goes here ###
             self.green_apple = green_apple_deck.draw_apple()
-            print(f"{self.name} chose the green card '{self.green_apple.adjective}'.")
-            logging.info(f"{self.name} chose the green card '{self.green_apple}'.")
-
-            return self.green_apple
-
         else:
             logging.error(f"{self.name} is the judge.")
             raise ValueError(f"{self.name} is the judge.")
 
+        # Display the green card drawn
+        print(f"{self.name} drew the green card '{self.green_apple.adjective}'.")
+        logging.info(f"{self.name} drew the green card '{self.green_apple}'.")
+
+        return self.green_apple
+
     def choose_red_apple(self) -> RedApple:
-        # Choose a red card
-        # Logic to choose a red card goes here #
-        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
+        # Check if the player is a judge
+        if self.judge:
+            logging.error(f"{self.name} is the judge.")
+            raise ValueError(f"{self.name} is the judge.")
+
+        # Check what type of player the player is
+        if self.type == 1: # Human
+            pass
+        elif self.type == 2: # AI
+            pass
+        elif self.type == 3: # Random
+            red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
+        else:
+            logging.error(f"{self.type} is not a valid player type.")
+            raise ValueError(f"{self.type} is not a valid player type.")
+
+        # Display the red card chosen
         print(f"{self.name} chose the red card '{red_apple}'.")
         logging.info(f"{self.name} chose the red card '{red_apple}'.")
 
@@ -66,9 +81,18 @@ class Player:
             logging.error(f"{self.name} is not the judge.")
             raise ValueError(f"{self.name} is not the judge.")
 
-        # Choose the winning red card
-        # Logic to choose the winning red card goes here #
-        winning_red_apple = random.choice(red_apples)
+        # Check what type of player the player is
+        if self.type == 1: # Human
+            pass
+        elif self.type == 2: # AI
+            pass
+        elif self.type == 3: # Random
+            winning_red_apple = random.choice(red_apples)
+        else:
+            logging.error(f"{self.type} is not a valid player type.")
+            raise ValueError(f"{self.type} is not a valid player type.")
+
+        # Display the red card chosen
         print(f"{self.name} chose the winning red card '{winning_red_apple}'.")
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 

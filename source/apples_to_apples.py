@@ -35,9 +35,9 @@ class ApplesToApples:
         logging.info("Starting 'Apples to Apples' game.")
         logging.info("Initializing players.")
 
-        # Intro to the game
-        print("\nI assume I am player 1!")
-        logging.info("I assume I am player 1!")
+        # # Intro to the game
+        # print("\nI assume I am player 1!")
+        # logging.info("I assume I am player 1!")
 
         # Initialize the decks
         self.__initialize_decks()
@@ -79,12 +79,24 @@ class ApplesToApples:
         self.red_apples_deck.shuffle()
 
     def __initialize_players(self) -> None:
-        print("The other players are:")
-        logging.info("The other players are:")
+        print(f"There are {self.number_of_players} players.")
+        logging.info("There are {self.number_of_players} players.")
 
         # Create the players
         for i in range(self.number_of_players):
-            self.players.append(Player(f"Player {i + 1}"))
+            # Prompt the user to select the player type
+            print(f"What type is Player {i + 1}?")
+            logging.info(f"What type is Player {i + 1}?")
+            player_type = input("Please enter the player type (1: Human, 2: AI, 3: Random): ")
+            logging.info(f"Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
+
+            # Validate the user input
+            while int(player_type) not in [1, 2, 3]:
+                player_type = input("Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): ")
+                logging.error(f"Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
+
+            # Create the player object
+            self.players.append(Player(f"Player {i + 1}", int(player_type)))
             print(self.players[i].name + ",", end=' ')
             logging.info(self.players[i])
 
@@ -136,7 +148,7 @@ class ApplesToApples:
 
         # Prompt the judge to select a green card
         print(f"\n{self.current_judge.name}, please select a green card.")
-        logging.info(f"\n{self.current_judge.name}, please select a green card.")
+        logging.info(f"{self.current_judge.name}, please select a green card.")
 
         # Set the green card in play
         self.green_apples_in_play = {self.current_judge.name: self.current_judge.draw_green_apple(self.green_apples_deck)}
@@ -168,8 +180,8 @@ class ApplesToApples:
             self.round += 1
 
             # Play the round
-            print(f"Round {self.round}:")
-            logging.info(f"Round {self.round}:")
+            print(f"\nROUND {self.round}:")
+            logging.info(f"\nROUND {self.round}:")
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
