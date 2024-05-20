@@ -9,7 +9,7 @@ import argparse
 # Local Modules
 from config import configure_logging
 from apples import GreenApple, RedApple, Deck
-from agent import Player
+from agent import PlayerType, player_type_mapping, Player
 from results import GameResults, log_results
 
 
@@ -91,12 +91,12 @@ class ApplesToApples:
             logging.info(f"Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
 
             # Validate the user input
-            while int(player_type) not in [1, 2, 3]:
+            while player_type not in player_type_mapping:
                 player_type = input("Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): ")
                 logging.error(f"Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
 
             # Create the player object
-            self.players.append(Player(f"Player {i + 1}", int(player_type)))
+            self.players.append(Player(f"Player {i + 1}", player_type_mapping[player_type]))
             print(self.players[i].name + ",", end=' ')
             logging.info(self.players[i])
 

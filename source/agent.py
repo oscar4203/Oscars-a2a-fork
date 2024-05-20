@@ -3,6 +3,7 @@
 # Standard Libraries
 import logging
 import random
+from enum import Enum, auto
 
 # Third-party Libraries
 
@@ -10,10 +11,24 @@ import random
 from apples import GreenApple, RedApple, Deck
 
 
+class PlayerType(Enum):
+    HUMAN = auto()
+    AI = auto()
+    RANDOM = auto()
+
+
+# Mapping of user input to AgentType
+player_type_mapping = {
+    '1': PlayerType.HUMAN,
+    '2': PlayerType.AI,
+    '3': PlayerType.RANDOM
+}
+
+
 class Player:
-    def __init__(self, name: str, type: int) -> None:
+    def __init__(self, name: str, type: PlayerType) -> None:
         self.name: str = name
-        self.type: int = type
+        self.type: PlayerType = type
         self.points: int = 0
         self.judge: bool = False
         self.green_apple: GreenApple | None = None
@@ -64,11 +79,11 @@ class Player:
 
         # Check what type of player the player is
         red_apple: RedApple = None
-        if self.type == 1: # Human
+        if self.type == PlayerType.HUMAN:
             pass
-        elif self.type == 2: # AI
+        elif self.type == PlayerType.AI:
             pass
-        elif self.type == 3: # Random
+        elif self.type == PlayerType.RANDOM:
             red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
         else:
             logging.error(f"{self.type} is not a valid player type.")
@@ -88,11 +103,11 @@ class Player:
 
         # Check what type of player the player is
         winning_red_apple: dict[str, RedApple] = {}
-        if self.type == 1: # Human
+        if self.type == PlayerType.HUMAN:
             pass
-        elif self.type == 2: # AI
+        elif self.type == PlayerType.AI:
             pass
-        elif self.type == 3: # Random
+        elif self.type == PlayerType.RANDOM:
             winning_red_apple = random.choice(red_apples)
         else:
             logging.error(f"{self.type} is not a valid player type.")
