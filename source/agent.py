@@ -80,7 +80,26 @@ class Player:
         # Check what type of player the player is
         red_apple: RedApple = None
         if self.type == PlayerType.HUMAN:
-            pass
+            # Display the red cards in the player's hand
+            print(f"{self.name}'s red cards:")
+            for i, red_apple in enumerate(self.red_apples):
+                print(f"{i + 1}. {red_apple.noun}")
+
+            # Prompt the player to choose a red card
+            red_apple_len = len(self.red_apples)
+            red_apple_index = input(f"Choose a red card(1 - {red_apple_len}): ")
+
+            # Validate the input
+            while not red_apple_index.isdigit() or int(red_apple_index) not in range(1, red_apple_len + 1):
+                print(f"Invalid input. Please choose a valid red card (1 - {red_apple_len}).")
+                red_apple_index = input("Choose a red card: ")
+
+            # Convert the input to an index
+            red_apple_index = int(red_apple_index) - 1
+
+            # Remove the red card from the player's hand
+            red_apple = self.red_apples.pop(red_apple_index)
+
         elif self.type == PlayerType.AI:
             pass
         elif self.type == PlayerType.RANDOM:
@@ -104,7 +123,26 @@ class Player:
         # Check what type of player the player is
         winning_red_apple: dict[str, RedApple] = {}
         if self.type == PlayerType.HUMAN:
-            pass
+            # Display the red cards submitted by the other players
+            print("Red cards submitted by the other players:")
+            for i, red_apple in enumerate(red_apples):
+                print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]].noun}")
+
+            # Prompt the player to choose a red card
+            red_apple_len = len(red_apples)
+            red_apple_index = input(f"Choose a winning red card(1 - {red_apple_len}): ")
+
+            # Validate the input
+            while not red_apple_index.isdigit() or int(red_apple_index) not in range(1, red_apple_len + 1):
+                print(f"Invalid input. Please choose a valid red card (1 - {red_apple_len}).")
+                red_apple_index = input("Choose a winning red card: ")
+
+            # Convert the input to an index
+            red_apple_index = int(red_apple_index) - 1
+
+            # Remove the red card from the player's hand
+            winning_red_apple = red_apples.pop(red_apple_index)
+
         elif self.type == PlayerType.AI:
             pass
         elif self.type == PlayerType.RANDOM:
