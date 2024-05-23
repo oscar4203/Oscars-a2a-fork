@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import logging
+import os
 
 # Third-party Libraries
 
@@ -27,6 +28,9 @@ def configure_logging() -> None:
         configure_logging()
     ```
     """
+    # Check that the logging file and directory exist
+    os.makedirs(os.path.dirname(LOGGING_FILENAME), exist_ok=True)
+
     # Configure logging
     logging.basicConfig(
         level=logging.DEBUG if DEBUG_MODE else LOGGING_LEVEL,
