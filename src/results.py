@@ -10,7 +10,7 @@ import csv
 
 # Local Modules
 from apples import GreenApple, RedApple
-from agent import Player
+from agent import Agent
 
 # Results constants
 RESULTS_FILENAME = "../logs/results.csv"
@@ -19,30 +19,30 @@ RESULTS_FILENAME = "../logs/results.csv"
 # Game Results Datatype
 @dataclass
 class GameResults:
-    players: list[Player]
+    agents: list[Agent]
     points_to_win: int
     round: int
     green_apple: GreenApple
     red_apples: list[RedApple]
     winning_red_apple: RedApple
-    winning_player: Player
+    winning_player: Agent
 
     def __post_init__(self) -> None:
         logging.debug(f"Created GameResults object: {self}")
 
     def __str__(self) -> str:
-        return f"GameResults(players={[player.name for player in self.players]}, points_to_win={self.points_to_win}, round={self.round}, " \
+        return f"GameResults(agents={[player.name for player in self.agents]}, points_to_win={self.points_to_win}, round={self.round}, " \
                f"green_apple={self.green_apple.adjective}, red_apples={[apple.noun for apple in self.red_apples]}, " \
                f"winning_red_apple={self.winning_red_apple.noun}, winning_player={self.winning_player.name})"
 
     def __repr__(self) -> str:
-        return f"GameResults(players={[player.name for player in self.players]}, points_to_win={self.points_to_win}, round={self.round}, " \
+        return f"GameResults(agents={[player.name for player in self.agents]}, points_to_win={self.points_to_win}, round={self.round}, " \
                f"green_apple={self.green_apple}, red_apples={[apple.noun for apple in self.red_apples]}, " \
                f"winning_red_apple={self.winning_red_apple.noun}, winning_player={self.winning_player.name}"
 
     def to_dict(self) -> dict:
         return {
-            "players": [player.name for player in self.players],
+            "agents": [player.name for player in self.agents],
             "points_to_win": self.points_to_win,
             "round": self.round,
             "green_apple": self.green_apple.adjective,

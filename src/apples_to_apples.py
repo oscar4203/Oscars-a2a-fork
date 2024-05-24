@@ -9,7 +9,7 @@ import argparse
 # Local Modules
 from config import configure_logging
 from apples import GreenApple, RedApple, Deck
-from agent import PlayerType, player_type_mapping, Player
+from agent import Agent, agent_type_mapping
 from results import GameResults, log_results
 
 
@@ -21,10 +21,10 @@ class ApplesToApples:
         self.red_expansion_filename: str = red_expansion
         self.green_apples_deck: Deck = Deck()
         self.red_apples_deck: Deck = Deck()
-        self.winner: Player | None = None
-        self.players: list[Player] = []
+        self.winner: Agent | None = None
+        self.players: list[Agent] = []
         self.round: int = 0
-        self.current_judge: Player | None = None
+        self.current_judge: Agent | None = None
         self.green_apples_in_play: dict[str, GreenApple] | None = None
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
@@ -85,18 +85,18 @@ class ApplesToApples:
         # Create the players
         for i in range(self.number_of_players):
             # Prompt the user to select the player type
-            print(f"\nWhat type is Player {i + 1}?")
-            logging.info(f"What type is Player {i + 1}?")
+            print(f"\nWhat type is Agent {i + 1}?")
+            logging.info(f"What type is Agent {i + 1}?")
             player_type = input("Please enter the player type (1: Human, 2: AI, 3: Random): ")
             logging.info(f"Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
 
             # Validate the user input
-            while player_type not in player_type_mapping:
+            while player_type not in ['1', '2', '3']:
                 player_type = input("Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): ")
                 logging.error(f"Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
 
             # Create the player object
-            self.players.append(Player(f"Player {i + 1}", player_type_mapping[player_type]))
+            self.players.append(agent_type_mapping[player_type](f"Agent {i + 1}", ))
             print(self.players[i].name + ",", end=' ')
             logging.info(self.players[i])
 
@@ -125,7 +125,7 @@ class ApplesToApples:
             raise ValueError("The current judge is None.")
 
         # Calculate the next judge
-        next_judge: Player = self.players[(self.players.index(self.current_judge) + 1) % self.number_of_players]
+        next_judge: Agent = self.players[(self.players.index(self.current_judge) + 1) % self.number_of_players]
         print(f"\n{next_judge.name} is the next judge.")
         logging.info(f"{next_judge.name} is the next judge.")
 
@@ -134,7 +134,7 @@ class ApplesToApples:
         next_judge.judge = True
         self.current_judge = next_judge
 
-    def __is_game_over(self) -> Player | None:
+    def __is_game_over(self) -> Agent | None:
         for player in self.players:
             if player.points >= self.points_to_win:
                 return player
@@ -202,7 +202,7 @@ class ApplesToApples:
 
             # Award points to the winning player
             for player in self.players:
-                logging.debug(f"Player.name: {player.name}, datatype: {type(player.name)}")
+                logging.debug(f"Agent.name: {player.name}, datatype: {type(player.name)}")
                 logging.debug(f"Winning Red Card: {winning_red_card}, datatype: {type(winning_red_card)}")
                 logging.debug(f"Winnning Red Card Keys: {winning_red_card.keys()}, datatype: {type(winning_red_card.keys())}")
                 if player.name in winning_red_card.keys():
