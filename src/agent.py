@@ -3,6 +3,8 @@
 # Standard Libraries
 import logging
 import random
+import numpy as np
+import gensim
 
 # Third-party Libraries
 
@@ -63,8 +65,9 @@ class Agent:
 
 
 class HumanAgent(Agent):
-    def __init__(self, name: str) -> None:
+    def __init__(self, name, filename: str) -> None:
         super().__init__(name)
+        
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
@@ -138,6 +141,10 @@ class HumanAgent(Agent):
 
 
 class AIAgent(Agent):
+    class Model():
+        def __init__() -> None:
+            pass
+
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -151,6 +158,11 @@ class AIAgent(Agent):
         red_apple: RedApple = None
 
         # AI LOGIC GOES HERE #
+
+        #get the red apple vector
+        for apples in self.red_apples:
+            self.word2vec.make_cum_table
+            pass
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
@@ -215,6 +227,13 @@ class RandomAgent(Agent):
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
+
+class OldAgent(Agent):
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+
+        
+
 
 
 # Define the mapping from user input to class

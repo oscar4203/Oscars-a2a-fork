@@ -11,6 +11,7 @@ from config import configure_logging
 from apples import GreenApple, RedApple, Deck
 from agent import Agent, agent_type_mapping
 from results import GameResults, log_results
+import embeddings
 
 
 class ApplesToApples:
@@ -29,6 +30,7 @@ class ApplesToApples:
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
+        embeddings.load()
 
     def start(self) -> None:
         print("Starting 'Apples to Apples' game.")
