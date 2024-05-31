@@ -71,11 +71,11 @@ class Category:
 
     def __str__(self) -> str:
         return f"Category(category={self.category}, meaning={self.meaning},
-                 synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone.tone for tone in self.tones]})"
+                 synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone for tone in self.tones]})"
 
     def __repr__(self) -> str:
         return f"Category(category={self.category}, meaning={self.meaning},
-                 synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone.tone for tone in self.tones]})"
+                 synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone for tone in self.tones]})"
 
     def add_synonym(self, synonym: Word) -> None:
         self.synonyms.append(synonym)

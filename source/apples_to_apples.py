@@ -7,10 +7,10 @@ import argparse
 # Third-party Libraries
 
 # Local Modules
-from config import configure_logging
-from apples import GreenApple, RedApple, Deck
-from agent import Agent, agent_type_mapping
-from results import GameResults, log_results
+from source.config import configure_logging
+from source.apples import GreenApple, RedApple, Deck
+from source.agent import Agent, agent_type_mapping
+from source.results import GameResults, log_results
 import embeddings
 
 

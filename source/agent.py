@@ -9,7 +9,7 @@ import gensim
 # Third-party Libraries
 
 # Local Modules
-from apples import GreenApple, RedApple, Deck
+from source.apples import GreenApple, RedApple, Deck
 
 
 class Agent:
@@ -31,8 +31,11 @@ class Agent:
         diff = 7 - len(self.red_apples)
         if diff > 0:
             for _ in range(diff):
-                # Pick up a red card
-                self.red_apples.append(red_apple_deck.draw_apple())
+                # Draw a red card
+                new_red_apple = red_apple_deck.draw_apple()
+                if not isinstance(new_red_apple, RedApple):
+                    raise TypeError("Expected a RedApple, but got a different type")
+                self.red_apples.append(new_red_apple)
             if diff == 1:
                 print(f"{self.name} picked up 1 red card.")
                 logging.info(f"{self.name} picked up 1 red card.")
@@ -46,7 +49,11 @@ class Agent:
     def draw_green_apple(self, green_apple_deck: Deck) -> GreenApple:
         # Check if the Agent is a judge
         if self.judge:
-            self.green_apple = green_apple_deck.draw_apple()
+            # Draw a green card
+            new_green_apple = green_apple_deck.draw_apple()
+            if not isinstance(new_green_apple, GreenApple):
+                raise TypeError("Expected a GreenApple, but got a different type")
+            self.green_apple = new_green_apple
         else:
             logging.error(f"{self.name} is the judge.")
             raise ValueError(f"{self.name} is the judge.")
@@ -67,7 +74,7 @@ class Agent:
 class HumanAgent(Agent):
     def __init__(self, name, filename: str) -> None:
         super().__init__(name)
-        
+
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
@@ -228,12 +235,10 @@ class RandomAgent(Agent):
 
         return winning_red_apple
 
+
 class OldAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
-
-        
-
 
 
 # Define the mapping from user input to class

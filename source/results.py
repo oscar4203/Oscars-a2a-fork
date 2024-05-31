@@ -9,8 +9,8 @@ import csv
 # Third-party Libraries
 
 # Local Modules
-from apples import GreenApple, RedApple
-from agent import Agent
+from source.apples import GreenApple, RedApple
+from source.agent import Agent
 
 # Results constants
 RESULTS_FILENAME = "../logs/results.csv"
