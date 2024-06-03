@@ -1,6 +1,7 @@
 # Description: Green and Red 'Apple' cards.
 
 # Standard Libraries
+import numpy as np
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
@@ -12,7 +13,7 @@ class Word:
     def __init__(self, word: str, meaning: str) -> None:
         self.word: str = word
         self.meaning: str = meaning
-        self.vector: list[float] = []
+        self.vector: np.ndarray | None = None
 
     def __str__(self) -> str:
         return f"Word(word={self.word}, meaning={self.meaning}, vector={self.vector})"
@@ -20,17 +21,24 @@ class Word:
     def __repr__(self) -> str:
         return f"Word(word={self.word}, meaning={self.meaning}, vector={self.vector})"
 
-    def set_vector(self, vector: list[float]) -> None:
-        self.vector = vector
-
     def get_word(self) -> str:
         return self.word
 
     def get_meaning(self) -> str:
         return self.meaning
 
-    def get_vector(self) -> list[float]:
+    def get_vector(self) -> np.ndarray | None:
         return self.vector
+
+    def set_vector(self, vector: np.ndarray) -> None:
+        self.vector = vector
+
+    def print_all_info(self, model) -> None:
+        print(f"[{self.word.capitalize()}]")
+        print(f"Meaning: {self.meaning}")
+        print(f"shape: {model[self.word].shape}")
+        print(f"dtype: {model[self.word].dtype}")
+        print(f"vector:\n{model[self.word]}")
 
 
 class Tone:
@@ -60,6 +68,31 @@ class Tone:
     def get_words(self) -> list[Word]:
         return self.words
 
+    def calculate_avg_vector(self) -> np.ndarray:
+        # Check if there are any words in the tone
+        if len(self.words) == 0:
+            raise ValueError("No words in the tone")
+
+        # Check if the vectors have been set for all the words and if they are all the same shape
+        first_vector = self.words[0].get_vector()
+        if first_vector is None:
+            raise ValueError("Not all words have vectors set")
+
+        for word in self.words:
+            vector = word.get_vector()
+            if vector is None:
+                raise ValueError("Not all words have vectors set")
+            else:
+                if vector.shape != first_vector.shape:
+                    raise ValueError("Not all vectors have the same shape")
+
+        # Calculate the average vector for all the words in the tone
+        avg_vector: np.ndarray = np.zeros(first_vector.shape)
+        for word in self.words:
+            avg_vector = avg_vector + word.get_vector()
+        avg_vector = avg_vector / len(self.words)
+        return avg_vector
+
 
 class Category:
     def __init__(self, category: str, meaning: str, synonyms: list[Word], antonyms: list[Word], tones: dict[str, Tone]) -> None:
@@ -70,12 +103,12 @@ class Category:
         self.tones: dict[str, Tone] = tones
 
     def __str__(self) -> str:
-        return f"Category(category={self.category}, meaning={self.meaning},
-                 synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone for tone in self.tones]})"
+        return f"Category(category={self.category}, meaning={self.meaning}, " \
+               f"synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone for tone in self.tones]})"
 
     def __repr__(self) -> str:
-        return f"Category(category={self.category}, meaning={self.meaning},
-                 synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone for tone in self.tones]})"
+        return f"Category(category={self.category}, meaning={self.meaning}, " \
+               f"synonyms={self.synonyms}, antonyms={self.antonyms}, tones={[tone for tone in self.tones]})"
 
     def add_synonym(self, synonym: Word) -> None:
         self.synonyms.append(synonym)
@@ -159,6 +192,7 @@ word_meanings = {
         tone_words)
 }
 
+
 # Define all the words for the different tones of size
 word_meanings["size"].tones["positive"].add_word(Word("big", ""))
 word_meanings["size"].tones["positive"].add_word(Word("large", ""))
@@ -170,66 +204,81 @@ word_meanings["size"].tones["neutral"].add_word(Word("medium", ""))
 word_meanings["size"].tones["neutral"].add_word(Word("average", ""))
 word_meanings["size"].tones["neutral"].add_word(Word("moderate", ""))
 
-# Define all the words for the different tones of color
-word_meanings["color"].tones["neutral"].add_word(Word("red", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("orange", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("yellow", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("green", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("blue", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("purple", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("black", ""))
-word_meanings["color"].tones["neutral"].add_word(Word("white", ""))
+# # Define all the words for the different tones of color
+# word_meanings["color"].tones["neutral"].add_word(Word("red", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("orange", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("yellow", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("green", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("blue", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("purple", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("black", ""))
+# word_meanings["color"].tones["neutral"].add_word(Word("white", ""))
 
-# Define all the words for the different tones of temperature
-word_meanings["temperature"].tones["positive"].add_word(Word("hot", ""))
-word_meanings["temperature"].tones["positive"].add_word(Word("warm", ""))
-word_meanings["temperature"].tones["negative"].add_word(Word("cold", ""))
-word_meanings["temperature"].tones["negative"].add_word(Word("chilly", ""))
-word_meanings["temperature"].tones["negative"].add_word(Word("freezing", ""))
-word_meanings["temperature"].tones["neutral"].add_word(Word("lukewarm", ""))
-word_meanings["temperature"].tones["neutral"].add_word(Word("cool", ""))
-word_meanings["temperature"].tones["neutral"].add_word(Word("temperate", ""))
+# # Define all the words for the different tones of temperature
+# word_meanings["temperature"].tones["positive"].add_word(Word("hot", ""))
+# word_meanings["temperature"].tones["positive"].add_word(Word("warm", ""))
+# word_meanings["temperature"].tones["negative"].add_word(Word("cold", ""))
+# word_meanings["temperature"].tones["negative"].add_word(Word("chilly", ""))
+# word_meanings["temperature"].tones["negative"].add_word(Word("freezing", ""))
+# word_meanings["temperature"].tones["neutral"].add_word(Word("lukewarm", ""))
+# word_meanings["temperature"].tones["neutral"].add_word(Word("cool", ""))
+# word_meanings["temperature"].tones["neutral"].add_word(Word("temperate", ""))
 
-# Define all the words for the different tones of speed
-word_meanings["speed"].tones["positive"].add_word(Word("fast", ""))
-word_meanings["speed"].tones["positive"].add_word(Word("quick", ""))
-word_meanings["speed"].tones["positive"].add_word(Word("swift", ""))
-word_meanings["speed"].tones["positive"].add_word(Word("speedy", ""))
-word_meanings["speed"].tones["positive"].add_word(Word("rapid", ""))
-word_meanings["speed"].tones["negative"].add_word(Word("slow", ""))
-word_meanings["speed"].tones["negative"].add_word(Word("sluggish", ""))
-word_meanings["speed"].tones["negative"].add_word(Word("delayed", ""))
-word_meanings["speed"].tones["neutral"].add_word(Word("moderate", ""))
-word_meanings["speed"].tones["neutral"].add_word(Word("average", ""))
-word_meanings["speed"].tones["neutral"].add_word(Word("standard", ""))
+# # Define all the words for the different tones of speed
+# word_meanings["speed"].tones["positive"].add_word(Word("fast", ""))
+# word_meanings["speed"].tones["positive"].add_word(Word("quick", ""))
+# word_meanings["speed"].tones["positive"].add_word(Word("swift", ""))
+# word_meanings["speed"].tones["positive"].add_word(Word("speedy", ""))
+# word_meanings["speed"].tones["positive"].add_word(Word("rapid", ""))
+# word_meanings["speed"].tones["negative"].add_word(Word("slow", ""))
+# word_meanings["speed"].tones["negative"].add_word(Word("sluggish", ""))
+# word_meanings["speed"].tones["negative"].add_word(Word("delayed", ""))
+# word_meanings["speed"].tones["neutral"].add_word(Word("moderate", ""))
+# word_meanings["speed"].tones["neutral"].add_word(Word("average", ""))
+# word_meanings["speed"].tones["neutral"].add_word(Word("standard", ""))
 
-# Define all the words for the different tones of difficulty
-word_meanings["difficulty"].tones["positive"].add_word(Word("easy", ""))
-word_meanings["difficulty"].tones["positive"].add_word(Word("simple", ""))
-word_meanings["difficulty"].tones["positive"].add_word(Word("straightforward", ""))
-word_meanings["difficulty"].tones["positive"].add_word(Word("effortless", ""))
-word_meanings["difficulty"].tones["negative"].add_word(Word("hard", ""))
-word_meanings["difficulty"].tones["negative"].add_word(Word("challenging", ""))
-word_meanings["difficulty"].tones["negative"].add_word(Word("tough", ""))
-word_meanings["difficulty"].tones["negative"].add_word(Word("difficult", ""))
-word_meanings["difficulty"].tones["neutral"].add_word(Word("moderate", ""))
-word_meanings["difficulty"].tones["neutral"].add_word(Word("average", ""))
+# # Define all the words for the different tones of difficulty
+# word_meanings["difficulty"].tones["positive"].add_word(Word("easy", ""))
+# word_meanings["difficulty"].tones["positive"].add_word(Word("simple", ""))
+# word_meanings["difficulty"].tones["positive"].add_word(Word("straightforward", ""))
+# word_meanings["difficulty"].tones["positive"].add_word(Word("effortless", ""))
+# word_meanings["difficulty"].tones["negative"].add_word(Word("hard", ""))
+# word_meanings["difficulty"].tones["negative"].add_word(Word("challenging", ""))
+# word_meanings["difficulty"].tones["negative"].add_word(Word("tough", ""))
+# word_meanings["difficulty"].tones["negative"].add_word(Word("difficult", ""))
+# word_meanings["difficulty"].tones["neutral"].add_word(Word("moderate", ""))
+# word_meanings["difficulty"].tones["neutral"].add_word(Word("average", ""))
 
-# Define all the words for the different tones of quality
-word_meanings["quality"].tones["positive"].add_word(Word("excellent", ""))
-word_meanings["quality"].tones["positive"].add_word(Word("superior", ""))
-word_meanings["quality"].tones["positive"].add_word(Word("premium", ""))
-word_meanings["quality"].tones["positive"].add_word(Word("high-quality", ""))
-word_meanings["quality"].tones["negative"].add_word(Word("poor", ""))
-word_meanings["quality"].tones["negative"].add_word(Word("inferior", ""))
-word_meanings["quality"].tones["negative"].add_word(Word("substandard", ""))
-word_meanings["quality"].tones["negative"].add_word(Word("low-quality", ""))
-word_meanings["quality"].tones["neutral"].add_word(Word("average", ""))
-word_meanings["quality"].tones["neutral"].add_word(Word("standard", ""))
-word_meanings["quality"].tones["neutral"].add_word(Word("typical", ""))
+# # Define all the words for the different tones of quality
+# word_meanings["quality"].tones["positive"].add_word(Word("excellent", ""))
+# word_meanings["quality"].tones["positive"].add_word(Word("superior", ""))
+# word_meanings["quality"].tones["positive"].add_word(Word("premium", ""))
+# word_meanings["quality"].tones["positive"].add_word(Word("high-quality", ""))
+# word_meanings["quality"].tones["negative"].add_word(Word("poor", ""))
+# word_meanings["quality"].tones["negative"].add_word(Word("inferior", ""))
+# word_meanings["quality"].tones["negative"].add_word(Word("substandard", ""))
+# word_meanings["quality"].tones["negative"].add_word(Word("low-quality", ""))
+# word_meanings["quality"].tones["neutral"].add_word(Word("average", ""))
+# word_meanings["quality"].tones["neutral"].add_word(Word("standard", ""))
+# word_meanings["quality"].tones["neutral"].add_word(Word("typical", ""))
 
-# Load vectors directly from the Google News dataset
-model = KeyedVectors.load_word2vec_format("../apples/GoogleNews-vectors-negative300.bin", binary=True)
 
-# see the shape of the vector (300,)
-print(word_meanings["size"].tones["positive"].words[0].get_word())
+
+def main():
+    # Load vectors directly from the Google News dataset
+    model = KeyedVectors.load_word2vec_format("../apples/GoogleNews-vectors-negative300.bin", binary=True)
+
+    # Set the vectors for all the words in the size category
+    for tone in word_meanings["size"].tones:
+        for word in word_meanings["size"].tones[tone].words:
+            word.set_vector(model[word.word])
+
+    # Print all the information for all of the words in the size category
+    for tone in word_meanings["size"].tones:
+        for word in word_meanings["size"].tones[tone].words:
+            word.print_all_info(model)
+            print("\n")
+
+
+if "__name__" == "__main__":
+    main()
