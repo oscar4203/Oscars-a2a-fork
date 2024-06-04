@@ -55,12 +55,12 @@ class ApplesToApples:
 
     def __initialize_decks(self) -> None:
         # Load the green apples deck
-        self.green_apples_deck.load_deck("Green Apples", "../apples/green_apples.csv")
+        self.green_apples_deck.load_deck("Green Apples", "./apples/green_apples.csv")
         print(f"Loaded {len(self.green_apples_deck.apples)} green apples.")
         logging.info(f"Loaded {len(self.green_apples_deck.apples)} green apples.")
 
         # Load the red apples deck
-        self.red_apples_deck.load_deck("Red Apples", "../apples/red_apples.csv")
+        self.red_apples_deck.load_deck("Red Apples", "./apples/red_apples.csv")
         print(f"Loaded {len(self.red_apples_deck.apples)} red apples.")
         logging.info(f"Loaded {len(self.red_apples_deck.apples)} red apples.")
 

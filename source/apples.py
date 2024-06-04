@@ -3,6 +3,7 @@
 # Standard Libraries
 import random
 import csv
+import numpy as np
 
 # Third-party Libraries
 
@@ -16,12 +17,37 @@ class GreenApple:
         self.set: str = set
         self.adjective: str = adjective
         self.synonyms: list[str] | None = synonyms
+        self.adjective_vector: np.ndarray | None = None
+        self.synonyms_vector: np.ndarray | None = None
 
     def __str__(self) -> str:
-        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
+        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
+               f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
 
     def __repr__(self) -> str:
-        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
+        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
+               f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
+
+    def get_set(self) -> str:
+        return self.set
+
+    def get_adjective(self) -> str:
+        return self.adjective
+
+    def get_synonyms(self) -> list[str] | None:
+        return self.synonyms
+
+    def get_adjective_vector(self) -> np.ndarray | None:
+        return self.adjective_vector
+
+    def get_synonyms_vector(self) -> np.ndarray | None:
+        return self.synonyms_vector
+
+    def set_adjective_vector(self, vector: np.ndarray) -> None:
+        self.adjective_vector = vector
+
+    def set_synonyms_vector(self, vector: np.ndarray) -> None:
+        self.synonyms_vector = vector
 
 
 class RedApple:
@@ -29,12 +55,37 @@ class RedApple:
         self.set: str = set
         self.noun: str = noun
         self.description: str | None = description
+        self.noun_vector: np.ndarray | None = None
+        self.description_vector: np.ndarray | None = None
 
     def __str__(self) -> str:
-        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
+        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
+               f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
 
     def __repr__(self) -> str:
-        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
+        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
+               f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
+
+    def get_set(self) -> str:
+        return self.set
+
+    def get_noun(self) -> str:
+        return self.noun
+
+    def get_description(self) -> str | None:
+        return self.description
+
+    def get_noun_vector(self) -> np.ndarray | None:
+        return self.noun_vector
+
+    def get_description_vector(self) -> np.ndarray | None:
+        return self.description_vector
+
+    def set_noun_vector(self, vector: np.ndarray) -> None:
+        self.noun_vector = vector
+
+    def set_description_vector(self, vector: np.ndarray) -> None:
+        self.description_vector = vector
 
 
 class Deck:
