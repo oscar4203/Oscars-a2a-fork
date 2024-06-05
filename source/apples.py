@@ -4,17 +4,53 @@
 import random
 import csv
 import numpy as np
+import re
 
 # Third-party Libraries
+from gensim.models import KeyedVectors
 
 # Local Modules
 
 
+class Apple:
+    def __init__(self, set: str) -> None:
+        self.set: str = set
+
+    def __str__(self) -> str:
+        return f"Apple(set={self.set})"
+
+    def __repr__(self) -> str:
+        return f"Apple(set={self.set})"
+
+    def get_set(self) -> str:
+        return self.set
+
+    def __format_text(self, text: str) -> str:
+        # Remove the leading and trailing whitespace
+        formatted_text = text.strip()
+
+        # Remove all punctuation
+        formatted_text = formatted_text.translate(str.maketrans("", "", ".,!?"))
+
+        # Remove all special characters
+        formatted_text = formatted_text.translate(str.maketrans("", "", "[](){}<>&$@#%^*+=_~`|\\/:;\""))
+
+        # Replace all concurrent whitespaces with a single underscore
+        formatted_text = re.sub(r'\s+', '_', formatted_text)
+
+        # Convert the text to lowercase
+        formatted_text = formatted_text.lower()
+
+        return formatted_text
+
+    def __split_text(self, text: str) -> list[str]:
+        return text.split("_")
+
+
 # All apples retrieved from: http://www.com-www.com/applestoapples/
 # All known sets: https://boardgamegeek.com/wiki/page/Apples_to_Apples_Series
-class GreenApple:
+class GreenApple(Apple):
     def __init__(self, set: str, adjective: str, synonyms: list[str] | None = None) -> None:
-        self.set: str = set
         self.adjective: str = adjective
         self.synonyms: list[str] | None = synonyms
         self.adjective_vector: np.ndarray | None = None
@@ -28,9 +64,6 @@ class GreenApple:
         return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
                f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
 
-    def get_set(self) -> str:
-        return self.set
-
     def get_adjective(self) -> str:
         return self.adjective
 
@@ -43,16 +76,27 @@ class GreenApple:
     def get_synonyms_vector(self) -> np.ndarray | None:
         return self.synonyms_vector
 
-    def set_adjective_vector(self, vector: np.ndarray) -> None:
-        self.adjective_vector = vector
+    def set_adjective_vector(self, model: KeyedVectors) -> None:
+        cleaned_adjective = self.__format_text(self.adjective)
+        self.adjective_vector = model[cleaned_adjective]
 
-    def set_synonyms_vector(self, vector: np.ndarray) -> None:
-        self.synonyms_vector = vector
+    def set_synonyms_vector(self, model: KeyedVectors) -> None:
+        if self.synonyms is None:
+            raise ValueError("Synonyms are not available for this Green Apple.")
+
+        # Clean the synonyms
+        cleaned_synonyms = [self.__format_text(synonym) for synonym in self.synonyms]
+
+        # Sum the vectors for each synonym, then divide by the number of synonyms
+        avg_vector = np.zeros(model.vector_size)
+        for synonym in cleaned_synonyms:
+            avg_vector += model[synonym]
+        avg_vector /= len(cleaned_synonyms)
+        self.synonyms_vector = avg_vector
 
 
-class RedApple:
+class RedApple(Apple):
     def __init__(self, set: str, noun: str, description: str | None = None) -> None:
-        self.set: str = set
         self.noun: str = noun
         self.description: str | None = description
         self.noun_vector: np.ndarray | None = None
@@ -66,9 +110,6 @@ class RedApple:
         return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
                f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
 
-    def get_set(self) -> str:
-        return self.set
-
     def get_noun(self) -> str:
         return self.noun
 
@@ -81,11 +122,17 @@ class RedApple:
     def get_description_vector(self) -> np.ndarray | None:
         return self.description_vector
 
-    def set_noun_vector(self, vector: np.ndarray) -> None:
-        self.noun_vector = vector
+    def set_noun_vector(self, model: KeyedVectors) -> None:
+        cleaned_noun = self.__format_text(self.noun)
+        self.noun_vector = model[cleaned_noun]
 
-    def set_description_vector(self, vector: np.ndarray) -> None:
-        self.description_vector = vector
+    def set_description_vector(self, model: KeyedVectors) -> None:
+        if self.description is None:
+            raise ValueError("Description is not available for this Red Apple.")
+
+        # Clean the description
+        cleaned_description = self.__format_text(self.description)
+        self.description_vector = model[cleaned_description]
 
 
 class Deck:
