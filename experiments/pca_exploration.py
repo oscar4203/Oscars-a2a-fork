@@ -114,7 +114,7 @@ def main():
     # Get the Green Apple adjective vectors
     green_apple_df = create_green_apple_df(green_apple_deck, model)
     # Run PCA on the Green Apple data
-    run_pca(green_apple_df, 10)
+    run_pca(green_apple_df, 50)
 
     # # Get the Red Apple noun vectors
     # red_apple_df = create_red_apple_df(red_apple_deck, model)

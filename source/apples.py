@@ -25,7 +25,7 @@ class Apple:
     def get_set(self) -> str:
         return self.set
 
-    def __format_text(self, text: str) -> str:
+    def _format_text(self, text: str) -> str:
         # Remove the leading and trailing whitespace
         formatted_text = text.strip()
 
@@ -35,16 +35,23 @@ class Apple:
         # Remove all special characters
         formatted_text = formatted_text.translate(str.maketrans("", "", "[](){}<>&$@#%^*+=_~`|\\/:;\""))
 
-        # Replace all concurrent whitespaces with a single underscore
-        formatted_text = re.sub(r'\s+', '_', formatted_text)
+        # Replace all hyphens and concurrent whitespaces with a single underscore
+        formatted_text = re.sub(r"[-\s]+", "_", formatted_text)
 
         # Convert the text to lowercase
         formatted_text = formatted_text.lower()
 
         return formatted_text
 
-    def __split_text(self, text: str) -> list[str]:
+    def _split_text(self, text: str) -> list[str]:
         return text.split("_")
+
+    def _calculate_average_vector(self, words: list[str], model: KeyedVectors) -> np.ndarray:
+        avg_vector = np.zeros(model.vector_size)
+        for word in words:
+            avg_vector += model[word]
+        avg_vector /= len(words)
+        return avg_vector
 
 
 # All apples retrieved from: http://www.com-www.com/applestoapples/
@@ -77,22 +84,25 @@ class GreenApple(Apple):
         return self.synonyms_vector
 
     def set_adjective_vector(self, model: KeyedVectors) -> None:
-        cleaned_adjective = self.__format_text(self.adjective)
-        self.adjective_vector = model[cleaned_adjective]
+        # Clean the adjective
+        cleaned_adjective = self._format_text(self.adjective)
+
+        # Split the cleaned adjective into a list of words
+        split_cleaned_adjective = self._split_text(cleaned_adjective)
+
+        # Calculate the average vector for the adjective
+        self.adjective_vector = self._calculate_average_vector(split_cleaned_adjective, model)
 
     def set_synonyms_vector(self, model: KeyedVectors) -> None:
+        # Check if synonyms exist
         if self.synonyms is None:
             raise ValueError("Synonyms are not available for this Green Apple.")
 
         # Clean the synonyms
-        cleaned_synonyms = [self.__format_text(synonym) for synonym in self.synonyms]
+        cleaned_synonyms = [self._format_text(synonym) for synonym in self.synonyms]
 
-        # Sum the vectors for each synonym, then divide by the number of synonyms
-        avg_vector = np.zeros(model.vector_size)
-        for synonym in cleaned_synonyms:
-            avg_vector += model[synonym]
-        avg_vector /= len(cleaned_synonyms)
-        self.synonyms_vector = avg_vector
+        # Calculate the average vector for the synonyms
+        self.synonyms_vector = self._calculate_average_vector(cleaned_synonyms, model)
 
 
 class RedApple(Apple):
@@ -123,16 +133,28 @@ class RedApple(Apple):
         return self.description_vector
 
     def set_noun_vector(self, model: KeyedVectors) -> None:
-        cleaned_noun = self.__format_text(self.noun)
-        self.noun_vector = model[cleaned_noun]
+        # Clean the noun
+        cleaned_noun = self._format_text(self.noun)
+
+        # Split the cleaned noun into a list of words
+        split_cleaned_noun = self._split_text(cleaned_noun)
+
+        # Calculate the average vector for the noun
+        self.noun_vector = self._calculate_average_vector(split_cleaned_noun, model)
 
     def set_description_vector(self, model: KeyedVectors) -> None:
+        # Check if description exists
         if self.description is None:
             raise ValueError("Description is not available for this Red Apple.")
 
         # Clean the description
-        cleaned_description = self.__format_text(self.description)
-        self.description_vector = model[cleaned_description]
+        cleaned_description = self._format_text(self.description)
+
+        # Split the cleaned description into a list of words
+        split_cleaned_description = self._split_text(cleaned_description)
+
+        # Calculate the average vector for the description
+        self.description_vector = self._calculate_average_vector(split_cleaned_description, model)
 
 
 class Deck:
