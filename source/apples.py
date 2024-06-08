@@ -32,14 +32,14 @@ class Apple:
         # Remove all punctuation
         formatted_text = formatted_text.translate(str.maketrans("", "", ".,!?"))
 
+        # Remove addon text (like 's)
+        formatted_text = re.sub(r"'s\b", "", formatted_text)
+
         # Remove all special characters
         formatted_text = formatted_text.translate(str.maketrans("", "", "[](){}<>&$@#%^*+=_~`|\\/:;\""))
 
         # Replace all hyphens and concurrent whitespaces with a single underscore
         formatted_text = re.sub(r"[-\s]+", "_", formatted_text)
-
-        # Convert the text to lowercase
-        formatted_text = formatted_text.lower()
 
         return formatted_text
 
@@ -47,10 +47,26 @@ class Apple:
         return text.split("_")
 
     def _calculate_average_vector(self, words: list[str], model: KeyedVectors) -> np.ndarray:
+        # Initialize the average vector
         avg_vector = np.zeros(model.vector_size)
+
+        # Iterate through the words
         for word in words:
-            avg_vector += model[word]
+            # Try searching the model for the word
+            try:
+                # Add the vector of the word to the average vector
+                avg_vector += model[word]
+            except KeyError:
+                # If the word is not found, try converting it to lowercase
+                try:
+                    # Add the vector of the word to the average vector
+                    avg_vector += model[word.lower()]
+                except KeyError:
+                    print(f"The word '{word}' was not found in the model.")
+
+        # Divide the average vector by the number of words
         avg_vector /= len(words)
+
         return avg_vector
 
 

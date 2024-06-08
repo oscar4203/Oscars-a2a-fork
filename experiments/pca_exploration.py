@@ -70,7 +70,7 @@ def create_red_apple_df(red_apple_deck: Deck, model: KeyedVectors) -> pd.DataFra
     return red_apple_df
 
 
-def run_pca(data: pd.DataFrame, n_components: int) -> None:
+def run_pca(data: pd.DataFrame, n_components: int, title: str) -> None:
     # Create a PCA object
     pca = PCA(n_components=n_components)
 
@@ -95,7 +95,7 @@ def run_pca(data: pd.DataFrame, n_components: int) -> None:
     plt.bar(x=range(1, len(per_var) + 1), height=per_var, tick_label=labels)
     plt.xlabel("Principle Component")
     plt.ylabel("Percent of Explained Variance")
-    plt.title("Scree Plot")
+    plt.title(f"Scree Plot - {title}")
     plt.show()
 
 
@@ -103,23 +103,26 @@ def main():
     # Load the pre-trained word vectors
     model = KeyedVectors.load_word2vec_format("../apples/GoogleNews-vectors-negative300.bin", binary=True)
 
-    # Load the Green Apple cards to a Deck
-    green_apple_deck = Deck()
-    green_apple_deck.load_deck("Green Apples", "../apples/green_apples.csv")
+    # Set the number of components for PCA
+    n_components = 50
 
-    # # Load the Red Apple cards to a Deck
-    # red_apple_deck = Deck()
-    # red_apple_deck.load_deck("Red Apples", "../apples/red_apples.csv")
+    # # Load the Green Apple cards to a Deck
+    # green_apple_deck = Deck()
+    # green_apple_deck.load_deck("Green Apples", "../apples/green_apples.csv")
 
-    # Get the Green Apple adjective vectors
-    green_apple_df = create_green_apple_df(green_apple_deck, model)
-    # Run PCA on the Green Apple data
-    run_pca(green_apple_df, 50)
+    # Load the Red Apple cards to a Deck
+    red_apple_deck = Deck()
+    red_apple_deck.load_deck("Red Apples", "../apples/red_apples.csv")
 
-    # # Get the Red Apple noun vectors
-    # red_apple_df = create_red_apple_df(red_apple_deck, model)
-    # # Run PCA on the Red Apple data
-    # run_pca(red_apple_df, 10)
+    # # Get the Green Apple adjective vectors
+    # green_apple_df = create_green_apple_df(green_apple_deck, model)
+    # # Run PCA on the Green Apple data
+    # run_pca(green_apple_df, n_components, "Green Apple Adjectives")
+
+    # Get the Red Apple noun vectors
+    red_apple_df = create_red_apple_df(red_apple_deck, model)
+    # Run PCA on the Red Apple data
+    run_pca(red_apple_df, n_components, "Red Apple Nouns")
 
 
 if __name__ == "__main__":
