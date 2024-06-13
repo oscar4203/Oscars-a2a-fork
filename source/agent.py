@@ -72,7 +72,7 @@ class Agent:
 
 
 class HumanAgent(Agent):
-    def __init__(self, name, filename: str) -> None:
+    def __init__(self, name, filename: str = "log") -> None:
         super().__init__(name)
 
 
