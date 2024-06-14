@@ -72,7 +72,7 @@ class Agent:
 
 
 class HumanAgent(Agent):
-    def __init__(self, name, filename: str) -> None:
+    def __init__(self, name) -> None:
         super().__init__(name)
 
 
@@ -83,7 +83,7 @@ class HumanAgent(Agent):
             raise ValueError(f"{self.name} is the judge.")
 
         # Choose a red card
-        red_apple: RedApple = None
+        red_apple: RedApple | None = None
 
         # Display the red cards in the agent's hand
         print(f"{self.name}'s red cards:")
@@ -162,7 +162,7 @@ class AIAgent(Agent):
             raise ValueError(f"{self.name} is the judge.")
 
         # Choose a red card
-        red_apple: RedApple = None
+        red_apple: RedApple | None = None
 
         # AI LOGIC GOES HERE #
 

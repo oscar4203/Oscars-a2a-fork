@@ -74,6 +74,7 @@ class Apple:
 # All known sets: https://boardgamegeek.com/wiki/page/Apples_to_Apples_Series
 class GreenApple(Apple):
     def __init__(self, set: str, adjective: str, synonyms: list[str] | None = None) -> None:
+        super().__init__(set)
         self.adjective: str = adjective
         self.synonyms: list[str] | None = synonyms
         self.adjective_vector: np.ndarray | None = None
@@ -123,6 +124,7 @@ class GreenApple(Apple):
 
 class RedApple(Apple):
     def __init__(self, set: str, noun: str, description: str | None = None) -> None:
+        super().__init__(set)
         self.noun: str = noun
         self.description: str | None = description
         self.noun_vector: np.ndarray | None = None

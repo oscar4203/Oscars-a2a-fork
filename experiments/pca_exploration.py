@@ -6,10 +6,9 @@ import pandas as pd
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
-from sklearn.preprocessing import StandardScaler, RobustScaler
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 import sys
 sys.path.append("../")
@@ -70,7 +69,7 @@ def create_red_apple_df(red_apple_deck: Deck, model: KeyedVectors) -> pd.DataFra
     return red_apple_df
 
 
-def run_pca(data: pd.DataFrame, n_components: int, title: str) -> None:
+def run_pca(data: pd.DataFrame, n_components: int, n_features: int, title: str) -> None:
     # Create a PCA object
     pca = PCA(n_components=n_components)
 
@@ -83,19 +82,52 @@ def run_pca(data: pd.DataFrame, n_components: int, title: str) -> None:
     # Fit the PCA model
     pca.fit(data_scaled)
 
-    # Transform the data
-    data_transformed = pca.transform(data_scaled)
+    # # Transform the data
+    # data_transformed = pca.transform(data_scaled)
 
     # # Create a DataFrame to store the transformed data
     # transformed_df = pd.DataFrame(data_transformed)
 
-    # Plot the PCA
+    # Label the components
     per_var = np.round(pca.explained_variance_ratio_ * 100, decimals=1)
     labels = ["PC" + str(x) for x in range(1, len(per_var) + 1)]
+
+    # Create a scree plot
     plt.bar(x=range(1, len(per_var) + 1), height=per_var, tick_label=labels)
     plt.xlabel("Principle Component")
     plt.ylabel("Percent of Explained Variance")
     plt.title(f"Scree Plot - {title}")
+
+    # Add annotation for the total percent of variance explained by the top n_components
+    total_var = np.sum(per_var[:n_components])
+    # round the float to 2 decimal places
+    total_var = round(total_var, 2)
+    plt.annotate(f'Total percent explained by top {n_components} PCs: {total_var}%',
+                xy=(0.5, 0.95), xycoords='axes fraction',
+                ha='center', va='center',
+                fontsize=12, bbox=dict(boxstyle="round,pad=0.3", edgecolor="black", facecolor="white"))
+
+    # Show the plot
+    plt.show()
+
+    # Analyze the PCA loadings for the first few components
+    loadings = pca.components_
+    feature_names = data.columns
+
+    # Sum up the absolute values of each dimension's coefficients across all PCs
+    feature_importance = np.sum(np.abs(loadings), axis=0)
+
+    # Sort features by importance
+    sorted_idx = np.argsort(feature_importance)[::-1]
+    top_features = feature_names[sorted_idx][:n_features]
+    top_importance = feature_importance[sorted_idx][:n_features]
+
+    # Plot the top 25 features
+    plt.figure(figsize=(20, 16))
+    plt.barh(range(n_features), top_importance[::-1], align='center')
+    plt.yticks(range(n_features), top_features[::-1]) # type: ignore
+    plt.xlabel(f"Sum of Absolute Coefficients - Top {n_components} Components")
+    plt.title(f"Top {n_features} Features by PCA Coefficient Importance - {title}")
     plt.show()
 
 
@@ -103,8 +135,9 @@ def main():
     # Load the pre-trained word vectors
     model = KeyedVectors.load_word2vec_format("../apples/GoogleNews-vectors-negative300.bin", binary=True)
 
-    # Set the number of components for PCA
+    # Set the number of components and features for PCA
     n_components = 50
+    n_features = 100
 
     # # Load the Green Apple cards to a Deck
     # green_apple_deck = Deck()
@@ -117,12 +150,12 @@ def main():
     # # Get the Green Apple adjective vectors
     # green_apple_df = create_green_apple_df(green_apple_deck, model)
     # # Run PCA on the Green Apple data
-    # run_pca(green_apple_df, n_components, "Green Apple Adjectives")
+    # run_pca(green_apple_df, n_components, n_features, "Green Apple Adjectives")
 
     # Get the Red Apple noun vectors
     red_apple_df = create_red_apple_df(red_apple_deck, model)
     # Run PCA on the Red Apple data
-    run_pca(red_apple_df, n_components, "Red Apple Nouns")
+    run_pca(red_apple_df, n_components, n_features, "Red Apple Nouns")
 
 
 if __name__ == "__main__":
