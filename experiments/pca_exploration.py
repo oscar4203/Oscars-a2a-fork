@@ -8,6 +8,7 @@ import pandas as pd
 from gensim.models import KeyedVectors
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 import sys
