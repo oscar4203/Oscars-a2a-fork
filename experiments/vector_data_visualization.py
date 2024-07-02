@@ -1,7 +1,6 @@
 # Description: Green and Red 'Apple' cards.
 
 # Standard Libraries
-import numpy as np
 import pandas as pd
 
 # Third-party Libraries
@@ -13,7 +12,7 @@ import sys
 sys.path.append("../")
 
 # Local Modules
-from source.apples import GreenApple, RedApple, Deck
+from source.apples import Deck
 from experiments.pca_exploration import create_green_apple_df, create_red_apple_df
 
 

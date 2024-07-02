@@ -72,9 +72,8 @@ class Agent:
 
 
 class HumanAgent(Agent):
-    def __init__(self, name) -> None:
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
@@ -147,9 +146,50 @@ class HumanAgent(Agent):
         return winning_red_apple
 
 
+class RandomAgent(Agent):
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
+
+    def choose_red_apple(self) -> RedApple:
+        # Check if the agent is a judge
+        if self.judge:
+            logging.error(f"{self.name} is the judge.")
+            raise ValueError(f"{self.name} is the judge.")
+
+        # Choose a random red card
+        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
+
+        # Display the red card chosen
+        print(f"{self.name} chose a red card.")
+        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+
+        return red_apple
+
+    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        # Check if the agent is a judge
+        if not self.judge:
+            logging.error(f"{self.name} is not the judge.")
+            raise ValueError(f"{self.name} is not the judge.")
+
+        # Choose a random winning red card
+        winning_red_apple = random.choice(red_apples)
+
+        # Display the red card chosen
+        logging.debug(f"winning_red_apple: {winning_red_apple}")
+        round_winner = list(winning_red_apple.keys())[0]
+        winning_red_apple_noun = winning_red_apple[round_winner].noun
+        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
+        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
+
+        return winning_red_apple
+
+
 class AIAgent(Agent):
+    """
+    AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
+    """
     class Model():
-        def __init__() -> None:
+        def __init__(self) -> None:
             pass
 
     def __init__(self, name: str) -> None:
@@ -198,45 +238,10 @@ class AIAgent(Agent):
         return winning_red_apple
 
 
-class RandomAgent(Agent):
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-
-    def choose_red_apple(self) -> RedApple:
-        # Check if the agent is a judge
-        if self.judge:
-            logging.error(f"{self.name} is the judge.")
-            raise ValueError(f"{self.name} is the judge.")
-
-        # Choose a random red card
-        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
-
-        # Display the red card chosen
-        print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
-
-        return red_apple
-
-    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
-        # Check if the agent is a judge
-        if not self.judge:
-            logging.error(f"{self.name} is not the judge.")
-            raise ValueError(f"{self.name} is not the judge.")
-
-        # Choose a random winning red card
-        winning_red_apple = random.choice(red_apples)
-
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
-
-        return winning_red_apple
-
-
-class OldAgent(Agent):
+class AIAgentNN(Agent):
+    """
+    AI agent for the 'Apples to Apples' game using Word2Vec and Neural Networks.
+    """
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
