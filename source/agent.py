@@ -3,16 +3,19 @@
 # Standard Libraries
 import logging
 import random
-import numpy as np
-import gensim
 
 # Third-party Libraries
+from gensim.models import KeyedVectors
 
 # Local Modules
 from source.apples import GreenApple, RedApple, Deck
+from source.model import Model
 
 
 class Agent:
+    """
+    Base class for the agents in the 'Apples to Apples' game
+    """
     def __init__(self, name: str) -> None:
         self.name: str = name
         self.points: int = 0
@@ -26,7 +29,7 @@ class Agent:
     def __repr__(self) -> str:
         return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
 
-    def draw_red_apples(self, red_apple_deck: Deck) -> Deck:
+    def draw_red_apples(self, red_apple_deck: Deck) -> Deck | None:
         # Calculate the number of red cards to pick up
         diff = 7 - len(self.red_apples)
         if diff > 0:
@@ -72,6 +75,9 @@ class Agent:
 
 
 class HumanAgent(Agent):
+    """
+    Human agent for the 'Apples to Apples' game.
+    """
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -147,6 +153,9 @@ class HumanAgent(Agent):
 
 
 class RandomAgent(Agent):
+    """
+    Random agent for the 'Apples to Apples' game.
+    """
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -188,10 +197,6 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    class Model():
-        def __init__(self) -> None:
-            pass
-
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -252,3 +257,7 @@ agent_type_mapping = {
     '2': AIAgent,
     '3': RandomAgent
 }
+
+
+if __name__ == "__main__":
+    pass
