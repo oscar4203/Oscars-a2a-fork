@@ -5,6 +5,14 @@
 #include <math.h>
 
 // add a makefile to produce a dll 
+#ifdef _WIN32
+  #define FTELL64(pfile) _ftelli64(pfile)
+  #define FSEEK64(pfile, offset, origin) _fseeki64(pfile, offset, origin)
+#else
+  #define FTELL64(pfile) ftello64(pfile)
+  #define FSEEK64(pfile, offset, origin) fseeko64(pfile, offset, origin)
+#endif
+
 
 #define TABLE_SIZE 5000000
 #define MAX_WORD_SIZE 50
@@ -26,6 +34,7 @@ struct {
 
 
 long long get_vector_size() {
+  
   return hash_table.vector_size;
 }
 
@@ -126,12 +135,12 @@ void load_binary(const char *filename, char normalize) {
   memset(hash_table.lookup, 0, sizeof(struct entry_t *) * hash_table.lookup_size);
   
   // Get the file size and allocate for it
-  long long start = _ftelli64(fp);
+  long long start = FTELL64(fp);
   fpos_t pos;
   fgetpos(fp, &pos);
 
-  int dunno = _fseeki64(fp, 0L, SEEK_END);
-  long long end = _ftelli64(fp);
+  int dunno = FSEEK64(fp, 0L, SEEK_END);
+  long long end = FTELL64(fp);
   long long size = end - start;
   fsetpos(fp, &pos);
 
