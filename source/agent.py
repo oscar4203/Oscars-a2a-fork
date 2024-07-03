@@ -203,6 +203,7 @@ class RandomAgent(Agent):
 
         return winning_red_apple
 
+
 # Import the "Model" class from local library here to avoid circular importing
 from source.model import Model, LRModel, NNModel
 
@@ -272,14 +273,6 @@ class AIAgent(Agent):
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
-
-
-# class AIAgentNN(Agent):
-#     """
-#     AI agent for the 'Apples to Apples' game using Word2Vec and Neural Networks.
-#     """
-#     def __init__(self, name: str) -> None:
-#         super().__init__(name)
 
 
 # Define the mapping from user input to class
