@@ -204,7 +204,7 @@ class RandomAgent(Agent):
         return winning_red_apple
 
 # Import the "Model" class from local library here to avoid circular importing
-from source.model import Model
+from source.model import Model, LRModel, NNModel
 
 class AIAgent(Agent):
     """
@@ -216,7 +216,7 @@ class AIAgent(Agent):
         self.models: dict[Agent, Model] | None = None
         self.opponents: list[Agent] = []
 
-    def initialize_models(self, all_players: list[Agent], nlp_model: KeyedVectors) -> None:
+    def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent], model_type: str) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
@@ -227,7 +227,10 @@ class AIAgent(Agent):
         self.nlp_model = nlp_model
 
         # Initialize the models
-        self.models = {agent: Model(agent, self.nlp_model.vector_size) for agent in self.opponents}
+        if model_type == "Linear Reg":
+            self.models = {agent: LRModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
+        elif model_type == "Neural Net":
+            self.models = {agent: NNModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
