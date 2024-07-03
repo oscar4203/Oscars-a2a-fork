@@ -44,8 +44,37 @@ class Model():
     def __init__(self, judge: Agent, vector_size: int) -> None:
         self.judge: Agent = judge
         self.model_data: ModelData = ModelData([], [], [])
-        self.slope_vector: np.ndarray = np.zeros(vector_size)
-        self.bias_vector: np.ndarray = np.zeros(vector_size)
+        # Initialize slope and bias vectors
+        self.slope_vector = np.random.randn(vector_size)
+        self.bias_vector = np.random.randn(vector_size)
+        self.learning_rate = 0.01  # Learning rate for updates
+
+    def __linear_regression(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+        """
+        Linear regression algorithm for the AI agent.
+        """
+        # y = mx + b, where x is the product of green and red apple vectors
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
+        return y_pred
+
+    def __update_parameters(self, green_apple_vector, red_apple_vector, y_target):
+        """
+        Update the slope and bias vectors based on the error.
+        """
+        y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
+        error = y_target - y_pred
+        # Update rule for gradient descent
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        self.slope_vector += self.learning_rate * np.dot(error, x)
+        self.bias_vector += self.learning_rate * error
+
+    def train(self, green_apple_vectors, red_apple_vectors, y_target):
+        """
+        Train the model using pairs of green and red apple vectors.
+        """
+        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            self.__update_parameters(green_apple_vector, red_apple_vector, y_target)
 
 
 class LRModel(Model):
@@ -54,6 +83,12 @@ class LRModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
+
+    def linear_regression(self) -> None:
+        """
+        Linear regression algorithm for the AI agent.
+        """
+        pass
 
 
 class NNModel(Model):

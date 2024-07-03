@@ -128,8 +128,28 @@ class ApplesToApples:
                 new_player_name = self.__generate_unique_name("Random Agent")
                 random_agents.append(RandomAgent(new_player_name))
             elif player_type == '3':
-                new_player_name = self.__generate_unique_name("AI Agent")
-                ai_agents.append(AIAgent(new_player_name))
+                # Validate the user input for the model type
+                model_type: str = ""
+                model_type = input("Please enter the model type (1: Linear Regression, 2: Neural Network): ")
+                logging.error(f"Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
+                while model_type not in ['1', '2']:
+                    model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
+                    logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
+
+                # Convert the model type from an number to a descriptive string
+                if model_type == '1':
+                    model_type = "Linear Reg"
+                elif model_type == '2':
+                    model_type = "Neural Net"
+
+                # Generate a unique name for the AI agent
+                new_player_name = self.__generate_unique_name(f"AI Agent - {model_type}")
+                new_player = AIAgent(new_player_name)
+                ai_agents.append(new_player)
+
+                # Create the player object
+                new_player.initialize_models(self.nlp_model, self.players, model_type)
+                logging.info(f"Initialized AI models for {new_player.name}.")
 
             # Create the player object
             self.players.append(agent_type_mapping[player_type](new_player_name))
@@ -138,12 +158,6 @@ class ApplesToApples:
 
             # Have each player pick up 7 red cards
             self.players[i].draw_red_apples(self.red_apples_deck)
-
-        # Initialize the AI models
-        for player in self.players:
-            if isinstance(player, AIAgent):
-                player.initialize_models(self.players, self.nlp_model)
-                logging.info(f"Initialized AI models for {player.name}.")
 
     def __choose_judge(self) -> None:
         # Choose the starting judge
