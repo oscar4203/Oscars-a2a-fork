@@ -240,10 +240,9 @@ class AIAgent(Agent):
 
         # AI LOGIC GOES HERE #
 
-        # #get the red apple vector
-        # for apples in self.red_apples:
-        #     self.word2vec.make_cum_table
-        #     pass
+        # Choose a random red card
+        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
+
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
