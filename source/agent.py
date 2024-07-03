@@ -3,16 +3,18 @@
 # Standard Libraries
 import logging
 import random
-import numpy as np
-import gensim
 
 # Third-party Libraries
+from gensim.models import KeyedVectors
 
 # Local Modules
 from source.apples import GreenApple, RedApple, Deck
 
 
 class Agent:
+    """
+    Base class for the agents in the 'Apples to Apples' game
+    """
     def __init__(self, name: str) -> None:
         self.name: str = name
         self.points: int = 0
@@ -26,7 +28,10 @@ class Agent:
     def __repr__(self) -> str:
         return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
 
-    def draw_red_apples(self, red_apple_deck: Deck) -> Deck:
+    def draw_red_apples(self, red_apple_deck: Deck) -> Deck | None:
+        """
+        Draw red cards from the deck, ensuring the agent has 7 red cards.
+        """
         # Calculate the number of red cards to pick up
         diff = 7 - len(self.red_apples)
         if diff > 0:
@@ -47,6 +52,9 @@ class Agent:
             logging.info(f"{self.name} cannot pick up the red card. Agent already has 7 red cards")
 
     def draw_green_apple(self, green_apple_deck: Deck) -> GreenApple:
+        """
+        Draw a green card from the deck (when the agent is the judge).
+        """
         # Check if the Agent is a judge
         if self.judge:
             # Draw a green card
@@ -65,16 +73,24 @@ class Agent:
         return self.green_apple
 
     def choose_red_apple(self) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
     def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        """
         raise NotImplementedError("Subclass must implement the 'choose_winning_red_apple' method")
 
 
 class HumanAgent(Agent):
-    def __init__(self, name) -> None:
+    """
+    Human agent for the 'Apples to Apples' game.
+    """
+    def __init__(self, name: str) -> None:
         super().__init__(name)
-
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
@@ -147,58 +163,10 @@ class HumanAgent(Agent):
         return winning_red_apple
 
 
-class AIAgent(Agent):
-    class Model():
-        def __init__() -> None:
-            pass
-
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
-
-    def choose_red_apple(self) -> RedApple:
-        # Check if the agent is a judge
-        if self.judge:
-            logging.error(f"{self.name} is the judge.")
-            raise ValueError(f"{self.name} is the judge.")
-
-        # Choose a red card
-        red_apple: RedApple | None = None
-
-        # AI LOGIC GOES HERE #
-
-        #get the red apple vector
-        for apples in self.red_apples:
-            self.word2vec.make_cum_table
-            pass
-
-        # Display the red card chosen
-        print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
-
-        return red_apple
-
-    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
-        # Check if the agent is a judge
-        if not self.judge:
-            logging.error(f"{self.name} is not the judge.")
-            raise ValueError(f"{self.name} is not the judge.")
-
-        # Choose a winning red card
-        winning_red_apple: dict[str, RedApple] = {}
-
-        # AI LOGIC GOES HERE #
-
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
-
-        return winning_red_apple
-
-
 class RandomAgent(Agent):
+    """
+    Random agent for the 'Apples to Apples' game.
+    """
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
@@ -235,15 +203,89 @@ class RandomAgent(Agent):
 
         return winning_red_apple
 
+# Import the "Model" class from local library here to avoid circular importing
+from source.model import Model
 
-class OldAgent(Agent):
+class AIAgent(Agent):
+    """
+    AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
+    """
     def __init__(self, name: str) -> None:
         super().__init__(name)
+        self.nlp_model: KeyedVectors | None = None
+        self.models: dict[Agent, Model] | None = None
+        self.opponents: list[Agent] = []
+
+    def initialize_models(self, all_players: list[Agent], nlp_model: KeyedVectors) -> None:
+        """
+        Initialize the Linear Regression and/or Neural Network models for the AI agent.
+        """
+        # Determine the opponents
+        self.opponents = [agent for agent in all_players if agent != self]
+
+        # Initialize the nlp model
+        self.nlp_model = nlp_model
+
+        # Initialize the models
+        self.models = {agent: Model(agent, self.nlp_model.vector_size) for agent in self.opponents}
+
+    def choose_red_apple(self) -> RedApple:
+        # Check if the agent is a judge
+        if self.judge:
+            logging.error(f"{self.name} is the judge.")
+            raise ValueError(f"{self.name} is the judge.")
+
+        # Choose a red card
+        red_apple: RedApple | None = None
+
+        # AI LOGIC GOES HERE #
+
+        # Choose a random red card
+        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
+
+
+        # Display the red card chosen
+        print(f"{self.name} chose a red card.")
+        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+
+        return red_apple
+
+    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        # Check if the agent is a judge
+        if not self.judge:
+            logging.error(f"{self.name} is not the judge.")
+            raise ValueError(f"{self.name} is not the judge.")
+
+        # Choose a winning red card
+        winning_red_apple: dict[str, RedApple] = {}
+
+        # AI LOGIC GOES HERE #
+
+        # Display the red card chosen
+        logging.debug(f"winning_red_apple: {winning_red_apple}")
+        round_winner = list(winning_red_apple.keys())[0]
+        winning_red_apple_noun = winning_red_apple[round_winner].noun
+        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
+        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
+
+        return winning_red_apple
+
+
+# class AIAgentNN(Agent):
+#     """
+#     AI agent for the 'Apples to Apples' game using Word2Vec and Neural Networks.
+#     """
+#     def __init__(self, name: str) -> None:
+#         super().__init__(name)
 
 
 # Define the mapping from user input to class
 agent_type_mapping = {
     '1': HumanAgent,
-    '2': AIAgent,
-    '3': RandomAgent
+    '2': RandomAgent,
+    '3': AIAgent
 }
+
+
+if __name__ == "__main__":
+    pass

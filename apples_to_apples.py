@@ -5,11 +5,12 @@ import logging
 import argparse
 
 # Third-party Libraries
+from gensim.models import KeyedVectors
 
 # Local Modules
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, agent_type_mapping
+from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, agent_type_mapping
 from source.results import GameResults, log_results
 from source import embeddings
 
@@ -30,6 +31,7 @@ class ApplesToApples:
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
+        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
         # embeddings.load()
 
     def start(self) -> None:
@@ -80,30 +82,68 @@ class ApplesToApples:
         self.green_apples_deck.shuffle()
         self.red_apples_deck.shuffle()
 
+    def __generate_unique_name(self, base_name: str) -> str:
+        # Unpack the existing names
+        existing_names = [agent.name for agent in self.players]
+
+        # Generate a unique name
+        i = 1
+        while f"{base_name} {i}" in existing_names:
+            i += 1
+        return f"{base_name} {i}"
+
     def __initialize_players(self) -> None:
+        # Initialize the list of player types
+        human_agents: list[HumanAgent] = []
+        random_agents: list[RandomAgent] = []
+        ai_agents: list[AIAgent] = []
+
+        # Display the number of players
         print(f"There are {self.number_of_players} players.")
-        logging.info("There are {self.number_of_players} players.")
+        logging.info(f"There are {self.number_of_players} players.")
 
         # Create the players
         for i in range(self.number_of_players):
             # Prompt the user to select the player type
             print(f"\nWhat type is Agent {i + 1}?")
             logging.info(f"What type is Agent {i + 1}?")
-            player_type = input("Please enter the player type (1: Human, 2: AI, 3: Random): ")
-            logging.info(f"Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
+            player_type = input("Please enter the player type (1: Human, 2: Random, 3: AI): ")
+            logging.info(f"Please enter the player type (1: Human, 2: Random, 3: AI): {player_type}")
 
             # Validate the user input
             while player_type not in ['1', '2', '3']:
-                player_type = input("Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): ")
-                logging.error(f"Invalid input. Please enter the player type (1: Human, 2: AI, 3: Random): {player_type}")
+                player_type = input("Invalid input. Please enter the player type (1: Human, 2: Random, 3: AI): ")
+                logging.error(f"Invalid input. Please enter the player type (1: Human, 2: Random, 3: AI): {player_type}")
+
+            # Determine the player name
+            if player_type == '1':
+                # Validate the user input for a unique name
+                new_player_name: str = ""
+                while True:
+                    new_player_name = input(f"Please enter the name for the Human Agent: ")
+                    if new_player_name not in [agent.name for agent in self.players]:
+                        break
+                human_agents.append(HumanAgent(new_player_name))
+            elif player_type == '2':
+                new_player_name = self.__generate_unique_name("Random Agent")
+                random_agents.append(RandomAgent(new_player_name))
+            elif player_type == '3':
+                new_player_name = self.__generate_unique_name("AI Agent")
+                ai_agents.append(AIAgent(new_player_name))
 
             # Create the player object
-            self.players.append(agent_type_mapping[player_type](f"Agent {i + 1}", ))
+            self.players.append(agent_type_mapping[player_type](new_player_name))
             print(self.players[i].name + ",", end=' ')
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
             self.players[i].draw_red_apples(self.red_apples_deck)
+
+        # Initialize the AI models
+        for player in self.players:
+            if isinstance(player, AIAgent):
+                player.initialize_models(self.players, self.nlp_model)
+                logging.info(f"Initialized AI models for {player.name}.")
 
     def __choose_judge(self) -> None:
         # Choose the starting judge
