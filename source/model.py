@@ -6,7 +6,6 @@ import numpy as np
 from dataclasses import dataclass
 
 # Third-party Libraries
-from gensim.models import KeyedVectors
 
 # Local Modules
 from source.apples import GreenApple, RedApple
@@ -42,28 +41,27 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, nlp_model: KeyedVectors) -> None:
-        self.nlp_model: KeyedVectors = nlp_model
+    def __init__(self, judge: Agent, vector_size: int) -> None:
         self.judge: Agent = judge
         self.model_data: ModelData = ModelData([], [], [])
-        self.slope_vector: np.ndarray = np.zeros(nlp_model.vector_size)
-        self.bias_vector: np.ndarray = np.zeros(nlp_model.vector_size)
+        self.slope_vector: np.ndarray = np.zeros(vector_size)
+        self.bias_vector: np.ndarray = np.zeros(vector_size)
 
 
 class LRModel(Model):
     """
     Linear Regression model for the AI agent.
     """
-    def __init__(self, judge: Agent, nlp_model: KeyedVectors) -> None:
-        super().__init__(judge, nlp_model)
+    def __init__(self, judge: Agent, vector_size: int) -> None:
+        super().__init__(judge, vector_size)
 
 
 class NNModel(Model):
     """
     Neural Network model for the AI agent.
     """
-    def __init__(self, judge: Agent, nlp_model: KeyedVectors) -> None:
-        super().__init__(judge, nlp_model)
+    def __init__(self, judge: Agent, vector_size: int) -> None:
+        super().__init__(judge, vector_size)
 
 
 if __name__ == "__main__":
