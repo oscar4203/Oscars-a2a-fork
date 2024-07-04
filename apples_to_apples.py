@@ -10,7 +10,8 @@ from gensim.models import KeyedVectors
 # Local Modules
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, agent_type_mapping
+from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
+# from source.model import Model, LRModel, NNModel
 from source.results import GameResults, log_results
 from source.w2vloader import VectorsW2V
 
@@ -94,11 +95,6 @@ class ApplesToApples:
         return f"{base_name} {i}"
 
     def __initialize_players(self) -> None:
-        # Initialize the list of player types
-        human_agents: list[HumanAgent] = []
-        random_agents: list[RandomAgent] = []
-        ai_agents: list[AIAgent] = []
-
         # Display the number of players
         print(f"There are {self.number_of_players} players.")
         logging.info(f"There are {self.number_of_players} players.")
@@ -124,41 +120,39 @@ class ApplesToApples:
                     new_agent_name = input(f"Please enter the name for the Human Agent: ")
                     if new_agent_name not in [agent.name for agent in self.players]:
                         break
-                human_agents.append(HumanAgent(new_agent_name))
+                new_agent = HumanAgent(new_agent_name)
             elif player_type == '2':
                 new_agent_name = self.__generate_unique_name("Random Agent")
-                random_agents.append(RandomAgent(new_agent_name))
+                new_agent = RandomAgent(new_agent_name)
             elif player_type == '3':
                 # Validate the user input for the model type
                 model_type: str = ""
                 model_type = input("Please enter the model type (1: Linear Regression, 2: Neural Network): ")
-                logging.error(f"Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
+                logging.info(f"Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
                 while model_type not in ['1', '2']:
                     model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
                     logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
 
-                # Convert the model type from an number to a descriptive string
-                if model_type == '1':
-                    model_type = "Linear Reg"
-                elif model_type == '2':
-                    model_type = "Neural Net"
-
                 # Generate a unique name for the AI agent
-                new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type}")
-                new_agent = AIAgent(new_agent_name)
-                ai_agents.append(new_agent)
+                model_type_class = model_type_mapping[model_type]
+                logging.debug(f"Model Type Class: {model_type_class}")
+                logging.debug(f"Model Type Name: {model_type_class.__name__}")
+                new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type_class.__name__}")
+                new_agent = AIAgent(new_agent_name, model_type_class)
 
-                # Create the agent object
-                new_agent.initialize_models(self.nlp_model, self.players, model_type)
-                # new_agent.initialize_models(self.vectors, self.players,model_type)
-                logging.info(f"Initialized models for {new_agent.name}.")
-
-            # Create the player object
-            self.players.append(agent_type_mapping[player_type](new_agent_name))
+            # Append the player object
+            self.players.append(new_agent)
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
             self.players[i].draw_red_apples(self.red_apples_deck)
+
+        # Initialize the models for the AI agents
+        for player in self.players:
+            if isinstance(player, AIAgent):
+                player.initialize_models(self.nlp_model, self.players)
+                logging.info(f"Initialized models for {new_agent.name}.")
+
 
     def __choose_judge(self) -> None:
         # Choose the starting judge

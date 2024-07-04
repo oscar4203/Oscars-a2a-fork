@@ -210,16 +210,17 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, type: LRModel | NNModel) -> None:
         super().__init__(name)
         # self.nlp_model: KeyedVectors | None = None
         self.vectors = None
+        self.model_type: LRModel | NNModel = type
         self.self_model: Model | None = None
         self.opponents: list[Agent] = []
         self.opponent_models: dict[Agent, Model] | None = None
 
-    def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent], model_type: str) -> None:
-    # def initialize_models(self, vectors, all_players: list[Agent], model_type: str) -> None:
+    def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
+    # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
@@ -230,25 +231,27 @@ class AIAgent(Agent):
         # self.vectors = vectors
 
         # Initialize the self_model
-        if model_type == "Linear Reg":
+        if isinstance(self.model_type, LRModel):
             self.self_model = LRModel(self, self.nlp_model.vector_size)
-        elif model_type == "Neural Net":
+        elif isinstance(self.model_type, NNModel):
             self.self_model = NNModel(self, self.nlp_model.vector_size)
 
         # Determine the opponents
         self.opponents = [agent for agent in all_players if agent != self]
 
         # Initialize the models
-        if model_type == "Linear Reg":
+        if isinstance(self.model_type, LRModel):
             self.self_model = LRModel(self, self.nlp_model.vector_size)
             self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
-        elif model_type == "Neural Net":
+            logging.debug(f"LRModel - opponent_models: {self.opponent_models}")
+        elif isinstance(self.model_type, NNModel):
             self.self_model = NNModel(self, self.nlp_model.vector_size)
             self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
-        # if model_type == "Linear Reg":
+            logging.debug(f"NNModel - opponent_models: {self.opponent_models}")
+        # if isinstance(self.model_type, LRModel):
         #     self.self_model = LRModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: LRModel(agent, self.vectors.vector_size) for agent in self.opponents}
-        # elif model_type == "Neural Net":
+        # elif isinstance(self.model_type, NNModel):
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
 
@@ -299,11 +302,17 @@ class AIAgent(Agent):
         return winning_red_apple
 
 
-# Define the mapping from user input to class
-agent_type_mapping = {
-    '1': HumanAgent,
-    '2': RandomAgent,
-    '3': AIAgent
+# # Define the mapping from user input to class
+# agent_type_mapping = {
+#     '1': HumanAgent,
+#     '2': RandomAgent,
+#     '3': AIAgent
+# }
+
+# Define the mapping from user input to model type
+model_type_mapping = {
+    '1': LRModel,
+    '2': NNModel
 }
 
 

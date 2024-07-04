@@ -49,6 +49,16 @@ class Model():
         self.bias_vector = np.random.randn(vector_size)
         self.learning_rate = 0.01  # Learning rate for updates
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
+               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
+               f"learning_rate={self.learning_rate})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
+               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
+               f"learning_rate={self.learning_rate})"
+
     def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
@@ -68,6 +78,12 @@ class LRModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return super().__repr__()
 
     def __linear_regression(self, green_apple_vector, red_apple_vector) -> np.ndarray:
         """
