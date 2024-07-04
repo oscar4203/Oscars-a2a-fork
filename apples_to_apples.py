@@ -238,13 +238,17 @@ class ApplesToApples:
             # Increment the round
             self.round += 1
 
-            # Play the round
-            print("\n===================")
-            print(f"ROUND {self.round}:")
-            print("===================")
-            logging.info("===================")
-            logging.info(f"ROUND {self.round}:")
-            logging.info("===================")
+            # Print and log the round message
+            round_message = f"\n===================" \
+                            f"\nROUND {self.round}:" \
+                            f"\n===================\n"
+            print(round_message)
+            logging.info(round_message)
+
+            # Print and log the player points
+            for player in self.players:
+                print(f"{player.name}: {player.points} points")
+                logging.info(f"{player.name}: {player.points} points")
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
@@ -315,12 +319,15 @@ class ApplesToApples:
              # Check if the game is over
             self.winner = self.__is_game_over()
             if self.winner is not None:
-                print("\n##############################")
-                print(f"# {self.winner.name} has won the game! #")
-                print("##############################")
-                logging.info("##############################")
-                logging.info(f"# {self.winner.name} has won the game! #")
-                logging.info("##############################")
+                # Prepare the winner message
+                winner_text = f"# {self.winner.name} has won the game! #"
+                border = '#' * len(winner_text)
+                message = f"\n{border}\n{winner_text}\n{border}\n"
+
+                # Print and log the winner message
+                print(message)
+                logging.info(message)
+
                 break
 
             # Assign the next judge

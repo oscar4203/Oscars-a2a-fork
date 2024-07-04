@@ -48,7 +48,7 @@ class Model():
         # Initialize slope and bias vectors
         self.slope_vector = np.random.randn(vector_size)
         self.bias_vector = np.random.randn(vector_size)
-        self.target_score = 0  # Target score for the model
+        self.y_target: np.ndarray = np.zeros(shape=vector_size)  # Target score for the model
         self.learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
@@ -97,16 +97,21 @@ class LRModel(Model):
         y_pred = np.dot(self.slope_vector, x) + self.bias_vector
         return y_pred
 
-    def __update_parameters(self, green_apple_vector, red_apple_vector, y_target):
+    def __update_parameters(self, green_apple_vector, red_apple_vector):
         """
         Update the slope and bias vectors based on the error.
         """
+        # Calculate the error
         y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
-        error = y_target - y_pred
-        # Update rule for gradient descent
+        error = self.y_target - y_pred
+
+        # Update slope and bias vectors
         x = np.multiply(green_apple_vector, red_apple_vector)
         self.slope_vector += self.learning_rate * np.dot(error, x) # TODO - Change self.slope_vector to a vector, right now it's a scalar
         self.bias_vector += self.learning_rate * error
+
+        # Update the target score based on the error
+        self.y_target = self.y_target - error
 
     def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
         """
@@ -126,8 +131,8 @@ class LRModel(Model):
 
         # Calculate the target score
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
-            y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
-            self.__update_parameters(green_apple_vector, red_apple_vector, y_target)
+            self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
+            self.__update_parameters(green_apple_vector, red_apple_vector)
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -151,7 +156,7 @@ class LRModel(Model):
             predicted_score: np.ndarray = self.__linear_regression(green_apple_vector, red_apple_vector)
 
             # Evaluate the score difference using Euclidean distances
-            score_difference = np.linalg.norm(predicted_score - self.target_score)
+            score_difference = np.linalg.norm(predicted_score - self.y_target)
 
             if score_difference < closest_score:
                 closest_score = score_difference
@@ -186,7 +191,7 @@ class LRModel(Model):
                 predicted_score = self.__linear_regression(green_apple_vector, red_apple_vector)
 
                 # Evaluate the score difference using Euclidean distances
-                score_difference = np.linalg.norm(predicted_score - self.target_score)
+                score_difference = np.linalg.norm(predicted_score - self.y_target)
 
                 if score_difference < closest_score:
                     closest_score = score_difference
@@ -221,16 +226,21 @@ class NNModel(Model):
         y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
         return y_pred
 
-    def __back_propagation(self, green_apple_vector, red_apple_vector, y_target):
+    def __back_propagation(self, green_apple_vector, red_apple_vector):
         """
         Back propagation algorithm for the AI agent.
         """
+        # Calculate the error
         y_pred = self.__forward_propagation(green_apple_vector, red_apple_vector)
-        error = y_target - y_pred
+        error = self.y_target - y_pred
+
         # Update rule for gradient descent
         x = np.multiply(green_apple_vector, red_apple_vector)
         self.slope_vector += self.learning_rate * np.dot(error, x)
         self.bias_vector += self.learning_rate * error
+
+        # Update the target score based on the error
+        self.y_target = self.y_target - error
 
     def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
         """
@@ -250,8 +260,8 @@ class NNModel(Model):
 
         # Calculate the target score
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
-            y_target = self.__forward_propagation(green_apple_vector, red_apple_vector)
-            self.__back_propagation(green_apple_vector, red_apple_vector, y_target)
+            self.y_target = self.__forward_propagation(green_apple_vector, red_apple_vector)
+            self.__back_propagation(green_apple_vector, red_apple_vector)
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
