@@ -72,13 +72,13 @@ class Agent:
 
         return self.green_apple
 
-    def choose_red_apple(self) -> RedApple:
+    def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> RedApple: # Define the type of current_judge as a string
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         """
@@ -92,7 +92,7 @@ class HumanAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def choose_red_apple(self) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
         if self.judge:
             logging.error(f"{self.name} is the judge.")
@@ -127,7 +127,7 @@ class HumanAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         # Check if the agent is a judge
         if not self.judge:
             logging.error(f"{self.name} is not the judge.")
@@ -170,7 +170,7 @@ class RandomAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def choose_red_apple(self) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
         if self.judge:
             logging.error(f"{self.name} is the judge.")
@@ -185,7 +185,7 @@ class RandomAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         # Check if the agent is a judge
         if not self.judge:
             logging.error(f"{self.name} is not the judge.")
@@ -204,32 +204,58 @@ class RandomAgent(Agent):
         return winning_red_apple
 
 # Import the "Model" class from local library here to avoid circular importing
-from source.model import Model
+from source.model import Model, LRModel, NNModel
 
 class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, type: LRModel | NNModel) -> None:
         super().__init__(name)
-        self.nlp_model: KeyedVectors | None = None
-        self.models: dict[Agent, Model] | None = None
+        # self.nlp_model: KeyedVectors | None = None
+        self.vectors = None
+        self.model_type: LRModel | NNModel = type
+        self.self_model: Model | None = None
         self.opponents: list[Agent] = []
+        self.opponent_models: dict[Agent, Model] | None = None
 
-    def initialize_models(self, all_players: list[Agent], nlp_model: KeyedVectors) -> None:
+    def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
+    # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
-        # Determine the opponents
-        self.opponents = [agent for agent in all_players if agent != self]
-
         # Initialize the nlp model
         self.nlp_model = nlp_model
 
-        # Initialize the models
-        self.models = {agent: Model(agent, self.nlp_model.vector_size) for agent in self.opponents}
+        # # Initialize the vectors
+        # self.vectors = vectors
 
-    def choose_red_apple(self) -> RedApple:
+        # Initialize the self_model
+        if isinstance(self.model_type, LRModel):
+            self.self_model = LRModel(self, self.nlp_model.vector_size)
+        elif isinstance(self.model_type, NNModel):
+            self.self_model = NNModel(self, self.nlp_model.vector_size)
+
+        # Determine the opponents
+        self.opponents = [agent for agent in all_players if agent != self]
+
+        # Initialize the models
+        if isinstance(self.model_type, LRModel):
+            self.self_model = LRModel(self, self.nlp_model.vector_size)
+            self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
+            logging.debug(f"LRModel - opponent_models: {self.opponent_models}")
+        elif isinstance(self.model_type, NNModel):
+            self.self_model = NNModel(self, self.nlp_model.vector_size)
+            self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
+            logging.debug(f"NNModel - opponent_models: {self.opponent_models}")
+        # if isinstance(self.model_type, LRModel):
+        #     self.self_model = LRModel(self, self.vectors.vector_size)
+        #     self.opponent_models = {agent: LRModel(agent, self.vectors.vector_size) for agent in self.opponents}
+        # elif isinstance(self.model_type, NNModel):
+        #     self.self_model = NNModel(self, self.vectors.vector_size)
+        #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
+
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
         if self.judge:
             logging.error(f"{self.name} is the judge.")
@@ -238,11 +264,13 @@ class AIAgent(Agent):
         # Choose a red card
         red_apple: RedApple | None = None
 
-        # AI LOGIC GOES HERE #
+        # Check that the models were initialized
+        if self.opponent_models is None:
+            logging.error("Models have not been initialized.")
+            raise ValueError("Models have not been initialized.")
 
-        # Choose a random red card
-        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
-
+        # Run the AI model to choose a red card based on current judge
+        red_apple = self.opponent_models[current_judge].choose_red_apple(green_apple, self.red_apples)
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
@@ -250,16 +278,19 @@ class AIAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         # Check if the agent is a judge
         if not self.judge:
             logging.error(f"{self.name} is not the judge.")
             raise ValueError(f"{self.name} is not the judge.")
 
-        # Choose a winning red card
-        winning_red_apple: dict[str, RedApple] = {}
+        # Check if the agent self_model has been initialized
+        if self.self_model is None:
+            logging.error("Model has not been initialized.")
+            raise ValueError("Model has not been initialized.")
 
-        # AI LOGIC GOES HERE #
+        # Choose a winning red card
+        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(green_apple, red_apples)
 
         # Display the red card chosen
         logging.debug(f"winning_red_apple: {winning_red_apple}")
@@ -271,19 +302,17 @@ class AIAgent(Agent):
         return winning_red_apple
 
 
-# class AIAgentNN(Agent):
-#     """
-#     AI agent for the 'Apples to Apples' game using Word2Vec and Neural Networks.
-#     """
-#     def __init__(self, name: str) -> None:
-#         super().__init__(name)
+# # Define the mapping from user input to class
+# agent_type_mapping = {
+#     '1': HumanAgent,
+#     '2': RandomAgent,
+#     '3': AIAgent
+# }
 
-
-# Define the mapping from user input to class
-agent_type_mapping = {
-    '1': HumanAgent,
-    '2': RandomAgent,
-    '3': AIAgent
+# Define the mapping from user input to model type
+model_type_mapping = {
+    '1': LRModel,
+    '2': NNModel
 }
 
 

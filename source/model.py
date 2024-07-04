@@ -44,8 +44,32 @@ class Model():
     def __init__(self, judge: Agent, vector_size: int) -> None:
         self.judge: Agent = judge
         self.model_data: ModelData = ModelData([], [], [])
-        self.slope_vector: np.ndarray = np.zeros(vector_size)
-        self.bias_vector: np.ndarray = np.zeros(vector_size)
+        # Initialize slope and bias vectors
+        self.slope_vector = np.random.randn(vector_size)
+        self.bias_vector = np.random.randn(vector_size)
+        self.learning_rate = 0.01  # Learning rate for updates
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
+               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
+               f"learning_rate={self.learning_rate})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
+               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
+               f"learning_rate={self.learning_rate})"
+
+    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        """
+        raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
+
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        """
+        raise NotImplementedError("Subclass must implement the 'choose_winning_red_apple' method")
 
 
 class LRModel(Model):
@@ -55,6 +79,39 @@ class LRModel(Model):
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
 
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return super().__repr__()
+
+    def __linear_regression(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+        """
+        Linear regression algorithm for the AI agent.
+        """
+        # y = mx + b, where x is the product of green and red apple vectors
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
+        return y_pred
+
+    def __update_parameters(self, green_apple_vector, red_apple_vector, y_target):
+        """
+        Update the slope and bias vectors based on the error.
+        """
+        y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
+        error = y_target - y_pred
+        # Update rule for gradient descent
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        self.slope_vector += self.learning_rate * np.dot(error, x)
+        self.bias_vector += self.learning_rate * error
+
+    def __train(self, green_apple_vectors, red_apple_vectors, y_target):
+        """
+        Train the model using pairs of green and red apple vectors.
+        """
+        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            self.__update_parameters(green_apple_vector, red_apple_vector, y_target)
+
 
 class NNModel(Model):
     """
@@ -62,6 +119,33 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
+
+    def __forward_propagation(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+        """
+        Forward propagation algorithm for the AI agent.
+        """
+        # y = mx + b, where x is the product of green and red apple vectors
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
+        return y_pred
+
+    def __back_propagation(self, green_apple_vector, red_apple_vector, y_target):
+        """
+        Back propagation algorithm for the AI agent.
+        """
+        y_pred = self.__forward_propagation(green_apple_vector, red_apple_vector)
+        error = y_target - y_pred
+        # Update rule for gradient descent
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        self.slope_vector += self.learning_rate * np.dot(error, x)
+        self.bias_vector += self.learning_rate * error
+
+    def __train(self, green_apple_vectors, red_apple_vectors, y_target):
+        """
+        Train the model using pairs of green and red apple vectors.
+        """
+        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            self.__back_propagation(green_apple_vector, red_apple_vector, y_target)
 
 
 if __name__ == "__main__":
