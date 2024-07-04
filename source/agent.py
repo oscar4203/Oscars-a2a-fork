@@ -271,7 +271,7 @@ class AIAgent(Agent):
             raise ValueError("Models have not been initialized.")
 
         # Run the AI model to choose a red card based on current judge
-        red_apple = self.opponent_models[current_judge].choose_red_apple(green_apple, self.red_apples)
+        red_apple = self.opponent_models[current_judge].choose_red_apple(self.nlp_model, green_apple, self.red_apples)
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
@@ -291,7 +291,7 @@ class AIAgent(Agent):
             raise ValueError("Model has not been initialized.")
 
         # Choose a winning red card
-        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(green_apple, red_apples)
+        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(self.nlp_model, green_apple, red_apples)
 
         # Display the red card chosen
         logging.debug(f"winning_red_apple: {winning_red_apple}")
