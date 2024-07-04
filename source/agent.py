@@ -231,27 +231,28 @@ class AIAgent(Agent):
         # self.vectors = vectors
 
         # Initialize the self_model
-        if isinstance(self.model_type, LRModel):
+        if self.model_type is LRModel:
             self.self_model = LRModel(self, self.nlp_model.vector_size)
-        elif isinstance(self.model_type, NNModel):
+        elif self.model_type is NNModel:
             self.self_model = NNModel(self, self.nlp_model.vector_size)
 
         # Determine the opponents
         self.opponents = [agent for agent in all_players if agent != self]
+        logging.debug(f"opponents: {[agent.name for agent in self.opponents]}")
 
         # Initialize the models
-        if isinstance(self.model_type, LRModel):
+        if self.model_type is LRModel:
             self.self_model = LRModel(self, self.nlp_model.vector_size)
             self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
             logging.debug(f"LRModel - opponent_models: {self.opponent_models}")
-        elif isinstance(self.model_type, NNModel):
+        elif self.model_type is NNModel:
             self.self_model = NNModel(self, self.nlp_model.vector_size)
             self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
             logging.debug(f"NNModel - opponent_models: {self.opponent_models}")
-        # if isinstance(self.model_type, LRModel):
+        # if self.model_type is LRModel:
         #     self.self_model = LRModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: LRModel(agent, self.vectors.vector_size) for agent in self.opponents}
-        # elif isinstance(self.model_type, NNModel):
+        # elif self.model_type is NNModel:
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
 

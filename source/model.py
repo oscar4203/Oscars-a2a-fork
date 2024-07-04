@@ -112,6 +112,18 @@ class LRModel(Model):
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
             self.__update_parameters(green_apple_vector, red_apple_vector, y_target)
 
+    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        """
+        pass
+
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        """
+        pass
+
 
 class NNModel(Model):
     """
@@ -119,6 +131,12 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return super().__repr__()
 
     def __forward_propagation(self, green_apple_vector, red_apple_vector) -> np.ndarray:
         """
@@ -146,6 +164,18 @@ class NNModel(Model):
         """
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
             self.__back_propagation(green_apple_vector, red_apple_vector, y_target)
+
+    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        """
+        pass
+
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        """
+        pass
 
 
 if __name__ == "__main__":
