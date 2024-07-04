@@ -217,7 +217,7 @@ class AIAgent(Agent):
         self.model_type: LRModel | NNModel = type
         self.self_model: Model | None = None
         self.opponents: list[Agent] = []
-        self.opponent_models: dict[Agent, Model] | None = None
+        self.opponent_models: dict[Agent, LRModel | NNModel] | None = None
 
     def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
     # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
@@ -255,6 +255,22 @@ class AIAgent(Agent):
         # elif self.model_type is NNModel:
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
+
+    def train_models(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple, judge: Agent) -> None:
+        """
+        Train the AI model with the new green card, red card, and judge.
+        """
+        # Check if the agent self_model has been initialized
+        if self.opponent_models is None:
+            logging.error("Opponent Models have not been initialized.")
+            raise ValueError("Opponent Models have not been initialized.")
+
+        # Train the AI models with the new green card, red card, and judge
+        for agent in self.opponents:
+            if judge == agent:
+                agent_model: LRModel | NNModel = self.opponent_models[agent]
+                if self.model_type in [LRModel, NNModel]:
+                    agent_model.train_model(nlp_model, new_green_apple, new_red_apple)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge

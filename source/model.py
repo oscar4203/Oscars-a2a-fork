@@ -108,11 +108,25 @@ class LRModel(Model):
         self.slope_vector += self.learning_rate * np.dot(error, x) # TODO - Change self.slope_vector to a vector, right now it's a scalar
         self.bias_vector += self.learning_rate * error
 
-    def __train(self, green_apple_vectors, red_apple_vectors, y_target):
+    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
+        # Set the green and red apple vectors
+        new_green_apple.set_adjective_vector(nlp_model)
+        new_red_apple.set_noun_vector(nlp_model)
+
+        # Add the new green and red apples to the model data
+        self.model_data.green_apples.append(new_green_apple)
+        self.model_data.red_apples.append(new_red_apple)
+
+        # Get the green and red apple vectors
+        green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
+        red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
+
+        # Calculate the target score
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
             self.__update_parameters(green_apple_vector, red_apple_vector, y_target)
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
@@ -134,7 +148,7 @@ class LRModel(Model):
             red_apple_vector = red_apple.get_noun_vector()
 
             # Calculate the predicted score
-            predicted_score = self.__linear_regression(green_apple_vector, red_apple_vector)
+            predicted_score: np.ndarray = self.__linear_regression(green_apple_vector, red_apple_vector)
 
             # Evaluate the score difference using Euclidean distances
             score_difference = np.linalg.norm(predicted_score - self.target_score)
@@ -146,9 +160,6 @@ class LRModel(Model):
         # Check if the best red apple was chosen
         if best_red_apple is None:
             raise ValueError("No red apple was chosen.")
-
-        # Assuming y_target is the score of the best red apple, update the model
-        self.__train([green_apple_vector], [best_red_apple.get_noun_vector()], self.target_score)
 
         return best_red_apple
 
@@ -184,9 +195,6 @@ class LRModel(Model):
         # Check if the winning red apple is None
         if winning_red_apple is None:
             raise ValueError("No winning red apple was chosen.")
-
-        # Assuming y_target is the score of the winning red apple, update the model
-        self.__train([green_apple_vector], [winning_red_apple[next(iter(winning_red_apple))].get_noun_vector()], self.target_score)
 
         return winning_red_apple
 
@@ -224,11 +232,25 @@ class NNModel(Model):
         self.slope_vector += self.learning_rate * np.dot(error, x)
         self.bias_vector += self.learning_rate * error
 
-    def __train(self, green_apple_vectors, red_apple_vectors, y_target):
+    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
+        # Set the green and red apple vectors
+        new_green_apple.set_adjective_vector(nlp_model)
+        new_red_apple.set_noun_vector(nlp_model)
+
+        # Add the new green and red apples to the model data
+        self.model_data.green_apples.append(new_green_apple)
+        self.model_data.red_apples.append(new_red_apple)
+
+        # Get the green and red apple vectors
+        green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
+        red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
+
+        # Calculate the target score
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            y_target = self.__forward_propagation(green_apple_vector, red_apple_vector)
             self.__back_propagation(green_apple_vector, red_apple_vector, y_target)
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
@@ -258,9 +280,6 @@ class NNModel(Model):
         if best_red_apple is None:
             raise ValueError("No red apple was chosen.")
 
-        # Assuming y_target is the score of the best red apple, update the model
-        self.__train([green_apple_vector], [best_red_apple.get_noun_vector()], best_score)
-
         return best_red_apple
 
     def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
@@ -283,9 +302,6 @@ class NNModel(Model):
         # Check if the winning red apple is None
         if winning_red_apple is None:
             raise ValueError("No winning red apple was chosen.")
-
-        # Assuming y_target is the score of the winning red apple, update the model
-        self.__train([green_apple_vector], [winning_red_apple[next(iter(winning_red_apple))].get_noun_vector()], best_score)
 
         return winning_red_apple
 

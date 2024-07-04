@@ -265,15 +265,15 @@ class ApplesToApples:
             # Prompt the judge to select the winning red card
             print(f"\n{self.current_judge.name}, please select the winning red card.")
             logging.info(f"{self.current_judge.name}, please select the winning red card.")
-            winning_red_card = self.current_judge.choose_winning_red_apple(
+            winning_red_card_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
                 self.green_apples_in_play[self.current_judge], self.red_apples_in_play)
 
             # Award points to the winning player
             for player in self.players:
                 logging.debug(f"Agent.name: {player.name}, datatype: {type(player.name)}")
-                logging.debug(f"Winning Red Card: {winning_red_card}, datatype: {type(winning_red_card)}")
-                logging.debug(f"Winnning Red Card Keys: {winning_red_card.keys()}, datatype: {type(winning_red_card.keys())}")
-                if player.name in winning_red_card.keys():
+                logging.debug(f"Winning Red Card: {winning_red_card_dict}, datatype: {type(winning_red_card_dict)}")
+                logging.debug(f"Winnning Red Card Keys: {winning_red_card_dict.keys()}, datatype: {type(winning_red_card_dict.keys())}")
+                if player.name in winning_red_card_dict.keys():
                     player.points += 1
                     print(f"{player.name} has won the round!")
                     logging.info(f"{player.name} has won the round!")
@@ -291,12 +291,18 @@ class ApplesToApples:
                 for red_apple in self.red_apples_in_play:
                     red_apples_list.append(list(red_apple.values())[0])
 
-            winning_red_card = list(winning_red_card.values())[0]
+            # Extract the winning red card
+            winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
 
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
             log_results(results)
+
+            # Train all AI agents (if applicable)
+            for player in self.players:
+                if isinstance(player, AIAgent):
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
