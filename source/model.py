@@ -115,14 +115,53 @@ class LRModel(Model):
     def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
+        This method applies the private linear regression methods to predict the best red apple.
         """
-        pass
+        best_score = -np.inf
+        best_red_apple: RedApple | None = None
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        for red_apple in red_apples:
+            red_apple_vector = red_apple.get_noun_vector()
+            score = self.__linear_regression(green_apple_vector, red_apple_vector)
+            if score > best_score:
+                best_score = score
+                best_red_apple = red_apple
+
+        # Check if the best red apple is None
+        if best_red_apple is None:
+            raise ValueError("No red apple was chosen.")
+
+        # Assuming y_target is the score of the best red apple, update the model
+        self.__train([green_apple_vector], [best_red_apple.get_noun_vector()], best_score)
+
+        return best_red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        This method applies the private linear regression methods to predict the winning red apple.
         """
-        pass
+        best_score = -np.inf
+        winning_red_apple: dict[str, RedApple] | None = None
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        for red_apple_dict in red_apples:
+            for _, red_apple in red_apple_dict.items():
+                red_apple_vector = red_apple.get_noun_vector()
+                score = self.__linear_regression(green_apple_vector, red_apple_vector)
+                if score > best_score:
+                    best_score = score
+                    winning_red_apple = red_apple_dict
+
+        # Check if the winning red apple is None
+        if winning_red_apple is None:
+            raise ValueError("No winning red apple was chosen.")
+
+        # Assuming y_target is the score of the winning red apple, update the model
+        self.__train([green_apple_vector], [winning_red_apple[next(iter(winning_red_apple))].get_noun_vector()], best_score)
+
+        return winning_red_apple
 
 
 class NNModel(Model):
@@ -168,14 +207,53 @@ class NNModel(Model):
     def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
+        This method applies the private neural network methods to predict the best red apple.
         """
-        pass
+        best_score = -np.inf
+        best_red_apple: RedApple | None = None
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        for red_apple in red_apples:
+            red_apple_vector = red_apple.get_noun_vector()
+            score = self.__forward_propagation(green_apple_vector, red_apple_vector)
+            if score > best_score:
+                best_score = score
+                best_red_apple = red_apple
+
+        # Check if the best red apple is None
+        if best_red_apple is None:
+            raise ValueError("No red apple was chosen.")
+
+        # Assuming y_target is the score of the best red apple, update the model
+        self.__train([green_apple_vector], [best_red_apple.get_noun_vector()], best_score)
+
+        return best_red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        This method applies the private neural network methods to predict the winning red apple.
         """
-        pass
+        best_score = -np.inf
+        winning_red_apple: dict[str, RedApple] | None = None
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        for red_apple_dict in red_apples:
+            for _, red_apple in red_apple_dict.items():
+                red_apple_vector = red_apple.get_noun_vector()
+                score = self.__forward_propagation(green_apple_vector, red_apple_vector)
+                if score > best_score:
+                    best_score = score
+                    winning_red_apple = red_apple_dict
+
+        # Check if the winning red apple is None
+        if winning_red_apple is None:
+            raise ValueError("No winning red apple was chosen.")
+
+        # Assuming y_target is the score of the winning red apple, update the model
+        self.__train([green_apple_vector], [winning_red_apple[next(iter(winning_red_apple))].get_noun_vector()], best_score)
+
+        return winning_red_apple
 
 
 if __name__ == "__main__":

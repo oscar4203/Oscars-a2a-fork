@@ -303,13 +303,6 @@ class AIAgent(Agent):
         return winning_red_apple
 
 
-# # Define the mapping from user input to class
-# agent_type_mapping = {
-#     '1': HumanAgent,
-#     '2': RandomAgent,
-#     '3': AIAgent
-# }
-
 # Define the mapping from user input to model type
 model_type_mapping = {
     '1': LRModel,
