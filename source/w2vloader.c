@@ -4,8 +4,20 @@
 #include <string.h>
 #include <math.h>
 
+// add a makefile to produce a dll 
+#ifdef _WIN32
+  #define FTELL64(pfile) _ftelli64(pfile)
+  #define FSEEK64(pfile, offset, origin) _fseeki64(pfile, offset, origin)
+#else
+  #define FTELL64(pfile) ftello64(pfile)
+  #define FSEEK64(pfile, offset, origin) fseeko64(pfile, offset, origin)
+#endif
+
+
 #define TABLE_SIZE 5000000
 #define MAX_WORD_SIZE 50
+
+
 
 struct entry_t {
   struct entry_t *next;
@@ -19,6 +31,16 @@ struct {
   long long vector_size;
   long long word_count;
 } hash_table;
+
+
+long long get_vector_size() {
+  
+  return hash_table.vector_size;
+}
+
+long long get_word_count() {
+  return hash_table.word_count;
+}
 
 
 
@@ -113,12 +135,12 @@ void load_binary(const char *filename, char normalize) {
   memset(hash_table.lookup, 0, sizeof(struct entry_t *) * hash_table.lookup_size);
   
   // Get the file size and allocate for it
-  long long start = _ftelli64(fp);
+  long long start = FTELL64(fp);
   fpos_t pos;
   fgetpos(fp, &pos);
 
-  int dunno = _fseeki64(fp, 0L, SEEK_END);
-  long long end = _ftelli64(fp);
+  int dunno = FSEEK64(fp, 0L, SEEK_END);
+  long long end = FTELL64(fp);
   long long size = end - start;
   fsetpos(fp, &pos);
 
@@ -173,28 +195,3 @@ void load_binary(const char *filename, char normalize) {
 }
 
 
-
-int main() {
-
-  clock_t start = clock();
-
-  load_binary("vectors.bin", 0);
-
-  clock_t stop = clock();
-
-  double time_elapsed = (stop-start)/(double)CLOCKS_PER_SEC;
-  printf("Loaded in %f seconds!\n", time_elapsed);
-
-  struct entry_t *e = lookup_entry("fart");
-
-  printf("name: %s ", e->name);
-  printf("vector: {");
-  for (size_t i = 0; i < 5; i++) {
-    printf("%f ", e->vector[i]);
-  }
-  printf("}\n");
-  
-
-
-  return 0;
-}

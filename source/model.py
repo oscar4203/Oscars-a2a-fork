@@ -6,6 +6,7 @@ import numpy as np
 from dataclasses import dataclass
 
 # Third-party Libraries
+from gensim.models import KeyedVectors
 
 # Local Modules
 from source.apples import GreenApple, RedApple
@@ -44,8 +45,33 @@ class Model():
     def __init__(self, judge: Agent, vector_size: int) -> None:
         self.judge: Agent = judge
         self.model_data: ModelData = ModelData([], [], [])
-        self.slope_vector: np.ndarray = np.zeros(vector_size)
-        self.bias_vector: np.ndarray = np.zeros(vector_size)
+        # Initialize slope and bias vectors
+        self.slope_vector = np.random.randn(vector_size)
+        self.bias_vector = np.random.randn(vector_size)
+        self.y_target: np.ndarray = np.zeros(shape=vector_size)  # Target score for the model
+        self.learning_rate = 0.01  # Learning rate for updates
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
+               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
+               f"learning_rate={self.learning_rate})"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
+               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
+               f"learning_rate={self.learning_rate})"
+
+    def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        """
+        raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
+
+    def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        """
+        raise NotImplementedError("Subclass must implement the 'choose_winning_red_apple' method")
 
 
 class LRModel(Model):
@@ -55,6 +81,128 @@ class LRModel(Model):
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
 
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return super().__repr__()
+
+    def __linear_regression(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+        """
+        Linear regression algorithm for the AI agent.
+        """
+        # y = mx + b, where x is the product of green and red apple vectors
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        # y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
+        y_pred = np.dot(self.slope_vector, x) + self.bias_vector
+        return y_pred
+
+    def __update_parameters(self, green_apple_vector, red_apple_vector):
+        """
+        Update the slope and bias vectors based on the error.
+        """
+        # Calculate the error
+        y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
+        error = self.y_target - y_pred
+
+        # Update slope and bias vectors
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        self.slope_vector += self.learning_rate * np.dot(error, x) # TODO - Change self.slope_vector to a vector, right now it's a scalar
+        self.bias_vector += self.learning_rate * error
+
+        # Update the target score based on the error
+        self.y_target = self.y_target - error
+
+    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
+        """
+        Train the model using pairs of green and red apple vectors.
+        """
+        # Set the green and red apple vectors
+        new_green_apple.set_adjective_vector(nlp_model)
+        new_red_apple.set_noun_vector(nlp_model)
+
+        # Add the new green and red apples to the model data
+        self.model_data.green_apples.append(new_green_apple)
+        self.model_data.red_apples.append(new_red_apple)
+
+        # Get the green and red apple vectors
+        green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
+        red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
+
+        # Calculate the target score
+        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
+            self.__update_parameters(green_apple_vector, red_apple_vector)
+
+    def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        This method applies the private linear regression methods to predict the best red apple.
+        """
+        # Set the green and red apple vectors
+        green_apple.set_adjective_vector(nlp_model)
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        # Initialize variables to track the best choice
+        closest_score = np.inf
+        best_red_apple: RedApple | None = None
+
+        # Iterate through the red apples to find the best one
+        for red_apple in red_apples:
+            red_apple.set_noun_vector(nlp_model)
+            red_apple_vector = red_apple.get_noun_vector()
+
+            # Calculate the predicted score
+            predicted_score: np.ndarray = self.__linear_regression(green_apple_vector, red_apple_vector)
+
+            # Evaluate the score difference using Euclidean distances
+            score_difference = np.linalg.norm(predicted_score - self.y_target)
+
+            if score_difference < closest_score:
+                closest_score = score_difference
+                best_red_apple = red_apple
+
+        # Check if the best red apple was chosen
+        if best_red_apple is None:
+            raise ValueError("No red apple was chosen.")
+
+        return best_red_apple
+
+    def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        This method applies the private linear regression methods to predict the winning red apple.
+        """
+        # Set the green and red apple vectors
+        green_apple.set_adjective_vector(nlp_model)
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        # Initialize variables to track the best choice
+        closest_score = np.inf
+        winning_red_apple: dict[str, RedApple] | None = None
+
+         # Iterate through the red apples to find the best one
+        for red_apple_dict in red_apples:
+            for _, red_apple in red_apple_dict.items():
+                red_apple.set_noun_vector(nlp_model)
+                red_apple_vector = red_apple.get_noun_vector()
+
+                # Calculate the predicted score
+                predicted_score = self.__linear_regression(green_apple_vector, red_apple_vector)
+
+                # Evaluate the score difference using Euclidean distances
+                score_difference = np.linalg.norm(predicted_score - self.y_target)
+
+                if score_difference < closest_score:
+                    closest_score = score_difference
+                    winning_red_apple = red_apple_dict
+
+        # Check if the winning red apple is None
+        if winning_red_apple is None:
+            raise ValueError("No winning red apple was chosen.")
+
+        return winning_red_apple
+
 
 class NNModel(Model):
     """
@@ -62,6 +210,110 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
+
+    def __str__(self) -> str:
+        return super().__str__()
+
+    def __repr__(self) -> str:
+        return super().__repr__()
+
+    def __forward_propagation(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+        """
+        Forward propagation algorithm for the AI agent.
+        """
+        # y = mx + b, where x is the product of green and red apple vectors
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
+        return y_pred
+
+    def __back_propagation(self, green_apple_vector, red_apple_vector):
+        """
+        Back propagation algorithm for the AI agent.
+        """
+        # Calculate the error
+        y_pred = self.__forward_propagation(green_apple_vector, red_apple_vector)
+        error = self.y_target - y_pred
+
+        # Update rule for gradient descent
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        self.slope_vector += self.learning_rate * np.dot(error, x)
+        self.bias_vector += self.learning_rate * error
+
+        # Update the target score based on the error
+        self.y_target = self.y_target - error
+
+    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
+        """
+        Train the model using pairs of green and red apple vectors.
+        """
+        # Set the green and red apple vectors
+        new_green_apple.set_adjective_vector(nlp_model)
+        new_red_apple.set_noun_vector(nlp_model)
+
+        # Add the new green and red apples to the model data
+        self.model_data.green_apples.append(new_green_apple)
+        self.model_data.red_apples.append(new_red_apple)
+
+        # Get the green and red apple vectors
+        green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
+        red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
+
+        # Calculate the target score
+        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+            self.y_target = self.__forward_propagation(green_apple_vector, red_apple_vector)
+            self.__back_propagation(green_apple_vector, red_apple_vector)
+
+    def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        This method applies the private neural network methods to predict the best red apple.
+        """
+        # Set the green and red apple vectors
+        green_apple.set_adjective_vector(nlp_model)
+        for red_apple in red_apples:
+            red_apple.set_noun_vector(nlp_model)
+
+        # Initialize the best score and best red apple
+        best_score = -np.inf
+        best_red_apple: RedApple | None = None
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        # Iterate through the red apples to find the best one
+        for red_apple in red_apples:
+            red_apple_vector = red_apple.get_noun_vector()
+            score = self.__forward_propagation(green_apple_vector, red_apple_vector)
+            if score > best_score:
+                best_score = score
+                best_red_apple = red_apple
+
+        # Check if the best red apple is None
+        if best_red_apple is None:
+            raise ValueError("No red apple was chosen.")
+
+        return best_red_apple
+
+    def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+        """
+        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        This method applies the private neural network methods to predict the winning red apple.
+        """
+        best_score = -np.inf
+        winning_red_apple: dict[str, RedApple] | None = None
+        green_apple_vector = green_apple.get_adjective_vector()
+
+        for red_apple_dict in red_apples:
+            for _, red_apple in red_apple_dict.items():
+                red_apple_vector = red_apple.get_noun_vector()
+                score = self.__forward_propagation(green_apple_vector, red_apple_vector)
+                if score > best_score:
+                    best_score = score
+                    winning_red_apple = red_apple_dict
+
+        # Check if the winning red apple is None
+        if winning_red_apple is None:
+            raise ValueError("No winning red apple was chosen.")
+
+        return winning_red_apple
 
 
 if __name__ == "__main__":

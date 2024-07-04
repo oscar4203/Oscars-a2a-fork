@@ -81,12 +81,14 @@ class GreenApple(Apple):
         self.synonyms_vector: np.ndarray | None = None
 
     def __str__(self) -> str:
-        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
-               f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
+        # return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
+        #        f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
+        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
 
     def __repr__(self) -> str:
-        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
-               f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
+        # return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
+        #        f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
+        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
 
     def get_adjective(self) -> str:
         return self.adjective
@@ -131,12 +133,14 @@ class RedApple(Apple):
         self.description_vector: np.ndarray | None = None
 
     def __str__(self) -> str:
-        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
-               f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
+        # return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
+        #        f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
+        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
 
     def __repr__(self) -> str:
-        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
-               f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
+        # return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
+        #        f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
+        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
 
     def get_noun(self) -> str:
         return self.noun

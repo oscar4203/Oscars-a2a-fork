@@ -10,9 +10,10 @@ from gensim.models import KeyedVectors
 # Local Modules
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, agent_type_mapping
+from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
+# from source.model import Model, LRModel, NNModel
 from source.results import GameResults, log_results
-from source import embeddings
+from source.w2vloader import VectorsW2V
 
 
 class ApplesToApples:
@@ -27,11 +28,12 @@ class ApplesToApples:
         self.players: list[Agent] = []
         self.round: int = 0
         self.current_judge: Agent | None = None
-        self.green_apples_in_play: dict[str, GreenApple] | None = None
+        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
         self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+        # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
     def start(self) -> None:
@@ -93,11 +95,6 @@ class ApplesToApples:
         return f"{base_name} {i}"
 
     def __initialize_players(self) -> None:
-        # Initialize the list of player types
-        human_agents: list[HumanAgent] = []
-        random_agents: list[RandomAgent] = []
-        ai_agents: list[AIAgent] = []
-
         # Display the number of players
         print(f"There are {self.number_of_players} players.")
         logging.info(f"There are {self.number_of_players} players.")
@@ -118,32 +115,44 @@ class ApplesToApples:
             # Determine the player name
             if player_type == '1':
                 # Validate the user input for a unique name
-                new_player_name: str = ""
+                new_agent_name: str = ""
                 while True:
-                    new_player_name = input(f"Please enter the name for the Human Agent: ")
-                    if new_player_name not in [agent.name for agent in self.players]:
+                    new_agent_name = input(f"Please enter the name for the Human Agent: ")
+                    if new_agent_name not in [agent.name for agent in self.players]:
                         break
-                human_agents.append(HumanAgent(new_player_name))
+                new_agent = HumanAgent(new_agent_name)
             elif player_type == '2':
-                new_player_name = self.__generate_unique_name("Random Agent")
-                random_agents.append(RandomAgent(new_player_name))
+                new_agent_name = self.__generate_unique_name("Random Agent")
+                new_agent = RandomAgent(new_agent_name)
             elif player_type == '3':
-                new_player_name = self.__generate_unique_name("AI Agent")
-                ai_agents.append(AIAgent(new_player_name))
+                # Validate the user input for the model type
+                model_type: str = ""
+                model_type = input("Please enter the model type (1: Linear Regression, 2: Neural Network): ")
+                logging.info(f"Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
+                while model_type not in ['1', '2']:
+                    model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
+                    logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
 
-            # Create the player object
-            self.players.append(agent_type_mapping[player_type](new_player_name))
-            print(self.players[i].name + ",", end=' ')
+                # Generate a unique name for the AI agent
+                model_type_class = model_type_mapping[model_type]
+                logging.debug(f"Model Type Class: {model_type_class}")
+                logging.debug(f"Model Type Name: {model_type_class.__name__}")
+                new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type_class.__name__}")
+                new_agent = AIAgent(new_agent_name, model_type_class)
+
+            # Append the player object
+            self.players.append(new_agent)
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
             self.players[i].draw_red_apples(self.red_apples_deck)
 
-        # Initialize the AI models
+        # Initialize the models for the AI agents
         for player in self.players:
             if isinstance(player, AIAgent):
-                player.initialize_models(self.players, self.nlp_model)
-                logging.info(f"Initialized AI models for {player.name}.")
+                player.initialize_models(self.nlp_model, self.players)
+                logging.info(f"Initialized models for {new_agent.name}.")
+
 
     def __choose_judge(self) -> None:
         # Choose the starting judge
@@ -193,7 +202,7 @@ class ApplesToApples:
         logging.info(f"{self.current_judge.name}, please draw a green card.")
 
         # Set the green card in play
-        self.green_apples_in_play = {self.current_judge.name: self.current_judge.draw_green_apple(self.green_apples_deck)}
+        self.green_apples_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
 
     def __player_prompt(self) -> None:
         # Prompt the players to select a red card
@@ -204,8 +213,18 @@ class ApplesToApples:
             print(f"\n{player.name}, please select a red card.")
             logging.info(f"{player.name}, please select a red card.")
 
+            # Check if the current judge is None
+            if self.current_judge is None:
+                logging.error("The current judge is None.")
+                raise ValueError("The current judge is None.")
+
+            # Check if the green apples in play is None
+            if self.green_apples_in_play is None:
+                logging.error("The green apples in play is None.")
+                raise ValueError("The green apples in play is None.")
+
             # Set the red cards in play
-            red_apple = player.choose_red_apple()
+            red_apple = player.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
             self.red_apples_in_play.append({player.name: red_apple})
             logging.info(f"Red card: {red_apple}")
 
@@ -219,13 +238,17 @@ class ApplesToApples:
             # Increment the round
             self.round += 1
 
-            # Play the round
-            print("\n===================")
-            print(f"ROUND {self.round}:")
-            print("===================")
-            logging.info("===================")
-            logging.info(f"ROUND {self.round}:")
-            logging.info("===================")
+            # Print and log the round message
+            round_message = f"\n===================" \
+                            f"\nROUND {self.round}:" \
+                            f"\n===================\n"
+            print(round_message)
+            logging.info(round_message)
+
+            # Print and log the player points
+            for player in self.players:
+                print(f"{player.name}: {player.points} points")
+                logging.info(f"{player.name}: {player.points} points")
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
@@ -233,21 +256,28 @@ class ApplesToApples:
             # Prompt the players to select a red card
             self.__player_prompt()
 
-            # Prompt the judge to select the winning red card
+            # Check if the current judge is None
             if self.current_judge is None:
                 logging.error("The current judge is None.")
                 raise ValueError("The current judge is None.")
 
+            # Check if the green apples in play is None
+            if self.green_apples_in_play is None:
+                logging.error("The green apples in play is None.")
+                raise ValueError("The green apples in play is None.")
+
+            # Prompt the judge to select the winning red card
             print(f"\n{self.current_judge.name}, please select the winning red card.")
             logging.info(f"{self.current_judge.name}, please select the winning red card.")
-            winning_red_card = self.current_judge.choose_winning_red_apple(self.red_apples_in_play)
+            winning_red_card_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
+                self.green_apples_in_play[self.current_judge], self.red_apples_in_play)
 
             # Award points to the winning player
             for player in self.players:
                 logging.debug(f"Agent.name: {player.name}, datatype: {type(player.name)}")
-                logging.debug(f"Winning Red Card: {winning_red_card}, datatype: {type(winning_red_card)}")
-                logging.debug(f"Winnning Red Card Keys: {winning_red_card.keys()}, datatype: {type(winning_red_card.keys())}")
-                if player.name in winning_red_card.keys():
+                logging.debug(f"Winning Red Card: {winning_red_card_dict}, datatype: {type(winning_red_card_dict)}")
+                logging.debug(f"Winnning Red Card Keys: {winning_red_card_dict.keys()}, datatype: {type(winning_red_card_dict.keys())}")
+                if player.name in winning_red_card_dict.keys():
                     player.points += 1
                     print(f"{player.name} has won the round!")
                     logging.info(f"{player.name} has won the round!")
@@ -265,15 +295,21 @@ class ApplesToApples:
                 for red_apple in self.red_apples_in_play:
                     red_apples_list.append(list(red_apple.values())[0])
 
-            winning_red_card = list(winning_red_card.values())[0]
+            # Extract the winning red card
+            winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
 
             # Log the results
-            results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge.name],
+            results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
             log_results(results)
 
+            # Train all AI agents (if applicable)
+            for player in self.players:
+                if isinstance(player, AIAgent):
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
+
             # Discard the green cards
-            self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge.name])
+            self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
             self.green_apples_in_play = None
 
             # Discard the red cards
@@ -283,12 +319,15 @@ class ApplesToApples:
              # Check if the game is over
             self.winner = self.__is_game_over()
             if self.winner is not None:
-                print("\n##############################")
-                print(f"# {self.winner.name} has won the game! #")
-                print("##############################")
-                logging.info("##############################")
-                logging.info(f"# {self.winner.name} has won the game! #")
-                logging.info("##############################")
+                # Prepare the winner message
+                winner_text = f"# {self.winner.name} has won the game! #"
+                border = '#' * len(winner_text)
+                message = f"\n{border}\n{winner_text}\n{border}\n"
+
+                # Print and log the winner message
+                print(message)
+                logging.info(message)
+
                 break
 
             # Assign the next judge
