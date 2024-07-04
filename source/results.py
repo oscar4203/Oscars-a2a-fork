@@ -14,7 +14,7 @@ from source.agent import Agent
 
 # Results constants
 RESULTS_FILENAME = "../logs/results.csv"
-
+PREFERENCES_FILENAME = "../logs/preferences_round"
 
 # Game Results Datatype
 @dataclass
@@ -51,6 +51,33 @@ class GameResults:
             "winning_player": self.winning_player.name
         }
 
+@dataclass 
+class JudgePreferences:
+    agents: list[Agent]
+    round: int
+    # biases: list[model.something]
+    # slope: list[model.something]
+
+    def __str__(self) -> str:
+        return {f"JudgePreferences(agents={[player.name for player in self.agents]}, round={self.round})"}
+    def __repr__(self) -> str:
+        return {f"JudgePreferences(agents={[player.name for player in self.agents]}, round={self.round})"}
+
+    def to_dict(self) -> dict:
+        return {
+            #"Biases": [] # lists the bias for each component
+            #"Slopes": [] # lists the slope for each component
+            "round": self.round
+        }
+def log_preferences(judge_preferences: JudgePreferences) -> None:
+    filename = f"{PREFERENCES_FILENAME}{judge_preferences.round}.csv"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'a') as file:
+        writer = csv.DictWriter(file, fieldnames=judge_preferences.to_dict().keys())
+        file_empty = os.path.getsize(filename) == 0
+        if file_empty:
+            writer.writeheader()
+        writer.writerow(judge_preferences.to_dict())
 
 def log_results(game_results: GameResults) -> None:
     # # Check if file exists
