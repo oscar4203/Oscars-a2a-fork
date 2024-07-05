@@ -217,7 +217,7 @@ class AIAgent(Agent):
         self.model_type: LRModel | NNModel = type
         self.self_model: Model | None = None
         self.opponents: list[Agent] = []
-        self.opponent_models: dict[Agent, Model] | None = None
+        self.opponent_models: dict[Agent, LRModel | NNModel] | None = None
 
     def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
     # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
@@ -231,29 +231,46 @@ class AIAgent(Agent):
         # self.vectors = vectors
 
         # Initialize the self_model
-        if isinstance(self.model_type, LRModel):
+        if self.model_type is LRModel:
             self.self_model = LRModel(self, self.nlp_model.vector_size)
-        elif isinstance(self.model_type, NNModel):
+        elif self.model_type is NNModel:
             self.self_model = NNModel(self, self.nlp_model.vector_size)
 
         # Determine the opponents
         self.opponents = [agent for agent in all_players if agent != self]
+        logging.debug(f"opponents: {[agent.name for agent in self.opponents]}")
 
         # Initialize the models
-        if isinstance(self.model_type, LRModel):
+        if self.model_type is LRModel:
             self.self_model = LRModel(self, self.nlp_model.vector_size)
             self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
             logging.debug(f"LRModel - opponent_models: {self.opponent_models}")
-        elif isinstance(self.model_type, NNModel):
+        elif self.model_type is NNModel:
             self.self_model = NNModel(self, self.nlp_model.vector_size)
             self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
             logging.debug(f"NNModel - opponent_models: {self.opponent_models}")
-        # if isinstance(self.model_type, LRModel):
+        # if self.model_type is LRModel:
         #     self.self_model = LRModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: LRModel(agent, self.vectors.vector_size) for agent in self.opponents}
-        # elif isinstance(self.model_type, NNModel):
+        # elif self.model_type is NNModel:
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
+
+    def train_models(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple, judge: Agent) -> None:
+        """
+        Train the AI model with the new green card, red card, and judge.
+        """
+        # Check if the agent self_model has been initialized
+        if self.opponent_models is None:
+            logging.error("Opponent Models have not been initialized.")
+            raise ValueError("Opponent Models have not been initialized.")
+
+        # Train the AI models with the new green card, red card, and judge
+        for agent in self.opponents:
+            if judge == agent:
+                agent_model: LRModel | NNModel = self.opponent_models[agent]
+                if self.model_type in [LRModel, NNModel]:
+                    agent_model.train_model(nlp_model, new_green_apple, new_red_apple)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
@@ -270,7 +287,7 @@ class AIAgent(Agent):
             raise ValueError("Models have not been initialized.")
 
         # Run the AI model to choose a red card based on current judge
-        red_apple = self.opponent_models[current_judge].choose_red_apple(green_apple, self.red_apples)
+        red_apple = self.opponent_models[current_judge].choose_red_apple(self.nlp_model, green_apple, self.red_apples)
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
@@ -290,7 +307,7 @@ class AIAgent(Agent):
             raise ValueError("Model has not been initialized.")
 
         # Choose a winning red card
-        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(green_apple, red_apples)
+        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(self.nlp_model, green_apple, red_apples)
 
         # Display the red card chosen
         logging.debug(f"winning_red_apple: {winning_red_apple}")
@@ -301,13 +318,6 @@ class AIAgent(Agent):
 
         return winning_red_apple
 
-
-# # Define the mapping from user input to class
-# agent_type_mapping = {
-#     '1': HumanAgent,
-#     '2': RandomAgent,
-#     '3': AIAgent
-# }
 
 # Define the mapping from user input to model type
 model_type_mapping = {

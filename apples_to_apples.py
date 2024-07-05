@@ -238,13 +238,17 @@ class ApplesToApples:
             # Increment the round
             self.round += 1
 
-            # Play the round
-            print("\n===================")
-            print(f"ROUND {self.round}:")
-            print("===================")
-            logging.info("===================")
-            logging.info(f"ROUND {self.round}:")
-            logging.info("===================")
+            # Print and log the round message
+            round_message = f"\n===================" \
+                            f"\nROUND {self.round}:" \
+                            f"\n===================\n"
+            print(round_message)
+            logging.info(round_message)
+
+            # Print and log the player points
+            for player in self.players:
+                print(f"{player.name}: {player.points} points")
+                logging.info(f"{player.name}: {player.points} points")
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
@@ -265,15 +269,15 @@ class ApplesToApples:
             # Prompt the judge to select the winning red card
             print(f"\n{self.current_judge.name}, please select the winning red card.")
             logging.info(f"{self.current_judge.name}, please select the winning red card.")
-            winning_red_card = self.current_judge.choose_winning_red_apple(
+            winning_red_card_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
                 self.green_apples_in_play[self.current_judge], self.red_apples_in_play)
 
             # Award points to the winning player
             for player in self.players:
                 logging.debug(f"Agent.name: {player.name}, datatype: {type(player.name)}")
-                logging.debug(f"Winning Red Card: {winning_red_card}, datatype: {type(winning_red_card)}")
-                logging.debug(f"Winnning Red Card Keys: {winning_red_card.keys()}, datatype: {type(winning_red_card.keys())}")
-                if player.name in winning_red_card.keys():
+                logging.debug(f"Winning Red Card: {winning_red_card_dict}, datatype: {type(winning_red_card_dict)}")
+                logging.debug(f"Winnning Red Card Keys: {winning_red_card_dict.keys()}, datatype: {type(winning_red_card_dict.keys())}")
+                if player.name in winning_red_card_dict.keys():
                     player.points += 1
                     print(f"{player.name} has won the round!")
                     logging.info(f"{player.name} has won the round!")
@@ -291,12 +295,18 @@ class ApplesToApples:
                 for red_apple in self.red_apples_in_play:
                     red_apples_list.append(list(red_apple.values())[0])
 
-            winning_red_card = list(winning_red_card.values())[0]
+            # Extract the winning red card
+            winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
 
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
             log_results(results)
+
+            # Train all AI agents (if applicable)
+            for player in self.players:
+                if isinstance(player, AIAgent):
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
@@ -309,12 +319,15 @@ class ApplesToApples:
              # Check if the game is over
             self.winner = self.__is_game_over()
             if self.winner is not None:
-                print("\n##############################")
-                print(f"# {self.winner.name} has won the game! #")
-                print("##############################")
-                logging.info("##############################")
-                logging.info(f"# {self.winner.name} has won the game! #")
-                logging.info("##############################")
+                # Prepare the winner message
+                winner_text = f"# {self.winner.name} has won the game! #"
+                border = '#' * len(winner_text)
+                message = f"\n{border}\n{winner_text}\n{border}\n"
+
+                # Print and log the winner message
+                print(message)
+                logging.info(message)
+
                 break
 
             # Assign the next judge
