@@ -86,9 +86,7 @@ class GreenApple(Apple):
         return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
 
     def __repr__(self) -> str:
-        # return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms}), " \
-        #        f"adjective_vector={self.adjective_vector}, synonyms_vector={self.synonyms_vector}"
-        return f"GreenApple(set={self.set}, adjective={self.adjective}, synonyms={self.synonyms})"
+        return self.__str__()
 
     def get_adjective(self) -> str:
         return self.adjective
@@ -138,9 +136,7 @@ class RedApple(Apple):
         return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
 
     def __repr__(self) -> str:
-        # return f"RedApple(set={self.set}, noun={self.noun}, description={self.description}), " \
-        #        f"noun_vector={self.noun_vector}, description_vector={self.description_vector}"
-        return f"RedApple(set={self.set}, noun={self.noun}, description={self.description})"
+        return self.__str__()
 
     def get_noun(self) -> str:
         return self.noun
@@ -187,7 +183,7 @@ class Deck:
         return f"Deck(apples={self.apples})"
 
     def __repr__(self) -> str:
-        return f"Deck(apples={self.apples})"
+        return self.__str__()
 
     def load_deck(self, apple_type: str, filename: str) -> None:
         with open(filename, "r") as f:

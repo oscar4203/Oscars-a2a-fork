@@ -26,7 +26,7 @@ class Agent:
         return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
 
     def __repr__(self) -> str:
-        return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
+        return self.__str__()
 
     def draw_red_apples(self, red_apple_deck: Deck) -> Deck | None:
         """
@@ -256,7 +256,7 @@ class AIAgent(Agent):
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
 
-    def train_models(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple, judge: Agent) -> None:
+    def train_models(self, nlp_model: KeyedVectors, winning_green_apple: GreenApple, winning_red_apple: RedApple, judge: Agent) -> None:
         """
         Train the AI model with the new green card, red card, and judge.
         """
@@ -270,7 +270,7 @@ class AIAgent(Agent):
             if judge == agent:
                 agent_model: LRModel | NNModel = self.opponent_models[agent]
                 if self.model_type in [LRModel, NNModel]:
-                    agent_model.train_model(nlp_model, new_green_apple, new_red_apple)
+                    agent_model.train_model(nlp_model, winning_green_apple, winning_red_apple)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge

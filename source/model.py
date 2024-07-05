@@ -57,9 +57,7 @@ class Model():
                f"learning_rate={self.learning_rate})"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
-               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
-               f"learning_rate={self.learning_rate})"
+        return self.__str__()
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -81,49 +79,43 @@ class LRModel(Model):
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
 
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def __repr__(self) -> str:
-        return super().__repr__()
-
-    def __linear_regression(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+    def __linear_regression(self, green_apple_vectors, red_apple_vectors) -> np.ndarray:
         """
         Linear regression algorithm for the AI agent.
         """
         # y = mx + b, where x is the product of green and red apple vectors
-        x = np.multiply(green_apple_vector, red_apple_vector)
+        x = np.multiply(green_apple_vectors, red_apple_vectors)
         # y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
         y_pred = np.dot(self.slope_vector, x) + self.bias_vector
         return y_pred
 
-    def __update_parameters(self, green_apple_vector, red_apple_vector):
+    def __update_parameters(self, green_apple_vectors, red_apple_vectors):
         """
         Update the slope and bias vectors based on the error.
         """
         # Calculate the error
-        y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
+        y_pred = self.__linear_regression(green_apple_vectors, red_apple_vectors)
         error = self.y_target - y_pred
 
         # Update slope and bias vectors
-        x = np.multiply(green_apple_vector, red_apple_vector)
+        x = np.multiply(green_apple_vectors, red_apple_vectors)
         self.slope_vector += self.learning_rate * np.dot(error, x) # TODO - Change self.slope_vector to a vector, right now it's a scalar
         self.bias_vector += self.learning_rate * error
 
         # Update the target score based on the error
         self.y_target = self.y_target - error
 
-    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
+    def train_model(self, nlp_model: KeyedVectors, winning_green_apple: GreenApple, winning_red_apple: RedApple) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         # Set the green and red apple vectors
-        new_green_apple.set_adjective_vector(nlp_model)
-        new_red_apple.set_noun_vector(nlp_model)
+        winning_green_apple.set_adjective_vector(nlp_model)
+        winning_red_apple.set_noun_vector(nlp_model)
 
         # Add the new green and red apples to the model data
-        self.model_data.green_apples.append(new_green_apple)
-        self.model_data.red_apples.append(new_red_apple)
+        self.model_data.green_apples.append(winning_green_apple)
+        self.model_data.red_apples.append(winning_red_apple)
 
         # Get the green and red apple vectors
         green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
@@ -210,12 +202,6 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def __repr__(self) -> str:
-        return super().__repr__()
 
     def __forward_propagation(self, green_apple_vector, red_apple_vector) -> np.ndarray:
         """
