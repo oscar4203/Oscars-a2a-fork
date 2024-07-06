@@ -117,7 +117,7 @@ class LRModel(Model):
         assert(len(x_vectors) == len(y_vectors))
 
         n = float(len(x_vectors))
-
+        # print("n =", n)
         sumx = np.zeros(self.vector_size)
         sumx2 = np.zeros(self.vector_size)
         sumxy = np.zeros(self.vector_size)
@@ -137,10 +137,11 @@ class LRModel(Model):
         ms = np.zeros(self.vector_size)
         bs = np.zeros(self.vector_size)
 
+
         for i, denom in enumerate(denoms):
             if denom == 0.0:
                 continue
-            ms[i] = (n * sumxy[i] - sumx[i] * sumy) / denom
+            ms[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
             bs[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
         
 
@@ -178,8 +179,8 @@ class LRModel(Model):
         green_apple.set_adjective_vector(nlp_model)
         winning_red_apple.set_noun_vector(nlp_model)
 
-        for red in loosing_red_apples:
-            red.set_noun_vector(nlp_model)
+        for i, red in enumerate(loosing_red_apples):
+            loosing_red_apples[i].set_noun_vector(nlp_model)
 
         # Add the new green and red apples to the model data
         # self.model_data.green_apples.append(new_green_apple)
@@ -199,20 +200,22 @@ class LRModel(Model):
         #     self.__update_parameters(green_apple_vector, red_apple_vector)
 
 
-        xs: np.ndarray = []
-        ys: np.ndarray = []
+        xs= []
+        ys = []
 
         # an array of vectors of x and y data
         for pair in self.judge_pairs:
             g_vec = pair[0].get_adjective_vector()
-            r_vec = pair[1].get_adjective_vector()
+            r_vec = pair[1].get_noun_vector()
             x_vec = np.multiply(g_vec, r_vec)
-
             y_vec = np.full(self.vector_size, pair[2])
-            np.append(xs, x_vec)
-            np.append(ys, y_vec)
+            xs.append(x_vec)
+            ys.append(y_vec)
+
+        nxs = np.array(xs)
+        nys = np.array(ys)
         
-        self.slope_vector, self.bias_vector = self.__linear_regression(xs, ys)
+        self.slope_vector, self.bias_vector = self.__linear_regression(nxs, nys)
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -224,7 +227,17 @@ class LRModel(Model):
         green_apple_vector = green_apple.get_adjective_vector()
 
         best_red_apple: RedApple | None = None
-        best_score
+        best_score: float = -np.inf
+
+        for red in red_apples:
+            red.set_noun_vector(nlp_model)
+            r_vec = red.get_noun_vector()
+
+            score = self.result(green_apple_vector, r_vec)
+
+            if score > best_score:
+                best_red_apple = red
+                best_score = score
 
         # Check if the best red apple was chosen
         if best_red_apple is None:
