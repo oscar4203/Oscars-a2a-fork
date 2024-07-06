@@ -55,12 +55,12 @@ class VectorsW2V():
 
 
 if __name__ == "__main__":
+
+
   start = time.perf_counter()
   end = time.perf_counter()
-
-  print("Time elapsed:", end - start)
-
   vectors = VectorsW2V("vectors.bin")
+  print("Time elapsed:", end - start)
   fart = vectors["fart"]
 
   print(fart)

@@ -195,3 +195,15 @@ void load_binary(const char *filename, char normalize) {
 }
 
 
+int main() {
+
+  clock_t start = clock();
+
+  load_binary("vectors.bin", 0);
+  lookup_entry("cock");
+  clock_t end = clock();
+
+  double elapsed_time = (end-start)/(double)CLOCKS_PER_SEC ;
+
+  printf("Time Elapsed %f", elapsed_time);
+}

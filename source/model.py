@@ -19,6 +19,8 @@ class ModelData:
     red_apples: list[RedApple]
     winning_red_apples: list[RedApple]
 
+
+
     def __post_init__(self) -> None:
         logging.debug(f"Created ModelData object: {self}")
 
@@ -43,13 +45,20 @@ class Model():
     Base class for the AI models.
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
+        self.vector_size = vector_size
         self.judge: Agent = judge
         self.model_data: ModelData = ModelData([], [], [])
+
+        self.judge_pairs = [] # Hopefully a better way to store the data.
         # Initialize slope and bias vectors
-        self.slope_vector = np.random.randn(vector_size)
-        self.bias_vector = np.random.randn(vector_size)
+        # self.slope_vector = np.ones(vector_size)
+        # self.bias_vector = np.zeros(vector_size)
+        self.slope_vector = np.random.rand(vector_size)
+        self.bias_vector = np.random.rand(vector_size)
         self.y_target: np.ndarray = np.zeros(shape=vector_size)  # Target score for the model
         self.learning_rate = 0.01  # Learning rate for updates
+        # print("slope", self.slope_vector)
+        # print("bias", self.bias_vector)
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
@@ -86,21 +95,65 @@ class LRModel(Model):
 
     def __repr__(self) -> str:
         return super().__repr__()
+    
+    def __result_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
+        """
+        Produces the resultant vector when you run throught the algorithm
+        """
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        return np.multiply(self.slope_vector, x) + self.bias_vector
+    
+    def result(self, green_apple_vector, red_apple_vector) -> float:
+        """
+        Produces the final score of the model for a combination of red and green cards.
+        """
+        return np.sum(self.__result_vector(green_apple_vector, red_apple_vector))
 
-    def __linear_regression(self, green_apple_vector, red_apple_vector) -> np.ndarray:
+
+    def __linear_regression(self, x_vectors: np.ndarray, y_vectors: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Linear regression algorithm for the AI agent.
         """
-        # y = mx + b, where x is the product of green and red apple vectors
-        x = np.multiply(green_apple_vector, red_apple_vector)
-        # y_pred = np.multiply(self.slope_vector, x) + self.bias_vector
-        y_pred = np.dot(self.slope_vector, x) + self.bias_vector
-        return y_pred
+        assert(len(x_vectors) == len(y_vectors))
+
+        n = float(len(x_vectors))
+
+        sumx = np.zeros(self.vector_size)
+        sumx2 = np.zeros(self.vector_size)
+        sumxy = np.zeros(self.vector_size)
+        sumy = np.zeros(self.vector_size)
+        sumy2 = np.zeros(self.vector_size)
+
+
+        for x, y in zip(x_vectors, y_vectors):
+            sumx = np.add(sumx, x)
+            sumx2 = np.add(sumx2, np.multiply(x, x))
+            sumxy = np.add(sumxy, np.multiply(x, y))
+            sumy = np.add(sumy, y)
+            sumy2 = np.add(sumy2, np.multiply(y, y))
+        
+        denoms: np.ndarray = np.full(self.vector_size, n) * sumx2 - np.multiply(sumx, sumx)
+
+        ms = np.zeros(self.vector_size)
+        bs = np.zeros(self.vector_size)
+
+        for i, denom in enumerate(denoms):
+            if denom == 0.0:
+                continue
+            ms[i] = (n * sumxy[i] - sumx[i] * sumy) / denom
+            bs[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
+        
+
+        return ms, bs
+            
+
 
     def __update_parameters(self, green_apple_vector, red_apple_vector):
         """
         Update the slope and bias vectors based on the error.
         """
+        print(self) #for testing purposes, of
+
         # Calculate the error
         y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
         error = self.y_target - y_pred
@@ -113,26 +166,53 @@ class LRModel(Model):
         # Update the target score based on the error
         self.y_target = self.y_target - error
 
-    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
+        print(self)
+
+
+
+    def train_model(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         # Set the green and red apple vectors
-        new_green_apple.set_adjective_vector(nlp_model)
-        new_red_apple.set_noun_vector(nlp_model)
+        green_apple.set_adjective_vector(nlp_model)
+        winning_red_apple.set_noun_vector(nlp_model)
+
+        for red in loosing_red_apples:
+            red.set_noun_vector(nlp_model)
 
         # Add the new green and red apples to the model data
-        self.model_data.green_apples.append(new_green_apple)
-        self.model_data.red_apples.append(new_red_apple)
+        # self.model_data.green_apples.append(new_green_apple)
+        # self.model_data.red_apples.append(new_red_apple)
 
-        # Get the green and red apple vectors
-        green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
-        red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
+        self.judge_pairs.append((green_apple, winning_red_apple, 1.0))
+        for red in loosing_red_apples:
+            self.judge_pairs.append((green_apple, red, -1.0))
+
+        # # Get the green and red apple vectors
+        # green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
+        # red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
 
         # Calculate the target score
-        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
-            self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
-            self.__update_parameters(green_apple_vector, red_apple_vector)
+        # for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
+        #     self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
+        #     self.__update_parameters(green_apple_vector, red_apple_vector)
+
+
+        xs: np.ndarray = []
+        ys: np.ndarray = []
+
+        # an array of vectors of x and y data
+        for pair in self.judge_pairs:
+            g_vec = pair[0].get_adjective_vector()
+            r_vec = pair[1].get_adjective_vector()
+            x_vec = np.multiply(g_vec, r_vec)
+
+            y_vec = np.full(self.vector_size, pair[2])
+            np.append(xs, x_vec)
+            np.append(ys, y_vec)
+        
+        self.slope_vector, self.bias_vector = self.__linear_regression(xs, ys)
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -143,24 +223,8 @@ class LRModel(Model):
         green_apple.set_adjective_vector(nlp_model)
         green_apple_vector = green_apple.get_adjective_vector()
 
-        # Initialize variables to track the best choice
-        closest_score = np.inf
         best_red_apple: RedApple | None = None
-
-        # Iterate through the red apples to find the best one
-        for red_apple in red_apples:
-            red_apple.set_noun_vector(nlp_model)
-            red_apple_vector = red_apple.get_noun_vector()
-
-            # Calculate the predicted score
-            predicted_score: np.ndarray = self.__linear_regression(green_apple_vector, red_apple_vector)
-
-            # Evaluate the score difference using Euclidean distances
-            score_difference = np.linalg.norm(predicted_score - self.y_target)
-
-            if score_difference < closest_score:
-                closest_score = score_difference
-                best_red_apple = red_apple
+        best_score
 
         # Check if the best red apple was chosen
         if best_red_apple is None:
