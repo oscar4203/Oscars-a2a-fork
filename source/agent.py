@@ -26,7 +26,7 @@ class Agent:
         return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
 
     def __repr__(self) -> str:
-        return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
+        return self.__str__()
 
     def draw_red_apples(self, red_apple_deck: Deck) -> Deck | None:
         """

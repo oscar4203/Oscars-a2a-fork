@@ -66,9 +66,7 @@ class Model():
                f"learning_rate={self.learning_rate})"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(judge={self.judge}, model_data={self.model_data}, "\
-               f"slope_vector={self.slope_vector}, bias_vector={self.bias_vector}, "\
-               f"learning_rate={self.learning_rate})"
+        return self.__str__()
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -149,18 +147,18 @@ class LRModel(Model):
             
 
 
-    def __update_parameters(self, green_apple_vector, red_apple_vector):
+    def __update_parameters(self, green_apple_vectors, red_apple_vectors):
         """
         Update the slope and bias vectors based on the error.
         """
         print(self) #for testing purposes, of
 
         # Calculate the error
-        y_pred = self.__linear_regression(green_apple_vector, red_apple_vector)
+        y_pred = self.__linear_regression(green_apple_vectors, red_apple_vectors)
         error = self.y_target - y_pred
 
         # Update slope and bias vectors
-        x = np.multiply(green_apple_vector, red_apple_vector)
+        x = np.multiply(green_apple_vectors, red_apple_vectors)
         self.slope_vector += self.learning_rate * np.dot(error, x) # TODO - Change self.slope_vector to a vector, right now it's a scalar
         self.bias_vector += self.learning_rate * error
 
@@ -287,12 +285,6 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int) -> None:
         super().__init__(judge, vector_size)
-
-    def __str__(self) -> str:
-        return super().__str__()
-
-    def __repr__(self) -> str:
-        return super().__repr__()
 
     def __forward_propagation(self, green_apple_vector, red_apple_vector) -> np.ndarray:
         """
