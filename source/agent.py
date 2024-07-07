@@ -272,6 +272,9 @@ class AIAgent(Agent):
                 if self.model_type in [LRModel, NNModel]:
                     agent_model.train_model(nlp_model, green_apple, winning_red_apple, loosing_red_apples)
 
+    def log_models(self):
+        print(self.opponent_models)
+
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
         if self.judge:
