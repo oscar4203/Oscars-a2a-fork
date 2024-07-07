@@ -256,7 +256,7 @@ class AIAgent(Agent):
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
 
-    def train_models(self, nlp_model: KeyedVectors, winning_green_apple: GreenApple, winning_red_apple: RedApple, judge: Agent) -> None:
+    def train_models(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], judge: Agent) -> None:
         """
         Train the AI model with the new green card, red card, and judge.
         """
@@ -270,7 +270,10 @@ class AIAgent(Agent):
             if judge == agent:
                 agent_model: LRModel | NNModel = self.opponent_models[agent]
                 if self.model_type in [LRModel, NNModel]:
-                    agent_model.train_model(nlp_model, winning_green_apple, winning_red_apple)
+                    agent_model.train_model(nlp_model, green_apple, winning_red_apple, loosing_red_apples)
+
+    def log_models(self):
+        print(self.opponent_models)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
