@@ -12,9 +12,12 @@ import csv
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
 
+#Maybe bad because of circular importing?
+import numpy as np
+
 # Results constants
 RESULTS_FILENAME = "./logs/results.csv"
-PREFERENCES_FILENAME = "../logs/preferences_round"
+PREFERENCES_FILENAME = "./logs/preferences_round"
 
 # Game Results Datatype
 @dataclass
@@ -53,22 +56,64 @@ class GameResults:
 
 @dataclass 
 class JudgePreferences:
-    agents: list[Agent]
+    agent: Agent
     round: int
-    # biases: list[model.something]
-    # slope: list[model.something]
+    biases: np.ndarray
+    slope: np.ndarray
 
     def __str__(self) -> str:
-        return {f"JudgePreferences(agents={[player.name for player in self.agents]}, round={self.round})"}
+        return {f"JudgePreferences(agent={self.agent.name}, round={self.round}, biases={self.biases}, slopes={self.slope})"}
     def __repr__(self) -> str:
-        return {f"JudgePreferences(agents={[player.name for player in self.agents]}, round={self.round})"}
+        return {f"JudgePreferences(agent={self.agent.name}, round={self.round}, biases={self.biases}, slopes={self.slope})"}
 
     def to_dict(self) -> dict:
         return {
-            #"Biases": [] # lists the bias for each component
-            #"Slopes": [] # lists the slope for each component
-            "round": self.round
+            "Round": self.round,
+            "Biases": self.biases,
+            "Slopes": self.slope
         }
+    
+@dataclass 
+class PreferenceUpdates:
+    agents: list[Agent]
+    round: int
+    time: str
+    # judge: Agent
+    winning_red_apple: RedApple
+    green_apple: GreenApple
+    biases_list: list[np.ndarray]
+    slopes_list: list[np.ndarray]
+
+    def __str__(self) -> str:
+        agent_str = "Agent's Biases' and Slopes:\n"
+        for player in self.agents:
+            agent_str += f"{player.name}: Bias:\n{self.biases_list[player]}\nSlope:\n{self.slope_list[player]}\n"
+        return {f"-------------Round: {self.round}, Time: {self.time}, "
+                f"winning red: {self.winning_red.name}, Green: {self.green_apple.name}--------\n"
+                f"{agent_str}"}
+    def __repr__(self) -> str:
+        return {f"PreferenceUpdates(agents={[player.name for player in self.agents]}"}
+
+    def to_dict(self) -> dict:
+        return {
+            "agents": self.agents,
+            "round": self.round,
+            "time": self.time,
+            "green_apple": self.green_apple.adjective,
+            "winning_red_apple": self.winning_red_apple.noun,
+            #"Judge":
+        }
+
+def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
+    filename = f"./logs/Game-{preference_updates.time}.csv"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    with open(filename, 'a') as file:
+        writer = csv.DictWriter(file, fieldnames=preference_updates.to_dict().keys())
+        file_empty = os.path.getsize(filename) == 0
+        if file_empty:
+            writer.writeheader()
+        writer.writerow(preference_updates.to_dict())
+
 def log_preferences(judge_preferences: JudgePreferences) -> None:
     filename = f"{PREFERENCES_FILENAME}{judge_preferences.round}.csv"
     os.makedirs(os.path.dirname(filename), exist_ok=True)

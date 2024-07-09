@@ -6,13 +6,14 @@ import argparse
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
+from datetime import datetime
 
 # Local Modules
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
-from source.results import GameResults, log_results
+from source.results import GameResults, log_results, JudgePreferences, log_preferences, PreferenceUpdates, log_preference_updates
 from source.w2vloader import VectorsW2V
 
 
@@ -234,6 +235,8 @@ class ApplesToApples:
 
     def __game_loop(self) -> None:
         # Start the game loop
+        start_time = datetime.now().strftime("%Y-%m-%w-%H-%M-%S)")
+
         while self.winner is None:
             # Increment the round
             self.round += 1
@@ -302,6 +305,25 @@ class ApplesToApples:
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
             log_results(results)
+
+            # #checks if there is an AI player in the game, and if so, logs that players preferences when
+            # #they are a judge on a given round
+            # for player in self.players:
+            #     if (isinstance(player, AIAgent) and player.judge == True):
+            #         judge_preferences = JudgePreferences(self.current_judge, self.round, player.self_model.bias_vector, player.self_model.slope_vector)
+            #         log_preferences(judge_preferences)
+            opposing_players = self.players.copy()
+            opposing_players.remove(self.current_judge)
+            biases_list = []
+            slopes_list = []
+            for player in opposing_players:
+                biases_list.append(player.self_model.bias_vector)
+                slopes_list.append(player.self_model.slope_vector)
+
+            preference_updates = PreferenceUpdates(opposing_players, self.round, start_time, 
+                                                   winning_red_card, self.green_apples_in_play[self.current_judge], 
+                                                   biases_list, slopes_list)
+            log_preference_updates(preference_updates)
 
             # Train all AI agents (if applicable)
             for player in self.players:

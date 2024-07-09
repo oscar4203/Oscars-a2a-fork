@@ -317,13 +317,16 @@ class AIAgent(Agent):
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
+    
+    # def log_lr_model(self, ):
+
 
 
 # Define the mapping from user input to model type
-model_type_mapping = {
-    '1': LRModel,
-    '2': NNModel
-}
+# model_type_mapping = {
+#     '1': LRModel,
+#     '2': NNModel
+# }
 
 
 if __name__ == "__main__":
