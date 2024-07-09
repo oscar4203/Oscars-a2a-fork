@@ -312,18 +312,29 @@ class ApplesToApples:
             #     if (isinstance(player, AIAgent) and player.judge == True):
             #         judge_preferences = JudgePreferences(self.current_judge, self.round, player.self_model.bias_vector, player.self_model.slope_vector)
             #         log_preferences(judge_preferences)
-            opposing_players = self.players.copy()
-            opposing_players.remove(self.current_judge)
-            biases_list = []
-            slopes_list = []
-            for player in opposing_players:
-                biases_list.append(player.self_model.bias_vector)
-                slopes_list.append(player.self_model.slope_vector)
+            #==========================================================
+            # opposing_players = self.players.copy()
+            # opposing_players.remove(self.current_judge)
+            # biases_list = []
+            # slopes_list = []
+            # for player in opposing_players:
+            #     biases_list.append(player.self_model.bias_vector)
+            #     slopes_list.append(player.self_model.slope_vector)
 
-            preference_updates = PreferenceUpdates(opposing_players, self.round, start_time, 
+
+            if(isinstance(self.current_judge, AIAgent)):
+                opposing_agents = self.current_judge.opponent_models
+                opposing_models = opposing_agents.values()
+                biases_list = []
+                slopes_list = []
+                for player in opposing_models:
+                    biases_list.append(player.bias_vector)
+                    slopes_list.append(player.slope_vector)
+
+                preference_updates = PreferenceUpdates(opposing_models, self.round, start_time, 
                                                    winning_red_card, self.green_apples_in_play[self.current_judge], 
                                                    biases_list, slopes_list)
-            log_preference_updates(preference_updates)
+                log_preference_updates(preference_updates)
 
             # Train all AI agents (if applicable)
             for player in self.players:

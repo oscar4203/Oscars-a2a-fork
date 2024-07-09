@@ -318,15 +318,12 @@ class AIAgent(Agent):
 
         return winning_red_apple
     
-    # def log_lr_model(self, ):
 
-
-
-# Define the mapping from user input to model type
-# model_type_mapping = {
-#     '1': LRModel,
-#     '2': NNModel
-# }
+#Define the mapping from user input to model type
+model_type_mapping = {
+    '1': LRModel,
+    '2': NNModel
+}
 
 
 if __name__ == "__main__":
