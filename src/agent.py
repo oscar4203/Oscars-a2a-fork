@@ -4,12 +4,13 @@
 import logging
 import random
 import numpy as np
-import gensim
 
 # Third-party Libraries
+import gensim
 
 # Local Modules
 from apples import GreenApple, RedApple, Deck
+from embeddings import w2v_vectors
 
 
 class Agent:
@@ -147,6 +148,8 @@ class AIAgent(Agent):
 
     def __init__(self, name: str) -> None:
         super().__init__(name)
+        print(w2v_vectors["gay"])
+        
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
@@ -194,6 +197,7 @@ class AIAgent(Agent):
 class RandomAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
+        
 
     def choose_red_apple(self) -> RedApple:
         # Check if the agent is a judge
