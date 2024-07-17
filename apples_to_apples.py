@@ -322,24 +322,45 @@ class ApplesToApples:
             #     slopes_list.append(player.self_model.slope_vector)
 
 
-            if(isinstance(self.current_judge, AIAgent)):
-                opposing_agents = self.current_judge.opponent_models
-                opposing_models = opposing_agents.values()
-                biases_list = []
-                slopes_list = []
-                for player in opposing_models:
-                    biases_list.append(player.bias_vector)
-                    slopes_list.append(player.slope_vector)
+            # if(isinstance(self.current_judge, AIAgent)):
+            #     opposing_players = self.current_judge.opponent_models
+            #     opposing_models = opposing_players.values()
+            #     opposing_agents = opposing_players.keys()
+            #     biases_list = []
+            #     slopes_list = []
+            #     for player in opposing_models:
+            #         biases_list.append(player.bias_vector)
+            #         slopes_list.append(player.slope_vector)
 
-                preference_updates = PreferenceUpdates(opposing_models, self.round, start_time, 
-                                                   winning_red_card, self.green_apples_in_play[self.current_judge], 
-                                                   biases_list, slopes_list)
-                log_preference_updates(preference_updates)
+                # preference_updates = PreferenceUpdates(opposing_models, opposing_agents, self.round, start_time, 
+                #                                    winning_red_card, self.green_apples_in_play[self.current_judge], 
+                #                                    biases_list, slopes_list, "")
+                # log_preference_updates(preference_updates)
+
+            # if model.judge != player in for loop, get player model
+
+
+            #TEMPORARY UNTIL WE MERGE BOTH THIS CODE AND THE ONE ON ISAAC'S DESKTOP
+            losing_red_cards = [value for d in self.red_apples_in_play for value in d.values()]
+            # losing_red_cards = [d for d in losing_reds if winning_red_card not in d.values()]
+
+            # list_of_values = [value for d in list_of_dicts for value in d.values()]
 
             # Train all AI agents (if applicable)
             for player in self.players:
-                if isinstance(player, AIAgent):
-                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
+                if isinstance(player, AIAgent) and player != self.current_judge:
+                    # opposing_players = self.current_judge.opponent_models
+                    # opposing_models = opposing_players.values()
+                    # opposing_agents = opposing_players.keys()
+
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card,  self.current_judge, losing_red_cards)
+                    judge_model = player.opponent_models[self.current_judge]
+                    current_slope = judge_model.slope_vector
+                    current_bias = judge_model.bias_vector
+                    preference_updates = PreferenceUpdates(self.round, start_time, 
+                                                   winning_red_card, self.green_apples_in_play[self.current_judge], 
+                                                   current_bias, current_slope, "")
+                    log_preference_updates(preference_updates)
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])

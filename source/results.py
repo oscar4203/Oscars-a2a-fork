@@ -75,32 +75,49 @@ class JudgePreferences:
     
 @dataclass 
 class PreferenceUpdates:
-    agents: list[Agent]
+    # models: list[Agent]
+    # agents: list[Agent]
     round: int
     time: str
     # judge: Agent
     winning_red_apple: RedApple
     green_apple: GreenApple
-    biases_list: list[np.ndarray]
-    slopes_list: list[np.ndarray]
+    # biases_list: list[np.ndarray]
+    # slopes_list: list[np.ndarray]
+    bias: np.ndarray
+    slope: np.ndarray
+    log_str: str
 
     def __str__(self) -> str:
-        agent_str = "Agent's Biases' and Slopes:\n"
-        for player in self.agents:
-            agent_str += f"{player.name}: Bias:\n{self.biases_list[player]}\nSlope:\n{self.slope_list[player]}\n"
-        return {f"-------------Round: {self.round}, Time: {self.time}, "
-                f"winning red: {self.winning_red.name}, Green: {self.green_apple.name}--------\n"
-                f"{agent_str}"}
+        #return {f"PreferenceUpdates(agents={[player.name for player in self.agents]}"}
+        # self.log_str += "Agent's Biases' and Slopes:\n"
+        # for player in self.agents:
+        #     self.log_str += f"{player.name}: Bias:\n{self.biases_list[player]}\nSlope:\n{self.slope_list[player]}\n"
+        # return {f"Round: {self.round}, Time: {self.time}, "
+        #         f"winning red: {self.winning_red.name}, Green: {self.green_apple.name}"
+        #         f"{self.log_str}"}
+        return "Hello"
     def __repr__(self) -> str:
-        return {f"PreferenceUpdates(agents={[player.name for player in self.agents]}"}
-
+        # self.log_str += "Agent's Biases' and Slopes:\n"
+        # for player in self.agents:
+        #     self.log_str += f"{player.name}: Bias:\n{self.biases_list[player]}\nSlope:\n{self.slope_list[player]}\n"
+        # return {f"Round: {self.round}, Time: {self.time}, "
+        #         f"winning red: {self.winning_red.name}, Green: {self.green_apple.name}"
+        #         f"{self.log_str}"}
+        return "Hey there"
+    
     def to_dict(self) -> dict:
         return {
-            "agents": self.agents,
+            # "models": self.models
+            # "agents": [player.name for player in self.agents],
             "round": self.round,
             "time": self.time,
             "green_apple": self.green_apple.adjective,
             "winning_red_apple": self.winning_red_apple.noun,
+            # "biases": f"\n{self.biases_list}",
+            # "slopes": f"\n{self.slopes_list}"
+            "Bias": f"{self.bias}\n",
+            "Slope": f"{self.slope}\n"
             #"Judge":
         }
 
@@ -108,6 +125,7 @@ def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
     filename = f"./logs/Game-{preference_updates.time}.csv"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, 'a') as file:
+        file.write("--------------------------------------------\n")
         writer = csv.DictWriter(file, fieldnames=preference_updates.to_dict().keys())
         file_empty = os.path.getsize(filename) == 0
         if file_empty:
