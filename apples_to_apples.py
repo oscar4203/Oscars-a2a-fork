@@ -32,7 +32,7 @@ class ApplesToApples:
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
-        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("vectors.bin", binary=True)
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
@@ -204,7 +204,8 @@ class ApplesToApples:
         # Set the green card in play
         self.green_apples_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
 
-    def __player_prompt(self) -> None:
+    def __player_prompt(self) -> list[RedApple]:
+        red_apples: list[RedApple] = []
         # Prompt the players to select a red card
         for player in self.players:
             if player.judge:
@@ -226,11 +227,17 @@ class ApplesToApples:
             # Set the red cards in play
             red_apple = player.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
             self.red_apples_in_play.append({player.name: red_apple})
+            red_apples.append(red_apple)
             logging.info(f"Red card: {red_apple}")
+
+
 
             # Prompt the player to pick up a new red card
             if len(player.red_apples) < 7:
                 player.draw_red_apples(self.red_apples_deck)
+        
+
+        return red_apples
 
     def __game_loop(self) -> None:
         # Start the game loop
@@ -254,7 +261,7 @@ class ApplesToApples:
             self.__judge_prompt()
 
             # Prompt the players to select a red card
-            self.__player_prompt()
+            red_apples_this_round  = self.__player_prompt()
 
             # Check if the current judge is None
             if self.current_judge is None:
@@ -298,6 +305,10 @@ class ApplesToApples:
             # Extract the winning red card
             winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
 
+            loosing_red_apples: list[RedApple] = red_apples_this_round.copy()
+            loosing_red_apples.remove(winning_red_card)
+            print("loosing Apples", loosing_red_apples, winning_red_card)
+
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
@@ -306,7 +317,8 @@ class ApplesToApples:
             # Train all AI agents (if applicable)
             for player in self.players:
                 if isinstance(player, AIAgent):
-                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, loosing_red_apples, self.current_judge)
+                    player.log_models()
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
