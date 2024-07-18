@@ -53,77 +53,39 @@ class GameResults:
             "winning_red_apple": self.winning_red_apple.noun,
             "winning_player": self.winning_player.name
         }
-
-@dataclass 
-class JudgePreferences:
-    agent: Agent
-    round: int
-    biases: np.ndarray
-    slope: np.ndarray
-
-    def __str__(self) -> str:
-        return {f"JudgePreferences(agent={self.agent.name}, round={self.round}, biases={self.biases}, slopes={self.slope})"}
-    def __repr__(self) -> str:
-        return {f"JudgePreferences(agent={self.agent.name}, round={self.round}, biases={self.biases}, slopes={self.slope})"}
-
-    def to_dict(self) -> dict:
-        return {
-            "Round": self.round,
-            "Biases": self.biases,
-            "Slopes": self.slope
-        }
     
 @dataclass 
 class PreferenceUpdates:
-    # models: list[Agent]
-    # agents: list[Agent]
+    agent: Agent
     round: int
     time: str
-    # judge: Agent
     winning_red_apple: RedApple
     green_apple: GreenApple
-    # biases_list: list[np.ndarray]
-    # slopes_list: list[np.ndarray]
     bias: np.ndarray
     slope: np.ndarray
-    log_str: str
 
     def __str__(self) -> str:
-        #return {f"PreferenceUpdates(agents={[player.name for player in self.agents]}"}
-        # self.log_str += "Agent's Biases' and Slopes:\n"
-        # for player in self.agents:
-        #     self.log_str += f"{player.name}: Bias:\n{self.biases_list[player]}\nSlope:\n{self.slope_list[player]}\n"
-        # return {f"Round: {self.round}, Time: {self.time}, "
-        #         f"winning red: {self.winning_red.name}, Green: {self.green_apple.name}"
-        #         f"{self.log_str}"}
-        return "Hello"
+        return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.noun}, green apple={self.green_apple.adjective}, bias={self.bias}, slope={self.slope})"
     def __repr__(self) -> str:
-        # self.log_str += "Agent's Biases' and Slopes:\n"
-        # for player in self.agents:
-        #     self.log_str += f"{player.name}: Bias:\n{self.biases_list[player]}\nSlope:\n{self.slope_list[player]}\n"
-        # return {f"Round: {self.round}, Time: {self.time}, "
-        #         f"winning red: {self.winning_red.name}, Green: {self.green_apple.name}"
-        #         f"{self.log_str}"}
-        return "Hey there"
+         return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.noun}, green apple={self.green_apple.adjective}, bias={self.bias}, slope={self.slope})"
     
     def to_dict(self) -> dict:
         return {
-            # "models": self.models
-            # "agents": [player.name for player in self.agents],
+            "Agent": self.agent.name,
             "round": self.round,
             "time": self.time,
             "green_apple": self.green_apple.adjective,
             "winning_red_apple": self.winning_red_apple.noun,
-            # "biases": f"\n{self.biases_list}",
-            # "slopes": f"\n{self.slopes_list}"
             "Bias": f"{self.bias}\n",
             "Slope": f"{self.slope}\n"
-            #"Judge":
         }
 
 def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
     filename = f"./logs/Game-{preference_updates.time}.csv"
+
+    #Ensure the directory exists
     os.makedirs(os.path.dirname(filename), exist_ok=True)
+
     with open(filename, 'a') as file:
         file.write("--------------------------------------------\n")
         writer = csv.DictWriter(file, fieldnames=preference_updates.to_dict().keys())
@@ -131,16 +93,6 @@ def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
         if file_empty:
             writer.writeheader()
         writer.writerow(preference_updates.to_dict())
-
-def log_preferences(judge_preferences: JudgePreferences) -> None:
-    filename = f"{PREFERENCES_FILENAME}{judge_preferences.round}.csv"
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-    with open(filename, 'a') as file:
-        writer = csv.DictWriter(file, fieldnames=judge_preferences.to_dict().keys())
-        file_empty = os.path.getsize(filename) == 0
-        if file_empty:
-            writer.writeheader()
-        writer.writerow(judge_preferences.to_dict())
 
 def log_results(game_results: GameResults) -> None:
     # # Check if file exists

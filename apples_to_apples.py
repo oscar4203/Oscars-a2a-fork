@@ -13,7 +13,7 @@ from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
-from source.results import GameResults, log_results, JudgePreferences, log_preferences, PreferenceUpdates, log_preference_updates
+from source.results import GameResults, log_results, PreferenceUpdates, log_preference_updates
 from source.w2vloader import VectorsW2V
 
 
@@ -205,7 +205,8 @@ class ApplesToApples:
         # Set the green card in play
         self.green_apples_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
 
-    def __player_prompt(self) -> None:
+    def __player_prompt(self) -> list[RedApple]:
+        red_apples: list[RedApple] = []
         # Prompt the players to select a red card
         for player in self.players:
             if player.judge:
@@ -227,11 +228,17 @@ class ApplesToApples:
             # Set the red cards in play
             red_apple = player.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
             self.red_apples_in_play.append({player.name: red_apple})
+            red_apples.append(red_apple)
             logging.info(f"Red card: {red_apple}")
+
+
 
             # Prompt the player to pick up a new red card
             if len(player.red_apples) < 7:
                 player.draw_red_apples(self.red_apples_deck)
+        
+
+        return red_apples
 
     def __game_loop(self) -> None:
         # Start the game loop
@@ -257,7 +264,7 @@ class ApplesToApples:
             self.__judge_prompt()
 
             # Prompt the players to select a red card
-            self.__player_prompt()
+            red_apples_this_round  = self.__player_prompt()
 
             # Check if the current judge is None
             if self.current_judge is None:
@@ -301,65 +308,26 @@ class ApplesToApples:
             # Extract the winning red card
             winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
 
+            losing_red_apples: list[RedApple] = red_apples_this_round.copy()
+            losing_red_apples.remove(winning_red_card)
+            print("losing Apples", losing_red_apples, winning_red_card)
+
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
             log_results(results)
 
-            # #checks if there is an AI player in the game, and if so, logs that players preferences when
-            # #they are a judge on a given round
-            # for player in self.players:
-            #     if (isinstance(player, AIAgent) and player.judge == True):
-            #         judge_preferences = JudgePreferences(self.current_judge, self.round, player.self_model.bias_vector, player.self_model.slope_vector)
-            #         log_preferences(judge_preferences)
-            #==========================================================
-            # opposing_players = self.players.copy()
-            # opposing_players.remove(self.current_judge)
-            # biases_list = []
-            # slopes_list = []
-            # for player in opposing_players:
-            #     biases_list.append(player.self_model.bias_vector)
-            #     slopes_list.append(player.self_model.slope_vector)
-
-
-            # if(isinstance(self.current_judge, AIAgent)):
-            #     opposing_players = self.current_judge.opponent_models
-            #     opposing_models = opposing_players.values()
-            #     opposing_agents = opposing_players.keys()
-            #     biases_list = []
-            #     slopes_list = []
-            #     for player in opposing_models:
-            #         biases_list.append(player.bias_vector)
-            #         slopes_list.append(player.slope_vector)
-
-                # preference_updates = PreferenceUpdates(opposing_models, opposing_agents, self.round, start_time, 
-                #                                    winning_red_card, self.green_apples_in_play[self.current_judge], 
-                #                                    biases_list, slopes_list, "")
-                # log_preference_updates(preference_updates)
-
-            # if model.judge != player in for loop, get player model
-
-
-            #TEMPORARY UNTIL WE MERGE BOTH THIS CODE AND THE ONE ON ISAAC'S DESKTOP
-            losing_red_cards = [value for d in self.red_apples_in_play for value in d.values()]
-            # losing_red_cards = [d for d in losing_reds if winning_red_card not in d.values()]
-
-            # list_of_values = [value for d in list_of_dicts for value in d.values()]
-
             # Train all AI agents (if applicable)
             for player in self.players:
                 if isinstance(player, AIAgent) and player != self.current_judge:
-                    # opposing_players = self.current_judge.opponent_models
-                    # opposing_models = opposing_players.values()
-                    # opposing_agents = opposing_players.keys()
 
-                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card,  self.current_judge, losing_red_cards)
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card,  self.current_judge, losing_red_apples)
                     judge_model = player.opponent_models[self.current_judge]
                     current_slope = judge_model.slope_vector
                     current_bias = judge_model.bias_vector
-                    preference_updates = PreferenceUpdates(self.round, start_time, 
+                    preference_updates = PreferenceUpdates(player, self.round, start_time, 
                                                    winning_red_card, self.green_apples_in_play[self.current_judge], 
-                                                   current_bias, current_slope, "")
+                                                   current_bias, current_slope)
                     log_preference_updates(preference_updates)
 
             # Discard the green cards
