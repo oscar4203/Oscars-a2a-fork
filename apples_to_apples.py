@@ -242,7 +242,7 @@ class ApplesToApples:
 
     def __game_loop(self) -> None:
         # Start the game loop
-        start_time = datetime.now().strftime("%Y-%m-%w-%H-%M-%S)")
+        start_time = datetime.now().strftime("%Y-%m-%d-%H-%M)")
 
         while self.winner is None:
             # Increment the round
