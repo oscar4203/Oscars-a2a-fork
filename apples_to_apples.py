@@ -32,7 +32,7 @@ class ApplesToApples:
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
-        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("vectors.bin", binary=True)
+        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
@@ -235,7 +235,7 @@ class ApplesToApples:
             # Prompt the player to pick up a new red card
             if len(player.red_apples) < 7:
                 player.draw_red_apples(self.red_apples_deck)
-        
+
 
         return red_apples
 
