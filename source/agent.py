@@ -232,17 +232,17 @@ class AIAgent(Agent):
         # # Initialize the vectors
         # self.vectors = vectors
 
-        # Initialize the self_model
-        if self.model_type is LRModel:
-            self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
-        elif self.model_type is NNModel:
-            self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
+        # # Initialize the self_model
+        # if self.model_type is LRModel:
+        #     self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
+        # elif self.model_type is NNModel:
+        #     self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
 
         # Determine the opponents
         self.opponents = [agent for agent in all_players if agent != self]
         logging.debug(f"opponents: {[agent.name for agent in self.opponents]}")
 
-        # Initialize the models
+        # Initialize the self and opponent models
         if self.model_type is LRModel:
             self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
             self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size, self.pretrained_model, self.pretrain) for agent in self.opponents}
@@ -273,6 +273,7 @@ class AIAgent(Agent):
                 agent_model: LRModel | NNModel = self.opponent_models[agent]
                 if self.model_type in [LRModel, NNModel]:
                     agent_model.train_model(nlp_model, winning_green_apple, winning_red_apple)
+                    logging.debug(f"Trained {agent.name}'s model with the new green card, red card, and judge.")
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge

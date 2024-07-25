@@ -74,6 +74,9 @@ class Model():
         try:
             if not os.path.exists(directory):
                 os.makedirs(directory, exist_ok=True)
+                logging.info(f"Created directory: {directory}")
+            else:
+                logging.info(f"Directory already exists: {directory}")
         except OSError as e:
             logging.error(f"Error creating directory: {e}")
 
@@ -87,9 +90,11 @@ class Model():
             if os.path.exists(slope_vector_file) and os.path.exists(bias_vector_file):
                 slope_vector = np.load(slope_vector_file)
                 bias_vector = np.load(bias_vector_file)
+                logging.info(f"Loaded vectors from {slope_vector_file} and {bias_vector_file}")
             else: # If not, initialize random vectors
                 slope_vector = np.random.rand(vector_size)
                 bias_vector = np.random.rand(vector_size)
+                logging.info("Initialized random vectors")
         # Handle any errors that occur
         except OSError as e:
             logging.error(f"Error loading vectors: {e}")
@@ -98,7 +103,7 @@ class Model():
 
         return slope_vector, bias_vector
 
-    def __save_vectors(self) -> None:
+    def _save_vectors(self) -> None:
         """
         Save the slope and bias vectors to .npy files.
         """
@@ -108,11 +113,17 @@ class Model():
         try:
             # If pretrain is True, save the vectors to the pretrained model files
             if self.pretrain:
-                np.save(f"{directory}{self.pretrained_model}_slope.npy", self.slope_vector)
-                np.save(f"{directory}{self.pretrained_model}_bias.npy", self.bias_vector)
+                slope_file: str = f"{directory}{self.pretrained_model}_slope.npy"
+                bias_file: str = f"{directory}{self.pretrained_model}_bias.npy"
+                np.save(slope_file, self.slope_vector)
+                np.save(bias_file, self.bias_vector)
+                logging.info(f"Saved vectors to {slope_file} and {bias_file}")
             else: # Otherwise, save the vectors to the temporary model files
-                np.save(f"{directory}{self.pretrained_model}_slope-temp.npy", self.slope_vector)
-                np.save(f"{directory}{self.pretrained_model}_bias-temp.npy", self.bias_vector)
+                temp_slope_file = f"{directory}{self.pretrained_model}_slope_{self.judge}-temp.npy"
+                temp_bias_file = f"{directory}{self.pretrained_model}_bias_{self.judge}-temp.npy"
+                np.save(temp_slope_file, self.slope_vector)
+                np.save(temp_bias_file, self.bias_vector)
+                logging.info(f"Saved vectors to {temp_slope_file} and {temp_bias_file}")
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
         except Exception as e:
@@ -186,7 +197,10 @@ class LRModel(Model):
             self.__update_parameters(green_apple_vector, red_apple_vector)
 
         # Save the updated slope and bias vectors
-        super().__save_vectors()
+        logging.debug(f"Updated slope vector: {self.slope_vector}")
+        logging.debug(f"Updated bias vector: {self.bias_vector}")
+        self._save_vectors()
+        logging.debug(f"Saved updated vectors")
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -312,7 +326,7 @@ class NNModel(Model):
             self.__back_propagation(green_apple_vector, red_apple_vector)
 
         # Save the updated slope and bias vectors
-        super().__save_vectors()
+        super()._save_vectors()
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """

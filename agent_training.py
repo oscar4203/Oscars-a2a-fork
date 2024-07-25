@@ -252,7 +252,19 @@ class ApplesToApples:
 
             # Train AI agent on human selected apples
             if isinstance(self.agent, AIAgent):
-                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
+                # Temporarily make the HumanAgent the judge
+                self.current_judge = self.human
+                self.human.judge = True
+                self.agent.judge = False
+
+                # Train the AI agent
+                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.agent], winning_red_card, self.current_judge)
+
+                # Reset the judge to the AI agent
+                self.current_judge = self.agent
+                self.agent.judge = True
+                self.human.judge = False
+
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
