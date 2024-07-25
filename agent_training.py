@@ -10,7 +10,7 @@ from gensim.models import KeyedVectors
 # Local Modules
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
+from source.agent import Agent, HumanAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
 from source.results import GameResults, log_results
 from source.w2vloader import VectorsW2V
@@ -38,7 +38,7 @@ class ApplesToApples:
 
     def start(self) -> None:
         print("Starting 'Apples to Apples' agent training app.")
-        logging.info("Starting 'Apples to Apples' agent training app.")
+        logging.info("Starting 'Apples to Apples' AGENT TRAINING PROGRAM.")
         logging.info("Initializing agent.")
 
         # Initialize the decks
@@ -100,8 +100,8 @@ class ApplesToApples:
         self.agent = new_agent
         logging.info(self.agent)
 
-        # Have each player pick up 7 red cards
-        self.agent.draw_red_apples(self.red_apples_deck)
+        # Have the human player pick up 7 red cards
+        self.human.draw_red_apples(self.red_apples_deck)
 
         # Add the human player to a list
         human_list = [self.human]
@@ -112,22 +112,14 @@ class ApplesToApples:
             logging.info(f"Initialized models for {new_agent.name}.")
 
     def __choose_judge(self) -> None:
-        # Set the judge
-        self.current_judge = self.human
-        self.human.judge = True
-
         # Check that the agent is not None
         if self.agent is None:
             logging.error("The agent is None.")
             raise ValueError("The agent is None.")
 
+        self.current_judge = self.agent
         self.agent.judge = True
         print(f"{self.agent.name} is the starting judge.")
-
-    # def __assign_next_judge(self) -> None:
-    #     # Assign the next judge
-    #     self.human.judge = True
-    #     self.current_judge = self.human
 
     def __is_game_over(self) -> Agent | None:
         if self.round >= self.number_of_rounds:
@@ -145,16 +137,16 @@ class ApplesToApples:
         logging.info(f"{self.current_judge.name}, please draw a green card.")
 
         # Set the green card in play
-        self.green_apples_in_play = {self.human: self.current_judge.draw_green_apple(self.green_apples_deck)}
+        self.green_apples_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
 
     def __player_prompt(self) -> None:
-        # Check if the agent is None
-        if self.agent is None:
-            logging.error("The agent is None.")
-            raise ValueError("The agent is None.")
+        # # Check if the agent is None
+        # if self.agent is None:
+        #     logging.error("The agent is None.")
+        #     raise ValueError("The agent is None.")
 
-        print(f"\n{self.agent.name}, please select a red card.")
-        logging.info(f"{self.agent.name}, please select a red card.")
+        print(f"\n{self.human.name}, please select a red card for training purposes.")
+        logging.info(f"{self.human.name}, please select a red card for training purposes.")
 
         # Check if the current judge is None
         if self.current_judge is None:
@@ -167,13 +159,13 @@ class ApplesToApples:
             raise ValueError("The green apples in play is None.")
 
         # Set the red cards in play
-        red_apple = self.agent.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
-        self.red_apples_in_play.append({self.agent.name: red_apple})
+        red_apple = self.human.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
+        self.red_apples_in_play.append({self.human.name: red_apple})
         logging.info(f"Red card: {red_apple}")
 
         # Prompt the player to pick up a new red card
-        if len(self.agent.red_apples) < 7:
-            self.agent.draw_red_apples(self.red_apples_deck)
+        if len(self.human.red_apples) < 7:
+            self.human.draw_red_apples(self.red_apples_deck)
 
     def __game_loop(self) -> None:
         # Start the game loop
@@ -187,9 +179,6 @@ class ApplesToApples:
                             f"\n===================\n"
             print(round_message)
             logging.info(round_message)
-
-            # # Assign the human as judge
-            # self.__assign_next_judge()
 
             # Prompt the judge to select a green card
             self.__judge_prompt()
