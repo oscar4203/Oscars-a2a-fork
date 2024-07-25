@@ -340,6 +340,12 @@ class LRModel(Model):
                 red_apple.set_noun_vector(nlp_model)
                 red_apple_vector = red_apple.get_noun_vector()
 
+                # Check that the green and red vectors are not None
+                if green_apple_vector is None:
+                    raise ValueError("Green apple vector is None.")
+                if red_apple_vector is None:
+                    raise ValueError("Red apple vector is None.")
+
                 # Calculate the predicted score
                 predicted_score = self.__linear_regression(green_apple_vector, red_apple_vector)
 
@@ -389,19 +395,20 @@ class NNModel(Model):
         # Update the target score based on the error
         self.y_target = self.y_target - error
 
-    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
+    def train_model(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         # Set the green and red apple vectors
-        new_green_apple.set_adjective_vector(nlp_model)
-        new_red_apple.set_noun_vector(nlp_model)
+        green_apple.set_adjective_vector(nlp_model)
+        winning_red_apple.set_noun_vector(nlp_model)
 
         # Add the new green and red apples to the model data
-        self.model_data.green_apples.append(new_green_apple)
-        self.model_data.red_apples.append(new_red_apple)
+        self.model_data.green_apples.append(green_apple)
+        self.model_data.red_apples.append(winning_red_apple)
 
         # Get the green and red apple vectors
+
         green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
         red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
 

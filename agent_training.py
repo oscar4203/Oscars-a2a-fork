@@ -250,6 +250,12 @@ class ApplesToApples:
                                   red_apples_list, winning_red_card, self.current_judge)
             log_results(results)
 
+            # Collect all the non-winning red cards
+            losing_red_cards = []
+            for red_apple in red_apples_list:
+                if red_apple != winning_red_card:
+                    losing_red_cards.append(red_apple)
+
             # Train AI agent on human selected apples
             if isinstance(self.agent, AIAgent):
                 # Temporarily make the HumanAgent the judge
@@ -258,7 +264,7 @@ class ApplesToApples:
                 self.agent.judge = False
 
                 # Train the AI agent
-                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.agent], winning_red_card, self.current_judge)
+                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.agent], winning_red_card, losing_red_cards, self.current_judge)
 
                 # Reset the judge to the AI agent
                 self.current_judge = self.agent

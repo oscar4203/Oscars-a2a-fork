@@ -20,8 +20,8 @@ apples/vectors.bin
 results.csv
 
 # Numpy files and "agents" directory
-*.npy
 agents/
+*.npy
 
 ##########
 # Python #
