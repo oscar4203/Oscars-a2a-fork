@@ -41,10 +41,6 @@ class ApplesToApples:
         logging.info("Starting 'Apples to Apples' game.")
         logging.info("Initializing players.")
 
-        # # Intro to the game
-        # print("\nI assume I am player 1!")
-        # logging.info("I assume I am player 1!")
-
         # Initialize the decks
         self.__initialize_decks()
 
