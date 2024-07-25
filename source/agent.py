@@ -33,7 +33,7 @@ class Agent:
         Draw red cards from the deck, ensuring the agent has 7 red cards.
         """
         # Calculate the number of red cards to pick up
-        diff = 7 - len(self.red_apples)
+        diff = 25 - len(self.red_apples)
         if diff > 0:
             for _ in range(diff):
                 # Draw a red card
@@ -210,11 +210,13 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str, type: LRModel | NNModel) -> None:
+    def __init__(self, name: str, model_type: LRModel | NNModel, pretrained_model: str, pretrain: bool) -> None:
         super().__init__(name)
         # self.nlp_model: KeyedVectors | None = None
         self.vectors = None
-        self.model_type: LRModel | NNModel = type
+        self.model_type: LRModel | NNModel = model_type
+        self.pretrained_model: str = pretrained_model
+        self.pretrain: bool = pretrain
         self.self_model: Model | None = None
         self.opponents: list[Agent] = []
         self.opponent_models: dict[Agent, LRModel | NNModel] | None = None
@@ -230,24 +232,24 @@ class AIAgent(Agent):
         # # Initialize the vectors
         # self.vectors = vectors
 
-        # Initialize the self_model
-        if self.model_type is LRModel:
-            self.self_model = LRModel(self, self.nlp_model.vector_size)
-        elif self.model_type is NNModel:
-            self.self_model = NNModel(self, self.nlp_model.vector_size)
+        # # Initialize the self_model
+        # if self.model_type is LRModel:
+        #     self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
+        # elif self.model_type is NNModel:
+        #     self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
 
         # Determine the opponents
         self.opponents = [agent for agent in all_players if agent != self]
         logging.debug(f"opponents: {[agent.name for agent in self.opponents]}")
 
-        # Initialize the models
+        # Initialize the self and opponent models
         if self.model_type is LRModel:
-            self.self_model = LRModel(self, self.nlp_model.vector_size)
-            self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
+            self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
+            self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size, self.pretrained_model, self.pretrain) for agent in self.opponents}
             logging.debug(f"LRModel - opponent_models: {self.opponent_models}")
         elif self.model_type is NNModel:
-            self.self_model = NNModel(self, self.nlp_model.vector_size)
-            self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size) for agent in self.opponents}
+            self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
+            self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size, self.pretrained_model, self.pretrain) for agent in self.opponents}
             logging.debug(f"NNModel - opponent_models: {self.opponent_models}")
         # if self.model_type is LRModel:
         #     self.self_model = LRModel(self, self.vectors.vector_size)
@@ -271,6 +273,7 @@ class AIAgent(Agent):
                 agent_model: LRModel | NNModel = self.opponent_models[agent]
                 if self.model_type in [LRModel, NNModel]:
                     agent_model.train_model(nlp_model, green_apple, winning_red_apple, loosing_red_apples)
+                    logging.debug(f"Trained {agent.name}'s model with the new green card, red card, and judge.")
 
     def log_models(self):
         print(self.opponent_models)

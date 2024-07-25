@@ -89,18 +89,38 @@ class ApplesToApples:
             model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
             logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
 
+        # Validate the user input for the pretrained model type
+        pretrained_model_type: str = ""
+        pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
+        logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+        while pretrained_model_type not in ['1', '2', '3']:
+            pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
+            logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+
         # Generate a unique name for the AI agent
         model_type_class = model_type_mapping[model_type]
         logging.debug(f"Model Type Class: {model_type_class}")
         logging.debug(f"Model Type Name: {model_type_class.__name__}")
+
+        # Create pretrained model
+        pretrained_model_string: str = ""
+        if pretrained_model_type == '1':
+            pretrained_model_string = "Literalist"
+        elif pretrained_model_type == '2':
+            pretrained_model_string = "Contrarian"
+        elif pretrained_model_type == '3':
+            pretrained_model_string = "Satirist"
+        logging.debug(f"Pretrained Model String: {pretrained_model_string}")
+
+        # Create a new AI agent
         new_agent_name = f"AI Agent - {model_type_class.__name__}"
-        new_agent = AIAgent(new_agent_name, model_type_class)
+        new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, True)
 
         # Append the player object
         self.agent = new_agent
         logging.info(self.agent)
 
-        # Have the human player pick up 7 red cards
+        # Have the human player pick up 25 red cards
         self.human.draw_red_apples(self.red_apples_deck)
 
         # Add the human player to a list
@@ -164,7 +184,7 @@ class ApplesToApples:
         logging.info(f"Red card: {red_apple}")
 
         # Prompt the player to pick up a new red card
-        if len(self.human.red_apples) < 7:
+        if len(self.human.red_apples) < 25:
             self.human.draw_red_apples(self.red_apples_deck)
 
     def __game_loop(self) -> None:
@@ -232,7 +252,19 @@ class ApplesToApples:
 
             # Train AI agent on human selected apples
             if isinstance(self.agent, AIAgent):
-                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
+                # Temporarily make the HumanAgent the judge
+                self.current_judge = self.human
+                self.human.judge = True
+                self.agent.judge = False
+
+                # Train the AI agent
+                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.agent], winning_red_card, self.current_judge)
+
+                # Reset the judge to the AI agent
+                self.current_judge = self.agent
+                self.agent.judge = True
+                self.human.judge = False
+
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
