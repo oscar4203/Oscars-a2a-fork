@@ -16,6 +16,7 @@ apples/vectors.bin
 *_debug
 
 # Log files
+logs/
 *.log
 results.csv
 
