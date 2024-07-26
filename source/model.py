@@ -235,7 +235,6 @@ class LRModel(Model):
         print(self)
 
 
-
     def train_model(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
         """
         Train the model using pairs of green and red apple vectors.

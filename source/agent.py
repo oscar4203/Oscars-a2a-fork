@@ -323,9 +323,9 @@ class AIAgent(Agent):
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
+    
 
-
-# Define the mapping from user input to model type
+#Define the mapping from user input to model type
 model_type_mapping = {
     '1': LRModel,
     '2': NNModel

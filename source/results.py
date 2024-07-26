@@ -12,9 +12,12 @@ import csv
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
 
+#Maybe bad because of circular importing?
+import numpy as np
+
 # Results constants
 RESULTS_FILENAME = "./logs/results.csv"
-
+PREFERENCES_FILENAME = "./logs/preferences_round"
 
 # Game Results Datatype
 @dataclass
@@ -50,7 +53,46 @@ class GameResults:
             "winning_red_apple": self.winning_red_apple.noun,
             "winning_player": self.winning_player.name
         }
+    
+@dataclass 
+class PreferenceUpdates:
+    agent: Agent
+    round: int
+    time: str
+    winning_red_apple: RedApple
+    green_apple: GreenApple
+    bias: np.ndarray
+    slope: np.ndarray
 
+    def __str__(self) -> str:
+        return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.noun}, green apple={self.green_apple.adjective}, bias={self.bias}, slope={self.slope})"
+    def __repr__(self) -> str:
+         return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.noun}, green apple={self.green_apple.adjective}, bias={self.bias}, slope={self.slope})"
+    
+    def to_dict(self) -> dict:
+        return {
+            "Agent": self.agent.name,
+            "round": self.round,
+            "time": self.time,
+            "green_apple": self.green_apple.adjective,
+            "winning_red_apple": self.winning_red_apple.noun,
+            "Bias": f"{self.bias}\n",
+            "Slope": f"{self.slope}\n"
+        }
+
+def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
+    filename = f"./logs/Game-{preference_updates.time}.csv"
+
+    #Ensure the directory exists
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
+    with open(filename, 'a') as file:
+        file.write("--------------------------------------------\n")
+        writer = csv.DictWriter(file, fieldnames=preference_updates.to_dict().keys())
+        file_empty = os.path.getsize(filename) == 0
+        if file_empty:
+            writer.writeheader()
+        writer.writerow(preference_updates.to_dict())
 
 def log_results(game_results: GameResults) -> None:
     # # Check if file exists

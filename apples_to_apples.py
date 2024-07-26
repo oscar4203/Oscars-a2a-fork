@@ -6,13 +6,14 @@ import argparse
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
+from datetime import datetime
 
 # Local Modules
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
-from source.results import GameResults, log_results
+from source.results import GameResults, log_results, PreferenceUpdates, log_preference_updates
 from source.w2vloader import VectorsW2V
 
 
@@ -257,6 +258,8 @@ class ApplesToApples:
 
     def __game_loop(self) -> None:
         # Start the game loop
+        start_time = datetime.now().strftime("%Y-%m-%w-%H-%M-%S)")
+
         while self.winner is None:
             # Increment the round
             self.round += 1
@@ -321,9 +324,9 @@ class ApplesToApples:
             # Extract the winning red card
             winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
 
-            loosing_red_apples: list[RedApple] = red_apples_this_round.copy()
-            loosing_red_apples.remove(winning_red_card)
-            print("loosing Apples", loosing_red_apples, winning_red_card)
+            losing_red_apples: list[RedApple] = red_apples_this_round.copy()
+            losing_red_apples.remove(winning_red_card)
+            print("losing Apples", losing_red_apples, winning_red_card)
 
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
@@ -332,9 +335,16 @@ class ApplesToApples:
 
             # Train all AI agents (if applicable)
             for player in self.players:
-                if isinstance(player, AIAgent):
-                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, loosing_red_apples, self.current_judge)
-                    player.log_models()
+                if isinstance(player, AIAgent) and player != self.current_judge:
+
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card,  self.current_judge, losing_red_apples)
+                    judge_model = player.opponent_models[self.current_judge]
+                    current_slope = judge_model.slope_vector
+                    current_bias = judge_model.bias_vector
+                    preference_updates = PreferenceUpdates(player, self.round, start_time, 
+                                                   winning_red_card, self.green_apples_in_play[self.current_judge], 
+                                                   current_bias, current_slope)
+                    log_preference_updates(preference_updates)
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
