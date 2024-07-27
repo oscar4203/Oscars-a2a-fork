@@ -146,12 +146,32 @@ class ApplesToApples:
                     model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
                     logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
 
+                # Validate the user input for the pretrained model type
+                pretrained_model_type: str = ""
+                pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
+                logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+                while pretrained_model_type not in ['1', '2', '3']:
+                    pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
+                    logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+
                 # Generate a unique name for the AI agent
                 model_type_class = model_type_mapping[model_type]
                 logging.debug(f"Model Type Class: {model_type_class}")
                 logging.debug(f"Model Type Name: {model_type_class.__name__}")
+
+                # Create pretrained model
+                pretrained_model_string: str = ""
+                if pretrained_model_type == '1':
+                    pretrained_model_string = "Literalist"
+                elif pretrained_model_type == '2':
+                    pretrained_model_string = "Contrarian"
+                elif pretrained_model_type == '3':
+                    pretrained_model_string = "Satirist"
+                logging.debug(f"Pretrained Model String: {pretrained_model_string}")
+
+                # Create the AI agent
                 new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type_class.__name__}")
-                new_agent = AIAgent(new_agent_name, model_type_class)
+                new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, False)
 
             # Append the player object
             self.players.append(new_agent)
@@ -248,7 +268,7 @@ class ApplesToApples:
             # Prompt the player to pick up a new red card
             if len(player.red_apples) < 7:
                 player.draw_red_apples(self.red_apples_deck)
-        
+
 
         return red_apples
 

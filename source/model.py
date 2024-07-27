@@ -4,6 +4,7 @@
 import logging
 import numpy as np
 from dataclasses import dataclass
+import os
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
@@ -44,17 +45,19 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int) -> None:
+    def __init__(self, judge: Agent, vector_size: int, pretrained_model: str, pretrain: bool) -> None:
+        # Initialize the model attributes
         self.vector_size = vector_size
         self.judge: Agent = judge
         self.model_data: ModelData = ModelData([], [], [])
-
         self.judge_pairs = [] # Hopefully a better way to store the data.
+        self.pretrained_model: str = pretrained_model
+        self.pretrain: bool = pretrain
+
         # Initialize slope and bias vectors
-        # self.slope_vector = np.ones(vector_size)
-        # self.bias_vector = np.zeros(vector_size)
-        self.slope_vector = np.random.rand(vector_size)
-        self.bias_vector = np.random.rand(vector_size)
+        self.slope_vector, self.bias_vector = self.__load_vectors(vector_size)
+
+        # Learning attributes
         self.y_target: np.ndarray = np.zeros(shape=vector_size)  # Target score for the model
         self.learning_rate = 0.01  # Learning rate for updates
         # print("slope", self.slope_vector)
@@ -67,6 +70,70 @@ class Model():
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def __load_vectors(self, vector_size: int) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Load the slope and bias vectors from the pretrained model .npy files if they exist, otherwise initialize random values.
+        """
+        # Ensure the directory exists
+        directory = "./agents/"
+        try:
+            if not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+                logging.info(f"Created directory: {directory}")
+            else:
+                logging.info(f"Directory already exists: {directory}")
+        except OSError as e:
+            logging.error(f"Error creating directory: {e}")
+
+        # Define the file paths for the vectors
+        slope_vector_file: str = f"{directory}{self.pretrained_model}_slope.npy"
+        bias_vector_file: str = f"{directory}{self.pretrained_model}_bias.npy"
+
+        # Load the vectors from the pretrained model
+        try:
+            # Check if the files exist
+            if os.path.exists(slope_vector_file) and os.path.exists(bias_vector_file):
+                slope_vector = np.load(slope_vector_file)
+                bias_vector = np.load(bias_vector_file)
+                logging.info(f"Loaded vectors from {slope_vector_file} and {bias_vector_file}")
+            else: # If not, initialize random vectors
+                slope_vector = np.random.rand(vector_size)
+                bias_vector = np.random.rand(vector_size)
+                logging.info("Initialized random vectors")
+        # Handle any errors that occur
+        except OSError as e:
+            logging.error(f"Error loading vectors: {e}")
+            slope_vector = np.random.rand(vector_size)
+            bias_vector = np.random.rand(vector_size)
+
+        return slope_vector, bias_vector
+
+    def _save_vectors(self) -> None:
+        """
+        Save the slope and bias vectors to .npy files.
+        """
+        # Define the directory to save the vectors
+        directory = "./agents/"
+
+        try:
+            # If pretrain is True, save the vectors to the pretrained model files
+            if self.pretrain:
+                slope_file: str = f"{directory}{self.pretrained_model}_slope.npy"
+                bias_file: str = f"{directory}{self.pretrained_model}_bias.npy"
+                np.save(slope_file, self.slope_vector)
+                np.save(bias_file, self.bias_vector)
+                logging.info(f"Saved vectors to {slope_file} and {bias_file}")
+            else: # Otherwise, save the vectors to the temporary model files
+                temp_slope_file = f"{directory}{self.pretrained_model}_slope_{self.judge}-temp.npy"
+                temp_bias_file = f"{directory}{self.pretrained_model}_bias_{self.judge}-temp.npy"
+                np.save(temp_slope_file, self.slope_vector)
+                np.save(temp_bias_file, self.bias_vector)
+                logging.info(f"Saved vectors to {temp_slope_file} and {temp_bias_file}")
+        except OSError as e:
+            logging.error(f"Error saving vectors: {e}")
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -85,22 +152,22 @@ class LRModel(Model):
     """
     Linear Regression model for the AI agent.
     """
-    def __init__(self, judge: Agent, vector_size: int) -> None:
-        super().__init__(judge, vector_size)
+    def __init__(self, judge: Agent, vector_size: int, pretrained_model: str, pretrain: bool) -> None:
+        super().__init__(judge, vector_size, pretrained_model, pretrain)
 
     def __str__(self) -> str:
         return super().__str__()
 
     def __repr__(self) -> str:
         return super().__repr__()
-    
+
     def __result_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
         """
         Produces the resultant vector when you run throught the algorithm
         """
         x = np.multiply(green_apple_vector, red_apple_vector)
         return np.multiply(self.slope_vector, x) + self.bias_vector
-    
+
     def result(self, green_apple_vector, red_apple_vector) -> float:
         """
         Produces the final score of the model for a combination of red and green cards.
@@ -129,7 +196,7 @@ class LRModel(Model):
             sumxy = np.add(sumxy, np.multiply(x, y))
             sumy = np.add(sumy, y)
             sumy2 = np.add(sumy2, np.multiply(y, y))
-        
+
         denoms: np.ndarray = np.full(self.vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
         ms = np.zeros(self.vector_size)
@@ -141,10 +208,10 @@ class LRModel(Model):
                 continue
             ms[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
             bs[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
-        
+
 
         return ms, bs
-            
+
 
 
     def __update_parameters(self, green_apple_vectors, red_apple_vectors):
@@ -196,7 +263,6 @@ class LRModel(Model):
         #     self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
         #     self.__update_parameters(green_apple_vector, red_apple_vector)
 
-
         xs= []
         ys = []
 
@@ -211,8 +277,20 @@ class LRModel(Model):
 
         nxs = np.array(xs)
         nys = np.array(ys)
-        
+
         self.slope_vector, self.bias_vector = self.__linear_regression(nxs, nys)
+
+        # Save the updated slope and bias vectors
+        logging.debug(f"Updated slope vector: {self.slope_vector}")
+        logging.debug(f"Updated bias vector: {self.bias_vector}")
+        self._save_vectors()
+        logging.debug(f"Saved updated vectors")
+
+        # Save the updated slope and bias vectors
+        logging.debug(f"Updated slope vector: {self.slope_vector}")
+        logging.debug(f"Updated bias vector: {self.bias_vector}")
+        self._save_vectors()
+        logging.debug(f"Saved updated vectors")
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
@@ -255,11 +333,17 @@ class LRModel(Model):
         closest_score = np.inf
         winning_red_apple: dict[str, RedApple] | None = None
 
-         # Iterate through the red apples to find the best one
+        # Iterate through the red apples to find the best one
         for red_apple_dict in red_apples:
             for _, red_apple in red_apple_dict.items():
                 red_apple.set_noun_vector(nlp_model)
                 red_apple_vector = red_apple.get_noun_vector()
+
+                # Check that the green and red vectors are not None
+                if green_apple_vector is None:
+                    raise ValueError("Green apple vector is None.")
+                if red_apple_vector is None:
+                    raise ValueError("Red apple vector is None.")
 
                 # Calculate the predicted score
                 predicted_score = self.__linear_regression(green_apple_vector, red_apple_vector)
@@ -282,8 +366,8 @@ class NNModel(Model):
     """
     Neural Network model for the AI agent.
     """
-    def __init__(self, judge: Agent, vector_size: int) -> None:
-        super().__init__(judge, vector_size)
+    def __init__(self, judge: Agent, vector_size: int, pretrained_model: str, pretrain: bool) -> None:
+        super().__init__(judge, vector_size, pretrained_model, pretrain)
 
     def __forward_propagation(self, green_apple_vector, red_apple_vector) -> np.ndarray:
         """
@@ -310,19 +394,20 @@ class NNModel(Model):
         # Update the target score based on the error
         self.y_target = self.y_target - error
 
-    def train_model(self, nlp_model: KeyedVectors, new_green_apple: GreenApple, new_red_apple: RedApple) -> None:
+    def train_model(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         # Set the green and red apple vectors
-        new_green_apple.set_adjective_vector(nlp_model)
-        new_red_apple.set_noun_vector(nlp_model)
+        green_apple.set_adjective_vector(nlp_model)
+        winning_red_apple.set_noun_vector(nlp_model)
 
         # Add the new green and red apples to the model data
-        self.model_data.green_apples.append(new_green_apple)
-        self.model_data.red_apples.append(new_red_apple)
+        self.model_data.green_apples.append(green_apple)
+        self.model_data.red_apples.append(winning_red_apple)
 
         # Get the green and red apple vectors
+
         green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
         red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
 
@@ -330,6 +415,9 @@ class NNModel(Model):
         for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
             self.y_target = self.__forward_propagation(green_apple_vector, red_apple_vector)
             self.__back_propagation(green_apple_vector, red_apple_vector)
+
+        # Save the updated slope and bias vectors
+        super()._save_vectors()
 
     def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """

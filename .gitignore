@@ -16,9 +16,13 @@ apples/vectors.bin
 *_debug
 
 # Log files
+logs/
 *.log
 results.csv
 
+# Numpy files and "agents" directory
+agents/
+*.npy
 
 ##########
 # Python #
