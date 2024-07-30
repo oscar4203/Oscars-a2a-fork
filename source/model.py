@@ -26,18 +26,18 @@ class ModelData:
         logging.debug(f"Created ModelData object: {self}")
 
     def __str__(self) -> str:
-        return f"ModelData(green_apples={[apple.adjective for apple in self.green_apples]}, red_apples={[apple.noun for apple in self.red_apples]}, " \
-               f"winning_red_apples={[apple.noun for apple in self.red_apples]})"
+        return f"ModelData(green_apples={[apple.__adjective for apple in self.green_apples]}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
+               f"winning_red_apples={[apple.get_noun() for apple in self.red_apples]})"
 
     def __repr__(self) -> str:
-        return f"ModelData(green_apples={[apple.adjective for apple in self.green_apples]}, red_apples={[apple.noun for apple in self.red_apples]}, " \
-               f"winning_red_apples={[apple.noun for apple in self.red_apples]})"
+        return f"ModelData(green_apples={[apple.__adjective for apple in self.green_apples]}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
+               f"winning_red_apples={[apple.get_noun() for apple in self.red_apples]})"
 
     def to_dict(self) -> dict:
         return {
-            "green_apples": [apple.adjective for apple in self.green_apples],
-            "red_apples": [apple.noun for apple in self.red_apples],
-            "winning_red_apples": [apple.noun for apple in self.winning_red_apples]
+            "green_apples": [apple.__adjective for apple in self.green_apples],
+            "red_apples": [apple.get_noun() for apple in self.red_apples],
+            "winning_red_apples": [apple.get_noun() for apple in self.winning_red_apples]
         }
 
 

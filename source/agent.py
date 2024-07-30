@@ -67,8 +67,8 @@ class Agent:
             raise ValueError(f"{self.name} is the judge.")
 
         # Display the green card drawn
-        print(f"{self.name} drew the green card '{self.green_apple.adjective}'.")
-        logging.info(f"{self.name} drew the green card '{self.green_apple}'.")
+        print(f"{self.name} drew the green card '{self.green_apple}'.")
+        logging.info(f"{self.name} drew the green card '{repr(self.green_apple)}'.")
 
         return self.green_apple
 
@@ -104,7 +104,7 @@ class HumanAgent(Agent):
         # Display the red cards in the agent's hand
         print(f"{self.name}'s red cards:")
         for i, red_apple in enumerate(self.red_apples):
-            print(f"{i + 1}. {red_apple.noun} - {red_apple.description}")
+            print(f"{i + 1}. {red_apple}")
 
         # Prompt the agent to choose a red card
         red_apple_len = len(self.red_apples)
@@ -123,7 +123,7 @@ class HumanAgent(Agent):
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+        logging.info(f"{self.name} chose the red card '{repr(red_apple)}'.")
 
         return red_apple
 
@@ -136,7 +136,7 @@ class HumanAgent(Agent):
         # Display the red cards submitted by the other agents
         print("Red cards submitted by the other agents:")
         for i, red_apple in enumerate(red_apples):
-            print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]].noun}")
+            print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]]}")
 
         # Prompt the agent to choose a red card
         red_apple_len = len(red_apples)
@@ -152,13 +152,6 @@ class HumanAgent(Agent):
 
         # Remove the red card from the agent's hand
         winning_red_apple = red_apples.pop(red_apple_index)
-
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
 
@@ -181,7 +174,7 @@ class RandomAgent(Agent):
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+        logging.info(f"{self.name} chose the red card '{repr(red_apple)}'.")
 
         return red_apple
 
@@ -193,13 +186,6 @@ class RandomAgent(Agent):
 
         # Choose a random winning red card
         winning_red_apple = random.choice(red_apples)
-
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
 
@@ -298,7 +284,7 @@ class AIAgent(Agent):
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+        logging.info(f"{self.name} chose the red card '{repr(red_apple)}'.")
 
         return red_apple
 
@@ -314,16 +300,9 @@ class AIAgent(Agent):
             raise ValueError("Model has not been initialized.")
 
         # Choose a winning red card
-        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(self.nlp_model, green_apple, red_apples)
+        winning_red_apple_dict: dict[str, RedApple] = self.self_model.choose_winning_red_apple(self.nlp_model, green_apple, red_apples)
 
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
-
-        return winning_red_apple
+        return winning_red_apple_dict
 
 
 #Define the mapping from user input to model type

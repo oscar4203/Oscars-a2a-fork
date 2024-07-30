@@ -23,7 +23,7 @@ def create_green_apple_df(green_apple_deck: Deck, model: KeyedVectors) -> pd.Dat
     green_apple_vectors = []
 
     # Get the Green Apple adjective vectors
-    for green_apple in green_apple_deck.apples:
+    for green_apple in green_apple_deck.__apples:
         if isinstance(green_apple, GreenApple):
             # Set the Green Apple adjective vector
             green_apple.set_adjective_vector(model)
@@ -49,7 +49,7 @@ def create_red_apple_df(red_apple_deck: Deck, model: KeyedVectors) -> pd.DataFra
     red_apple_vectors = []
 
     # Get the Red Apple noun vectors
-    for red_apple in red_apple_deck.apples:
+    for red_apple in red_apple_deck.__apples:
         if isinstance(red_apple, RedApple):
             # Get the Red Apple data
             red_apple.set_noun_vector(model)

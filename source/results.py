@@ -35,26 +35,26 @@ class GameResults:
 
     def __str__(self) -> str:
         return f"GameResults(agents={[player.name for player in self.agents]}, points_to_win={self.points_to_win}, round={self.round}, " \
-               f"green_apple={self.green_apple.adjective}, red_apples={[apple.noun for apple in self.red_apples]}, " \
-               f"winning_red_apple={self.winning_red_apple.noun}, winning_player={self.winning_player.name})"
+               f"green_apple={self.green_apple.get_adjective()}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
+               f"winning_red_apple={self.winning_red_apple.get_noun()}, winning_player={self.winning_player.name})"
 
     def __repr__(self) -> str:
         return f"GameResults(agents={[player.name for player in self.agents]}, points_to_win={self.points_to_win}, round={self.round}, " \
-               f"green_apple={self.green_apple}, red_apples={[apple.noun for apple in self.red_apples]}, " \
-               f"winning_red_apple={self.winning_red_apple.noun}, winning_player={self.winning_player.name}"
+               f"green_apple={self.green_apple}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
+               f"winning_red_apple={self.winning_red_apple.get_noun()}, winning_player={self.winning_player.name}"
 
     def to_dict(self) -> dict:
         return {
             "agents": [player.name for player in self.agents],
             "points_to_win": self.points_to_win,
             "round": self.round,
-            "green_apple": self.green_apple.adjective,
-            "red_apples": [apple.noun for apple in self.red_apples],
-            "winning_red_apple": self.winning_red_apple.noun,
+            "green_apple": self.green_apple.get_adjective(),
+            "red_apples": [apple.get_noun() for apple in self.red_apples],
+            "winning_red_apple": self.winning_red_apple.get_noun(),
             "winning_player": self.winning_player.name
         }
-    
-@dataclass 
+
+@dataclass
 class PreferenceUpdates:
     agent: Agent
     round: int
@@ -65,17 +65,17 @@ class PreferenceUpdates:
     slope: np.ndarray
 
     def __str__(self) -> str:
-        return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.noun}, green apple={self.green_apple.adjective}, bias={self.bias}, slope={self.slope})"
+        return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.get_noun()}, green apple={self.green_apple.get_adjective()}, bias={self.bias}, slope={self.slope})"
     def __repr__(self) -> str:
-         return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.noun}, green apple={self.green_apple.adjective}, bias={self.bias}, slope={self.slope})"
-    
+         return f"PreferenceUpdates(agent={self.agent.name}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.get_noun()}, green apple={self.green_apple.get_adjective()}, bias={self.bias}, slope={self.slope})"
+
     def to_dict(self) -> dict:
         return {
             "Agent": self.agent.name,
             "round": self.round,
             "time": self.time,
-            "green_apple": self.green_apple.adjective,
-            "winning_red_apple": self.winning_red_apple.noun,
+            "green_apple": self.green_apple.get_adjective(),
+            "winning_red_apple": self.winning_red_apple.get_noun(),
             "Bias": f"{self.bias}\n",
             "Slope": f"{self.slope}\n"
         }

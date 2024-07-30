@@ -20,83 +20,82 @@ from source.w2vloader import VectorsW2V
 class ApplesToApples:
     def __init__(self, number_of_players: int, points_to_win: int, green_expansion: str = '', red_expansion: str = '') -> None:
         self.number_of_players: int = number_of_players
+        self.players: list[Agent] = []
         self.points_to_win: int = points_to_win
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
+        self.green_apples_deck: Deck = Deck()
+        self.red_apples_deck: Deck = Deck()
         self.__cards_in_hand: int = 7
-        self.green_apples_deck: Deck = Deck()
-        self.red_apples_deck: Deck = Deck()
-        self.winner: Agent | None = None
-        self.round: int = 0
-        self.current_judge: Agent | None = None
-        self.players: list[Agent] = []
-        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
-        self.red_apples_in_play: list[dict[str, RedApple]] = []
-        self.discarded_green_apples: list[GreenApple] = []
-        self.discarded_red_apples: list[RedApple] = []
+
+    def load_vectors(self) -> None:
         self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
-      
-    # def load_vectors(self) -> None:
-    #     self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
-    #     # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
-    #     # embeddings.load()
+        # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
+        # embeddings.load()
 
-    def new_game(self) -> None:
-        # Initialize the players
-        self.players: list[Agent] = []
-        logging.info("Initializing players.")
-        self.__initialize_players()
-
-    def reset_game(self) -> None:
-        print("Starting new 'Apples to Apples' game.")
-        logging.info("Starting new 'Apples to Apples' game.")
-       
-        self.green_apples_deck: Deck = Deck()
-        self.red_apples_deck: Deck = Deck()
-        self.winner: Agent | None = None
-        self.round: int = 0
-        self.current_judge: Agent | None = None
-        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
-        self.red_apples_in_play: list[dict[str, RedApple]] = []
-        self.discarded_green_apples: list[GreenApple] = []
-        self.discarded_red_apples: list[RedApple] = []
+    def new_game(self, new_players: bool) -> None:
+        """
+        Start a new game of 'Apples to Apples' and reset the game state.
+        Optionally, initialize new players.
+        """
+        # Reset the game state
+        print("Resetting game state.")
+        logging.info("Resetting game state.")
+        self.__reset_game_state()
 
         # Initialize the decks
+        print("Initializing decks.")
+        logging.info("Initializing decks.")
         self.__initialize_decks()
 
+        # Initialize the players
+        if new_players:
+            print("Initializing players.")
+            logging.info("Initializing players.")
+            self.players: list[Agent] = []
+            self.__initialize_players()
+
     def start_game(self) -> None:
+        print("Starting new 'Apples to Apples' game.")
+        logging.info("Starting new 'Apples to Apples' game.")
+
         # Choose the starting judge
         self.__choose_judge()
 
         # Start the game loop
         self.__game_loop()
 
+    def __reset_game_state(self) -> None:
+        # Reset the game state
+        self.winner: Agent | None = None
+        self.round: int = 0
+        self.current_judge: Agent | None = None
+
     def __initialize_decks(self) -> None:
-        # Load the green apples deck
-        self.green_apples_deck.load_deck("Green Apples", "./apples/green_apples.csv")
-        print(f"Loaded {len(self.green_apples_deck.apples)} green apples.")
-        logging.info(f"Loaded {len(self.green_apples_deck.apples)} green apples.")
-
-        # Load the red apples deck
-        self.red_apples_deck.load_deck("Red Apples", "./apples/red_apples.csv")
-        print(f"Loaded {len(self.red_apples_deck.apples)} red apples.")
-        logging.info(f"Loaded {len(self.red_apples_deck.apples)} red apples.")
-
-        # Load the green apples expansion deck
-        if self.green_expansion_filename:
-            self.green_apples_deck.load_deck("Green Apples Expansion", self.green_expansion_filename)
-            print(f"Loaded {len(self.green_apples_deck.apples)} green apples from the expansion.")
-            logging.info(f"Loaded {len(self.green_apples_deck.apples)} green apples from the expansion.")
-
-        # Load the red apples expansion deck
-        if self.red_expansion_filename:
-            self.red_apples_deck.load_deck("Red Apples Expansion", self.red_expansion_filename)
-            print(f"Loaded {len(self.red_apples_deck.apples)} red apples from the expansion.")
-            logging.info(f"Loaded {len(self.red_apples_deck.apples)} red apples from the expansion.")
+        # Initialize the decks
+        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
+        self.red_apples_in_play: list[dict[str, RedApple]] = []
+        self.discarded_green_apples: list[GreenApple] = []
+        self.discarded_red_apples: list[RedApple] = []
 
         # Shuffle the decks
-        self.green_apples_deck.shuffle()
-        self.red_apples_deck.shuffle()
+        self.__load_and_shuffle_deck(self.green_apples_deck, "Green Apples", "./apples/green_apples.csv", self.green_expansion_filename)
+        self.__load_and_shuffle_deck(self.red_apples_deck, "Red Apples", "./apples/red_apples.csv", self.red_expansion_filename)
+
+    def __load_and_shuffle_deck(self, deck: Deck, deck_name: str, base_file: str, expansion_file: str) -> None:
+        # Load the base deck
+        deck.load_deck(deck_name, base_file)
+        print(f"Loaded {len(deck.get_apples())} {deck_name.lower()}.")
+        logging.info(f"Loaded {len(deck.get_apples())} {deck_name.lower()}.")
+
+        # Load the expansion deck, if applicable
+        if expansion_file:
+            deck.load_deck(f"{deck_name} Expansion", expansion_file)
+            print(f"Loaded {len(deck.get_apples())} {deck_name.lower()} from the expansion.")
+            logging.info(f"Loaded {len(deck.get_apples())} {deck_name.lower()} from the expansion.")
+
+        # Shuffle the deck
+        deck.shuffle()
 
     def __generate_unique_name(self, base_name: str) -> str:
         # Unpack the existing names
@@ -171,7 +170,7 @@ class ApplesToApples:
                 logging.debug(f"Pretrained Model String: {pretrained_model_string}")
 
                 # Create the AI agent
-                new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type_class.__name__}")
+                new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}")
                 new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, False)
 
             # Append the player object
@@ -313,6 +312,17 @@ class ApplesToApples:
             winning_red_card_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
                 self.green_apples_in_play[self.current_judge], self.red_apples_in_play)
 
+            # Extract the winning red card
+            winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
+
+            losing_red_apples: list[RedApple] = red_apples_this_round.copy()
+            losing_red_apples.remove(winning_red_card)
+            logging.info(f"Losing Apples: {repr(losing_red_apples)}")
+
+            # Print and log the winning red card
+            print(f"{self.current_judge.name} chose the winning red card '{winning_red_card}'.")
+            logging.info(f"{self.current_judge.name} chose the winning red card '{repr(winning_red_card)}'.")
+
             # Award points to the winning player
             for player in self.players:
                 logging.debug(f"Agent.name: {player.name}, datatype: {type(player.name)}")
@@ -335,13 +345,6 @@ class ApplesToApples:
                 red_apples_list = []
                 for red_apple in self.red_apples_in_play:
                     red_apples_list.append(list(red_apple.values())[0])
-
-            # Extract the winning red card
-            winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
-
-            losing_red_apples: list[RedApple] = red_apples_this_round.copy()
-            losing_red_apples.remove(winning_red_card)
-            print("losing Apples", losing_red_apples, winning_red_card)
 
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
@@ -416,22 +419,23 @@ def main() -> None:
     end_program = False
     response = 'y'
 
+    # Load the vectors
+    game.load_vectors()
+
     # Start the game
-    game.reset_game()
-    game.new_game()
+    game.new_game(True)
     game.start_game()
-   
-    
+
+    # Start the game, prompt the user for options
     while end_program == False:
         print("--------------------OPTIONS--------------------")
         print("1.Restart the game (same players)\n2.Start a new game (new players)\n3.End Session.\n")
         response = input("Which option do you choose?: ")
         if response == '1':
-            game.reset_game()
+            game.new_game(False)
             game.start_game()
         elif response == '2':
-            game.reset_game()
-            game.new_game()
+            game.new_game(True)
             game.start_game()
         elif response == '3':
             end_program = True
