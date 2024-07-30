@@ -21,6 +21,7 @@ class ApplesToApples:
         self.number_of_rounds: int = number_of_rounds
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
+        self.__cards_in_hand: int = 25
         self.green_apples_deck: Deck = Deck()
         self.red_apples_deck: Deck = Deck()
         self.winner: Agent | None = None
@@ -121,7 +122,7 @@ class ApplesToApples:
         logging.info(self.agent)
 
         # Have the human player pick up 25 red cards
-        self.human.draw_red_apples(self.red_apples_deck)
+        self.human.draw_red_apples(self.red_apples_deck, self.__cards_in_hand)
 
         # Add the human player to a list
         human_list = [self.human]
@@ -184,8 +185,8 @@ class ApplesToApples:
         logging.info(f"Red card: {red_apple}")
 
         # Prompt the player to pick up a new red card
-        if len(self.human.red_apples) < 25:
-            self.human.draw_red_apples(self.red_apples_deck)
+        if len(self.human.red_apples) < self.__cards_in_hand:
+            self.human.draw_red_apples(self.red_apples_deck, self.__cards_in_hand)
 
     def __game_loop(self) -> None:
         # Start the game loop

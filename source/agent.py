@@ -28,12 +28,12 @@ class Agent:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def draw_red_apples(self, red_apple_deck: Deck) -> Deck | None:
+    def draw_red_apples(self, red_apple_deck: Deck, cards_in_hand: int) -> Deck | None:
         """
-        Draw red cards from the deck, ensuring the agent has 7 red cards.
+        Draw red cards from the deck, ensuring the agent has enough red cards.
         """
         # Calculate the number of red cards to pick up
-        diff = 25 - len(self.red_apples)
+        diff = cards_in_hand - len(self.red_apples)
         if diff > 0:
             for _ in range(diff):
                 # Draw a red card
@@ -48,8 +48,8 @@ class Agent:
                 print(f"{self.name} picked up {diff} red cards.")
                 logging.info(f"{self.name} picked up {diff} red cards.")
         else:
-            print(f"{self.name} cannot pick up any more red cards. Agent already has 7 red cards")
-            logging.info(f"{self.name} cannot pick up the red card. Agent already has 7 red cards")
+            print(f"{self.name} cannot pick up any more red cards. Agent already has enough red cards")
+            logging.info(f"{self.name} cannot pick up the red card. Agent already has enough red cards")
 
     def draw_green_apple(self, green_apple_deck: Deck) -> GreenApple:
         """
@@ -104,7 +104,7 @@ class HumanAgent(Agent):
         # Display the red cards in the agent's hand
         print(f"{self.name}'s red cards:")
         for i, red_apple in enumerate(self.red_apples):
-            print(f"{i + 1}. {red_apple.noun}")
+            print(f"{i + 1}. {red_apple.noun} - {red_apple.description}")
 
         # Prompt the agent to choose a red card
         red_apple_len = len(self.red_apples)
@@ -323,7 +323,7 @@ class AIAgent(Agent):
         logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
-    
+
 
 #Define the mapping from user input to model type
 model_type_mapping = {
