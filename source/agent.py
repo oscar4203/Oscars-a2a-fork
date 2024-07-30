@@ -294,6 +294,7 @@ class AIAgent(Agent):
 
         # Run the AI model to choose a red card based on current judge
         red_apple = self.opponent_models[current_judge].choose_red_apple(self.nlp_model, green_apple, self.red_apples)
+        self.red_apples.remove(red_apple)
 
         # Display the red card chosen
         print(f"{self.name} chose a red card.")

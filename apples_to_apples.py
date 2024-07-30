@@ -26,28 +26,44 @@ class ApplesToApples:
         self.green_apples_deck: Deck = Deck()
         self.red_apples_deck: Deck = Deck()
         self.winner: Agent | None = None
+        self.round: int = 0
+        self.current_judge: Agent | None = None
         self.players: list[Agent] = []
+        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
+        self.red_apples_in_play: list[dict[str, RedApple]] = []
+        self.discarded_green_apples: list[GreenApple] = []
+        self.discarded_red_apples: list[RedApple] = []
+        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+      
+    # def load_vectors(self) -> None:
+    #     self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+    #     # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
+    #     # embeddings.load()
+
+    def new_game(self) -> None:
+        # Initialize the players
+        self.players: list[Agent] = []
+        logging.info("Initializing players.")
+        self.__initialize_players()
+
+    def reset_game(self) -> None:
+        print("Starting new 'Apples to Apples' game.")
+        logging.info("Starting new 'Apples to Apples' game.")
+       
+        self.green_apples_deck: Deck = Deck()
+        self.red_apples_deck: Deck = Deck()
+        self.winner: Agent | None = None
         self.round: int = 0
         self.current_judge: Agent | None = None
         self.green_apples_in_play: dict[Agent, GreenApple] | None = None
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
-        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
-        # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
-        # embeddings.load()
-
-    def start(self) -> None:
-        print("Starting 'Apples to Apples' game.")
-        logging.info("Starting 'Apples to Apples' game.")
-        logging.info("Initializing players.")
 
         # Initialize the decks
         self.__initialize_decks()
 
-        # Initialize the players
-        self.__initialize_players()
-
+    def start_game(self) -> None:
         # Choose the starting judge
         self.__choose_judge()
 
@@ -258,7 +274,7 @@ class ApplesToApples:
 
     def __game_loop(self) -> None:
         # Start the game loop
-        start_time = datetime.now().strftime("%Y-%m-%w-%H-%M-%S)")
+        start_time = datetime.now().strftime("%Y-%m-%d-%H-%M)")
 
         while self.winner is None:
             # Increment the round
@@ -396,9 +412,32 @@ def main() -> None:
 
     # Create the game object
     game = ApplesToApples(args.players, args.points, args.green_expansion, args.red_expansion)
+    # game.load_vectors()
+
+    end_program = False
+    response = 'y'
 
     # Start the game
-    game.start()
+    game.reset_game()
+    game.new_game()
+    game.start_game()
+   
+    
+    while end_program == False:
+        print("--------------------OPTIONS--------------------")
+        print("1.Restart the game (same players)\n2.Start a new game (new players)\n3.End Session.\n")
+        response = input("Which option do you choose?: ")
+        if response == '1':
+            game.reset_game()
+            game.start_game()
+        elif response == '2':
+            game.reset_game()
+            game.new_game()
+            game.start_game()
+        elif response == '3':
+            end_program = True
+        else:
+            print("Invalid response. Please select '1', '2', or '3'.")
 
 
 if __name__ == "__main__":
