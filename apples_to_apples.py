@@ -13,7 +13,7 @@ from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
 from source.model import Model, LRModel, NNModel
-from source.results import GameResults, log_results, PreferenceUpdates, log_preference_updates
+from source.results import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_preference_updates
 from source.w2vloader import VectorsW2V
 
 
@@ -133,7 +133,7 @@ class ApplesToApples:
                     new_agent_name = input(f"Please enter the name for the Human Agent: ")
                     if new_agent_name not in [agent.name for agent in self.players]:
                         break
-                new_agent = HumanAgent(new_agent_name)
+                new_agent = HumanAgent(f"Human Agent - {new_agent_name}")
             elif player_type == '2':
                 new_agent_name = self.__generate_unique_name("Random Agent")
                 new_agent = RandomAgent(new_agent_name)
@@ -346,10 +346,10 @@ class ApplesToApples:
                 for red_apple in self.red_apples_in_play:
                     red_apples_list.append(list(red_apple.values())[0])
 
-            # Log the results
+            # Log the gameplay results for the round
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
-            log_results(results)
+            log_gameplay(results)
 
             # Train all AI agents (if applicable)
             for player in self.players:
@@ -383,6 +383,7 @@ class ApplesToApples:
                 # Print and log the winner message
                 print(message)
                 logging.info(message)
+                log_winner(self.winner)
 
                 break
 

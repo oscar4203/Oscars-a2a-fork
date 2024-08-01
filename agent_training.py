@@ -12,7 +12,7 @@ from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
-from source.results import GameResults, log_results
+from source.results import GameResults, log_training
 from source.w2vloader import VectorsW2V
 
 
@@ -269,10 +269,10 @@ class ApplesToApples:
             # Put the agent into a list
             agent_list = [self.agent]
 
-            # Log the results
+            # Log the training
             results = GameResults(agent_list, self.number_of_rounds, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
-            log_results(results)
+            log_training(results)
 
             # Collect all the non-winning red cards
             losing_red_cards = []

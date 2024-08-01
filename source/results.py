@@ -5,6 +5,7 @@ import logging
 from dataclasses import dataclass
 import os
 import csv
+import numpy as np
 
 # Third-party Libraries
 
@@ -12,12 +13,13 @@ import csv
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
 
-#Maybe bad because of circular importing?
-import numpy as np
 
-# Results constants
-RESULTS_FILENAME = "./logs/results.csv"
+# Filename constants
+GAMEPLAY_FILENAME = "./logs/gameplay.csv"
+WINNERS_FILENAME = "./logs/winners.csv"
+TRAINING_FILENAME = "./logs/training.csv"
 PREFERENCES_FILENAME = "./logs/preferences_round"
+
 
 # Game Results Datatype
 @dataclass
@@ -54,6 +56,7 @@ class GameResults:
             "winning_player": self.winning_player.name
         }
 
+
 @dataclass
 class PreferenceUpdates:
     agent: Agent
@@ -80,6 +83,7 @@ class PreferenceUpdates:
             "Slope": f"{self.slope}\n"
         }
 
+
 def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
     filename = f"./logs/Game-{preference_updates.time}.csv"
 
@@ -94,20 +98,57 @@ def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
             writer.writeheader()
         writer.writerow(preference_updates.to_dict())
 
-def log_results(game_results: GameResults) -> None:
+
+def log_gameplay(game_results: GameResults) -> None:
     # # Check if file exists
     # file_exists = os.path.isfile(RESULTS_FILENAME)
 
     # Ensure the directory exists
-    os.makedirs(os.path.dirname(RESULTS_FILENAME), exist_ok=True)
+    os.makedirs(os.path.dirname(GAMEPLAY_FILENAME), exist_ok=True)
 
     # Open the file in append mode. This will create the file if it doesn't exist
-    with open(RESULTS_FILENAME, 'a') as file:
+    with open(GAMEPLAY_FILENAME, 'a') as file:
         # Create a CSV writer object
         writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
 
         # Check if the file is empty
-        file_empty = os.path.getsize(RESULTS_FILENAME) == 0
+        file_empty = os.path.getsize(GAMEPLAY_FILENAME) == 0
+        if file_empty:
+            writer.writeheader()
+
+        # Write the game results
+        writer.writerow(game_results.to_dict())
+
+
+def log_winner(winner: Agent) -> None:
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(WINNERS_FILENAME), exist_ok=True)
+
+    # Open the file in append mode. This will create the file if it doesn't exist
+    with open(WINNERS_FILENAME, 'a') as file:
+        # Create a CSV writer object
+        writer = csv.DictWriter(file, fieldnames=["Winner"])
+
+        # Check if the file is empty
+        file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+        if file_empty:
+            writer.writeheader()
+
+        # Write the game results
+        writer.writerow({"Winner": winner.name})
+
+
+def log_training(game_results: GameResults) -> None:
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(TRAINING_FILENAME), exist_ok=True)
+
+    # Open the file in append mode. This will create the file if it doesn't exist
+    with open(TRAINING_FILENAME, 'a') as file:
+        # Create a CSV writer object
+        writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
+
+        # Check if the file is empty
+        file_empty = os.path.getsize(TRAINING_FILENAME) == 0
         if file_empty:
             writer.writeheader()
 
