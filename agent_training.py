@@ -153,7 +153,7 @@ class ApplesToApples:
         # Initialize the models for the AI agents
         if isinstance(self.agent, AIAgent):
             self.agent.initialize_models(self.nlp_model, human_list)
-            logging.info(f"Initialized models for {new_agent.name}.")
+            logging.info(f"Initialized models for {new_agent.get_name()}.")
 
     def __choose_judge(self) -> None:
         # Check that the agent is not None
@@ -162,8 +162,8 @@ class ApplesToApples:
             raise ValueError("The agent is None.")
 
         self.current_judge = self.agent
-        self.agent.judge = True
-        print(f"{self.agent.name} is the starting judge.")
+        self.agent.set_judge_status(True)
+        print(f"{self.agent.get_name()} is the starting judge.")
 
     def __is_game_over(self) -> Agent | None:
         if self.round >= self.number_of_rounds:
@@ -177,8 +177,8 @@ class ApplesToApples:
             raise ValueError("The current judge is None.")
 
         # Prompt the judge to draw a green card
-        print(f"\n{self.current_judge.name}, please draw a green card.")
-        logging.info(f"{self.current_judge.name}, please draw a green card.")
+        print(f"\n{self.current_judge.get_name()}, please draw a green card.")
+        logging.info(f"{self.current_judge.get_name()}, please draw a green card.")
 
         # Set the green card in play
         self.green_apples_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
@@ -189,8 +189,8 @@ class ApplesToApples:
         #     logging.error("The agent is None.")
         #     raise ValueError("The agent is None.")
 
-        print(f"\n{self.human.name}, please select a red card for training purposes.")
-        logging.info(f"{self.human.name}, please select a red card for training purposes.")
+        print(f"\n{self.human.get_name()}, please select a red card for training purposes.")
+        logging.info(f"{self.human.get_name()}, please select a red card for training purposes.")
 
         # Check if the current judge is None
         if self.current_judge is None:
@@ -204,11 +204,11 @@ class ApplesToApples:
 
         # Set the red cards in play
         red_apple = self.human.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
-        self.red_apples_in_play.append({self.human.name: red_apple})
+        self.red_apples_in_play.append({self.human.get_name(): red_apple})
         logging.info(f"Red card: {red_apple}")
 
         # Prompt the player to pick up a new red card
-        if len(self.human.red_apples) < self.__cards_in_hand:
+        if len(self.human.get_red_apples()) < self.__cards_in_hand:
             self.human.draw_red_apples(self.red_apples_deck, self.__cards_in_hand)
 
     def __game_loop(self) -> None:
@@ -241,8 +241,8 @@ class ApplesToApples:
                 raise ValueError("The green apples in play is None.")
 
             # Prompt the judge to select the winning red card
-            print(f"\n{self.current_judge.name}, please select the winning red card.")
-            logging.info(f"{self.current_judge.name}, please select the winning red card.")
+            print(f"\n{self.current_judge.get_name()}, please select the winning red card.")
+            logging.info(f"{self.current_judge.get_name()}, please select the winning red card.")
             winning_red_card_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
                 self.green_apples_in_play[self.current_judge], self.red_apples_in_play)
 
@@ -284,16 +284,16 @@ class ApplesToApples:
             if isinstance(self.agent, AIAgent):
                 # Temporarily make the HumanAgent the judge
                 self.current_judge = self.human
-                self.human.judge = True
-                self.agent.judge = False
+                self.human.set_judge_status(True)
+                self.agent.set_judge_status(False)
 
                 # Train the AI agent
                 self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.agent], winning_red_card, losing_red_cards, self.current_judge)
 
                 # Reset the judge to the AI agent
                 self.current_judge = self.agent
-                self.agent.judge = True
-                self.human.judge = False
+                self.agent.set_judge_status(True)
+                self.human.set_judge_status(False)
 
 
             # Discard the green cards
@@ -308,7 +308,7 @@ class ApplesToApples:
             self.winner = self.__is_game_over()
             if self.winner is not None:
                 # Prepare the winner message
-                winner_text = f"# {self.winner.name} has won the game! #"
+                winner_text = f"# {self.winner.get_name()} has won the game! #"
                 border = '#' * len(winner_text)
                 message = f"\n{border}\n{winner_text}\n{border}\n"
 

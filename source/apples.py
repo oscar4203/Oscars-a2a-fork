@@ -14,16 +14,16 @@ from gensim.models import KeyedVectors
 
 class Apple:
     def __init__(self, set: str) -> None:
-        self.set: str = set
+        self._set: str = set
 
     def __str__(self) -> str:
-        return f"Apple(set={self.set})"
+        return f"Apple(set={self._set})"
 
     def __repr__(self) -> str:
-        return f"Apple(set={self.set})"
+        return f"Apple(set={self._set})"
 
     def get_set(self) -> str:
-        return self.set
+        return self._set
 
     def _format_text(self, text: str) -> str:
         # Remove the leading and trailing whitespace
@@ -85,7 +85,7 @@ class GreenApple(Apple):
         return f"{self.__adjective} | Synonyms: {synonyms_str}"
 
     def __repr__(self) -> str:
-        return f"GreenApple(set={self.set}, adjective={self.__adjective}, synonyms={self.__synonyms}), " \
+        return f"GreenApple(set={self._set}, adjective={self.__adjective}, synonyms={self.__synonyms}), " \
                 f"adjective_vector={self.__adjective_vector}, synonyms_vector={self.__synonyms_vector}"
 
     def get_adjective(self) -> str:
@@ -134,7 +134,7 @@ class RedApple(Apple):
         return f"{self.__noun} | Description: {self.__description}"
 
     def __repr__(self) -> str:
-        return f"RedApple(set={self.set}, noun={self.__noun}, description={self.__description}), " \
+        return f"RedApple(set={self._set}, noun={self.__noun}, description={self.__description}), " \
                 f"noun_vector={self.__noun_vector}, description_vector={self.__description_vector}"
 
     def get_noun(self) -> str:
