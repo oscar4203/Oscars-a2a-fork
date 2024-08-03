@@ -272,7 +272,7 @@ class ApplesToApples:
             # Log the training
             results = GameResults(agent_list, self.number_of_rounds, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
-            log_training(results)
+            log_training(results, True)
 
             # Collect all the non-winning red cards
             losing_red_cards = []

@@ -357,7 +357,7 @@ class ApplesToApples:
             # Log the gameplay results for the round
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
-            log_gameplay(results)
+            log_gameplay(results, True)
 
             # Train all AI agents (if applicable)
             for player in self.players:
@@ -397,7 +397,7 @@ class ApplesToApples:
                 # Print and log the winner message
                 print(message)
                 logging.info(message)
-                log_winner(self.winner, False)
+                log_winner(self.winner, True)
 
                 break
 

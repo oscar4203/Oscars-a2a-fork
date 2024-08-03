@@ -99,7 +99,7 @@ def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
         writer.writerow(preference_updates.to_dict())
 
 
-def log_gameplay(game_results: GameResults) -> None:
+def log_gameplay(game_results: GameResults, header: bool) -> None:
     # # Check if file exists
     # file_exists = os.path.isfile(RESULTS_FILENAME)
 
@@ -111,10 +111,12 @@ def log_gameplay(game_results: GameResults) -> None:
         # Create a CSV writer object
         writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
 
-        # Check if the file is empty
-        file_empty = os.path.getsize(GAMEPLAY_FILENAME) == 0
-        if file_empty:
-            writer.writeheader()
+        # Write a header if requested
+        if header:
+            # Check if the file is empty
+            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            if file_empty:
+                writer.writeheader()
 
         # Write the game results
         writer.writerow(game_results.to_dict())
@@ -129,16 +131,18 @@ def log_winner(winner: Agent, header: bool) -> None:
         # Create a CSV writer object
         writer = csv.DictWriter(file, fieldnames=["Winner"])
 
-        # Check if the file is empty
-        file_empty = os.path.getsize(WINNERS_FILENAME) == 0
-        if file_empty:
-            writer.writeheader()
+        # Write a header if requested
+        if header:
+            # Check if the file is empty
+            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            if file_empty:
+                writer.writeheader()
 
         # Write the game results
         writer.writerow({"Winner": winner.get_name()})
 
 
-def log_training(game_results: GameResults) -> None:
+def log_training(game_results: GameResults, header: bool) -> None:
     # Ensure the directory exists
     os.makedirs(os.path.dirname(TRAINING_FILENAME), exist_ok=True)
 
@@ -147,10 +151,12 @@ def log_training(game_results: GameResults) -> None:
         # Create a CSV writer object
         writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
 
-        # Check if the file is empty
-        file_empty = os.path.getsize(TRAINING_FILENAME) == 0
-        if file_empty:
-            writer.writeheader()
+        # Write a header if requested
+        if header:
+            # Check if the file is empty
+            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            if file_empty:
+                writer.writeheader()
 
         # Write the game results
         writer.writerow(game_results.to_dict())
