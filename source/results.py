@@ -1,4 +1,4 @@
-# Description: Configuration file for the application
+# Description: Module to log game results and player preferences
 
 # Standard Libraries
 import logging
