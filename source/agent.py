@@ -16,61 +16,88 @@ class Agent:
     Base class for the agents in the 'Apples to Apples' game
     """
     def __init__(self, name: str) -> None:
-        self.name: str = name
-        self.points: int = 0
-        self.judge: bool = False
-        self.green_apple: GreenApple | None = None
-        self.red_apples: list[RedApple] = []
+        self._name: str = name
+        self._points: int = 0
+        self._judge_status: bool = False
+        self._green_apple: GreenApple | None = None
+        self._red_apples: list[RedApple] = []
 
     def __str__(self) -> str:
-        return f"Agent(name={self.name}, points={self.points}, judge={self.judge}, green_apple={self.green_apple}, red_apples={self.red_apples})"
+        return f"Agent(name={self._name}, points={self._points}, judge={self._judge_status}, green_apple={self._green_apple}, red_apples={self._red_apples})"
 
     def __repr__(self) -> str:
         return self.__str__()
 
-    def draw_red_apples(self, red_apple_deck: Deck) -> Deck | None:
+    def get_name(self) -> str:
+        return self._name
+
+    def get_points(self) -> int:
+        return self._points
+
+    def get_judge_status(self) -> bool:
+        return self._judge_status
+
+    def get_green_apple(self) -> GreenApple | None:
+        return self._green_apple
+
+    def get_red_apples(self) -> list[RedApple]:
+        return self._red_apples
+
+    def set_points(self, points: int) -> None:
+        self._points = points
+
+    def set_judge_status(self, judge: bool) -> None:
+        self._judge_status = judge
+
+    def reset_points(self) -> None:
         """
-        Draw red cards from the deck, ensuring the agent has 7 red cards.
+        Reset the agent's points to zero.
+        """
+        self._points = 0
+
+    def draw_red_apples(self, red_apple_deck: Deck, cards_in_hand: int) -> Deck | None:
+        """
+        Draw red cards from the deck, ensuring the agent has enough red cards.
         """
         # Calculate the number of red cards to pick up
-        diff = 25 - len(self.red_apples)
+        diff = cards_in_hand - len(self._red_apples)
         if diff > 0:
             for _ in range(diff):
                 # Draw a red card
                 new_red_apple = red_apple_deck.draw_apple()
                 if not isinstance(new_red_apple, RedApple):
                     raise TypeError("Expected a RedApple, but got a different type")
-                self.red_apples.append(new_red_apple)
+                self._red_apples.append(new_red_apple)
             if diff == 1:
-                print(f"{self.name} picked up 1 red card.")
-                logging.info(f"{self.name} picked up 1 red card.")
+                print(f"{self._name} picked up 1 red card.")
+                logging.info(f"{self._name} picked up 1 red card.")
             else:
-                print(f"{self.name} picked up {diff} red cards.")
-                logging.info(f"{self.name} picked up {diff} red cards.")
+                print(f"{self._name} picked up {diff} red cards.")
+                logging.info(f"{self._name} picked up {diff} red cards.")
         else:
-            print(f"{self.name} cannot pick up any more red cards. Agent already has 7 red cards")
-            logging.info(f"{self.name} cannot pick up the red card. Agent already has 7 red cards")
+            print(f"{self._name} cannot pick up any more red cards. Agent already has enough red cards")
+            logging.info(f"{self._name} cannot pick up the red card. Agent already has enough red cards")
 
     def draw_green_apple(self, green_apple_deck: Deck) -> GreenApple:
         """
         Draw a green card from the deck (when the agent is the judge).
         """
         # Check if the Agent is a judge
-        if self.judge:
+        if self._judge_status:
             # Draw a green card
             new_green_apple = green_apple_deck.draw_apple()
             if not isinstance(new_green_apple, GreenApple):
                 raise TypeError("Expected a GreenApple, but got a different type")
-            self.green_apple = new_green_apple
+            self._green_apple = new_green_apple
         else:
-            logging.error(f"{self.name} is the judge.")
-            raise ValueError(f"{self.name} is the judge.")
+            logging.error(f"{self._name} is the judge.")
+            raise ValueError(f"{self._name} is the judge.")
 
         # Display the green card drawn
-        print(f"{self.name} drew the green card '{self.green_apple.adjective}'.")
-        logging.info(f"{self.name} drew the green card '{self.green_apple}'.")
+        print(f"{self._name} drew the green card '{self._green_apple}'.")
+        logging.info(f"{self._name} drew the green card '{repr(self._green_apple)}'.")
 
-        return self.green_apple
+        return self._green_apple
 
     def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> RedApple: # Define the type of current_judge as a string
         """
@@ -94,20 +121,20 @@ class HumanAgent(Agent):
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
-        if self.judge:
-            logging.error(f"{self.name} is the judge.")
-            raise ValueError(f"{self.name} is the judge.")
+        if self._judge_status:
+            logging.error(f"{self._name} is the judge.")
+            raise ValueError(f"{self._name} is the judge.")
 
         # Choose a red card
         red_apple: RedApple | None = None
 
         # Display the red cards in the agent's hand
-        print(f"{self.name}'s red cards:")
-        for i, red_apple in enumerate(self.red_apples):
-            print(f"{i + 1}. {red_apple.noun}")
+        print(f"{self._name}'s red cards:")
+        for i, red_apple in enumerate(self._red_apples):
+            print(f"{i + 1}. {red_apple}")
 
         # Prompt the agent to choose a red card
-        red_apple_len = len(self.red_apples)
+        red_apple_len = len(self._red_apples)
         red_apple_index = input(f"Choose a red card (1 - {red_apple_len}): ")
 
         # Validate the input
@@ -119,24 +146,24 @@ class HumanAgent(Agent):
         red_apple_index = int(red_apple_index) - 1
 
         # Remove the red card from the agent's hand
-        red_apple = self.red_apples.pop(red_apple_index)
+        red_apple = self._red_apples.pop(red_apple_index)
 
         # Display the red card chosen
-        print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+        print(f"{self._name} chose a red card.")
+        logging.info(f"{self._name} chose the red card '{repr(red_apple)}'.")
 
         return red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         # Check if the agent is a judge
-        if not self.judge:
-            logging.error(f"{self.name} is not the judge.")
-            raise ValueError(f"{self.name} is not the judge.")
+        if not self._judge_status:
+            logging.error(f"{self._name} is not the judge.")
+            raise ValueError(f"{self._name} is not the judge.")
 
         # Display the red cards submitted by the other agents
         print("Red cards submitted by the other agents:")
         for i, red_apple in enumerate(red_apples):
-            print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]].noun}")
+            print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]]}")
 
         # Prompt the agent to choose a red card
         red_apple_len = len(red_apples)
@@ -153,13 +180,6 @@ class HumanAgent(Agent):
         # Remove the red card from the agent's hand
         winning_red_apple = red_apples.pop(red_apple_index)
 
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
-
         return winning_red_apple
 
 
@@ -172,34 +192,27 @@ class RandomAgent(Agent):
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
-        if self.judge:
-            logging.error(f"{self.name} is the judge.")
-            raise ValueError(f"{self.name} is the judge.")
+        if self._judge_status:
+            logging.error(f"{self._name} is the judge.")
+            raise ValueError(f"{self._name} is the judge.")
 
         # Choose a random red card
-        red_apple = self.red_apples.pop(random.choice(range(len(self.red_apples))))
+        red_apple = self._red_apples.pop(random.choice(range(len(self._red_apples))))
 
         # Display the red card chosen
-        print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+        print(f"{self._name} chose a red card.")
+        logging.info(f"{self._name} chose the red card '{repr(red_apple)}'.")
 
         return red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         # Check if the agent is a judge
-        if not self.judge:
-            logging.error(f"{self.name} is not the judge.")
-            raise ValueError(f"{self.name} is not the judge.")
+        if not self._judge_status:
+            logging.error(f"{self._name} is not the judge.")
+            raise ValueError(f"{self._name} is not the judge.")
 
         # Choose a random winning red card
         winning_red_apple = random.choice(red_apples)
-
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
 
         return winning_red_apple
 
@@ -212,14 +225,21 @@ class AIAgent(Agent):
     """
     def __init__(self, name: str, model_type: LRModel | NNModel, pretrained_model: str, pretrain: bool) -> None:
         super().__init__(name)
-        # self.nlp_model: KeyedVectors | None = None
-        self.vectors = None
-        self.model_type: LRModel | NNModel = model_type
-        self.pretrained_model: str = pretrained_model
-        self.pretrain: bool = pretrain
-        self.self_model: Model | None = None
-        self.opponents: list[Agent] = []
-        self.opponent_models: dict[Agent, LRModel | NNModel] | None = None
+        self.__nlp_model: KeyedVectors | None = None
+        self.__vectors = None
+        self.__model_type: LRModel | NNModel = model_type
+        self.__pretrained_model: str = pretrained_model
+        self.__pretrain: bool = pretrain
+        self.__self_model: Model | None = None
+        self.__opponents: list[Agent] = []
+        self.__opponent_models: dict[Agent, LRModel | NNModel] | None = None
+
+    def get_opponent_models(self, key: Agent) -> LRModel | NNModel | None:
+        if self.__opponent_models is None:
+            logging.error("Opponent Models have not been initialized.")
+            raise ValueError("Opponent Models have not been initialized.")
+        else:
+            return self.__opponent_models.get(key)
 
     def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
     # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
@@ -227,10 +247,10 @@ class AIAgent(Agent):
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
         # Initialize the nlp model
-        self.nlp_model = nlp_model
+        self.__nlp_model = nlp_model
 
         # # Initialize the vectors
-        # self.vectors = vectors
+        # self.__vectors = vectors
 
         # # Initialize the self_model
         # if self.model_type is LRModel:
@@ -239,18 +259,18 @@ class AIAgent(Agent):
         #     self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
 
         # Determine the opponents
-        self.opponents = [agent for agent in all_players if agent != self]
-        logging.debug(f"opponents: {[agent.name for agent in self.opponents]}")
+        self.__opponents = [agent for agent in all_players if agent != self]
+        logging.debug(f"opponents: {[agent.get_name() for agent in self.__opponents]}")
 
         # Initialize the self and opponent models
-        if self.model_type is LRModel:
-            self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
-            self.opponent_models = {agent: LRModel(agent, self.nlp_model.vector_size, self.pretrained_model, self.pretrain) for agent in self.opponents}
-            logging.debug(f"LRModel - opponent_models: {self.opponent_models}")
-        elif self.model_type is NNModel:
-            self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
-            self.opponent_models = {agent: NNModel(agent, self.nlp_model.vector_size, self.pretrained_model, self.pretrain) for agent in self.opponents}
-            logging.debug(f"NNModel - opponent_models: {self.opponent_models}")
+        if self.__model_type is LRModel:
+            self.__self_model = LRModel(self, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain)
+            self.__opponent_models = {agent: LRModel(agent, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain) for agent in self.__opponents}
+            logging.debug(f"LRModel - opponent_models: {self.__opponent_models}")
+        elif self.__model_type is NNModel:
+            self.__self_model = NNModel(self, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain)
+            self.__opponent_models = {agent: NNModel(agent, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain) for agent in self.__opponents}
+            logging.debug(f"NNModel - opponent_models: {self.__opponent_models}")
         # if self.model_type is LRModel:
         #     self.self_model = LRModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: LRModel(agent, self.vectors.vector_size) for agent in self.opponents}
@@ -263,68 +283,71 @@ class AIAgent(Agent):
         Train the AI model with the new green card, red card, and judge.
         """
         # Check if the agent self_model has been initialized
-        if self.opponent_models is None:
+        if self.__opponent_models is None:
             logging.error("Opponent Models have not been initialized.")
             raise ValueError("Opponent Models have not been initialized.")
 
         # Train the AI models with the new green card, red card, and judge
-        for agent in self.opponents:
+        for agent in self.__opponents:
             if judge == agent:
-                agent_model: LRModel | NNModel = self.opponent_models[agent]
-                if self.model_type in [LRModel, NNModel]:
+                agent_model: LRModel | NNModel = self.__opponent_models[agent]
+                if self.__model_type in [LRModel, NNModel]:
                     agent_model.train_model(nlp_model, green_apple, winning_red_apple, loosing_red_apples)
-                    logging.debug(f"Trained {agent.name}'s model with the new green card, red card, and judge.")
+                    logging.debug(f"Trained {agent.get_name()}'s model with the new green card, red card, and judge.")
 
     def log_models(self):
-        print(self.opponent_models)
+        print(self.__opponent_models)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
-        if self.judge:
-            logging.error(f"{self.name} is the judge.")
-            raise ValueError(f"{self.name} is the judge.")
+        if self._judge_status:
+            logging.error(f"{self._name} is the judge.")
+            raise ValueError(f"{self._name} is the judge.")
 
         # Choose a red card
         red_apple: RedApple | None = None
 
         # Check that the models were initialized
-        if self.opponent_models is None:
+        if self.__opponent_models is None:
             logging.error("Models have not been initialized.")
             raise ValueError("Models have not been initialized.")
 
+        # Check that the nlp model was initialized
+        if self.__nlp_model is None:
+            logging.error("NLP model has not been initialized.")
+            raise ValueError("NLP model has not been initialized.")
+
         # Run the AI model to choose a red card based on current judge
-        red_apple = self.opponent_models[current_judge].choose_red_apple(self.nlp_model, green_apple, self.red_apples)
-        self.red_apples.remove(red_apple)
+        red_apple = self.__opponent_models[current_judge].choose_red_apple(self.__nlp_model, green_apple, self._red_apples)
+        self._red_apples.remove(red_apple)
 
         # Display the red card chosen
-        print(f"{self.name} chose a red card.")
-        logging.info(f"{self.name} chose the red card '{red_apple}'.")
+        print(f"{self._name} chose a red card.")
+        logging.info(f"{self._name} chose the red card '{repr(red_apple)}'.")
 
         return red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         # Check if the agent is a judge
-        if not self.judge:
-            logging.error(f"{self.name} is not the judge.")
-            raise ValueError(f"{self.name} is not the judge.")
+        if not self._judge_status:
+            logging.error(f"{self._name} is not the judge.")
+            raise ValueError(f"{self._name} is not the judge.")
 
         # Check if the agent self_model has been initialized
-        if self.self_model is None:
+        if self.__self_model is None:
             logging.error("Model has not been initialized.")
             raise ValueError("Model has not been initialized.")
 
+        # Check that the nlp model was initialized
+        if self.__nlp_model is None:
+            logging.error("NLP model has not been initialized.")
+            raise ValueError("NLP model has not been initialized.")
+
         # Choose a winning red card
-        winning_red_apple: dict[str, RedApple] = self.self_model.choose_winning_red_apple(self.nlp_model, green_apple, red_apples)
+        winning_red_apple_dict: dict[str, RedApple] = self.__self_model.choose_winning_red_apple(self.__nlp_model, green_apple, red_apples)
 
-        # Display the red card chosen
-        logging.debug(f"winning_red_apple: {winning_red_apple}")
-        round_winner = list(winning_red_apple.keys())[0]
-        winning_red_apple_noun = winning_red_apple[round_winner].noun
-        print(f"{self.name} chose the winning red card '{winning_red_apple_noun}'.")
-        logging.info(f"{self.name} chose the winning red card '{winning_red_apple}'.")
+        return winning_red_apple_dict
 
-        return winning_red_apple
-    
 
 #Define the mapping from user input to model type
 model_type_mapping = {
