@@ -2,12 +2,14 @@
 
 # Standard Libraries
 import csv
+import argparse
 
 # Third-party Libraries
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import MaxNLocator
 from matplotlib.gridspec import GridSpec
+import matplotlib.patches as mpatches
 
 # Local Modules
 
@@ -69,6 +71,7 @@ def plot_winners(winners: dict[str, int]) -> None:
     # Get the players and wins
     players = list(winners.keys())
     wins = list(winners.values())
+    total_games = sum(wins)
 
     # Abbreviate player names for x-axis
     abbreviated_names = [abbreviate_name(player) for player in players]
@@ -97,6 +100,10 @@ def plot_winners(winners: dict[str, int]) -> None:
     bar_ax.set_title("Total Wins per Unique Player", fontsize=18, fontweight="bold")
     bar_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
+    # Use the default black color for the legend handle
+    black_patch = mpatches.Patch(color="black", label=f"Total Games: {total_games}")
+    bar_ax.legend(handles=[black_patch], loc="upper right", fontsize=14)
+
     # Pie chart
     pie_ax = fig.add_subplot(gs[1, 1])
     pie_result = pie_ax.pie(wins, labels=abbreviated_names, colors=colors, autopct='%1.1f%%', startangle=140)
@@ -116,15 +123,13 @@ def plot_winners(winners: dict[str, int]) -> None:
     plt.show()
 
 
-def main():
-    # Define the filename
-    filename = "./logs/winners.csv"
-
+def main(filename: str) -> None:
     # Get the winners dictionary
     try:
         winners = count_winners(filename)
 
         # Print the winners
+        print(f"Total games: {sum(winners.values())}")
         for player, wins in winners.items():
             print(f"{player}: {wins} wins")
 
@@ -141,4 +146,12 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Count winners from a CSV file.")
+    parser.add_argument(
+        "filename",
+        nargs="?",
+        default="./logs/winners.csv",
+        help="Path to the CSV file containing winners data"
+    )
+    args = parser.parse_args()
+    main(args.filename)
