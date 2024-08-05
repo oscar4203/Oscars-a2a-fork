@@ -18,7 +18,6 @@ from source.agent import Agent
 GAMEPLAY_FILENAME = "./logs/gameplay.csv"
 WINNERS_FILENAME = "./logs/winners.csv"
 TRAINING_FILENAME = "./logs/training.csv"
-PREFERENCES_FILENAME = "./logs/preferences_round"
 
 
 # Game Results Datatype
@@ -100,9 +99,6 @@ def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
 
 
 def log_gameplay(game_results: GameResults, header: bool) -> None:
-    # # Check if file exists
-    # file_exists = os.path.isfile(RESULTS_FILENAME)
-
     # Ensure the directory exists
     os.makedirs(os.path.dirname(GAMEPLAY_FILENAME), exist_ok=True)
 
@@ -114,7 +110,7 @@ def log_gameplay(game_results: GameResults, header: bool) -> None:
         # Write a header if requested
         if header:
             # Check if the file is empty
-            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            file_empty = os.path.getsize(GAMEPLAY_FILENAME) == 0
             if file_empty:
                 writer.writeheader()
 
@@ -154,7 +150,7 @@ def log_training(game_results: GameResults, header: bool) -> None:
         # Write a header if requested
         if header:
             # Check if the file is empty
-            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            file_empty = os.path.getsize(TRAINING_FILENAME) == 0
             if file_empty:
                 writer.writeheader()
 
