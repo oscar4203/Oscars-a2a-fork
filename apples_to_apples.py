@@ -12,7 +12,7 @@ from datetime import datetime
 from source.config import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
-from source.model import Model, LRModel, NNModel
+from source.model import Model
 from source.results import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_preference_updates
 from source.w2vloader import VectorsW2V
 
@@ -364,7 +364,7 @@ class ApplesToApples:
                 if isinstance(player, AIAgent) and player != self.current_judge:
 
                     player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, losing_red_apples, self.current_judge)
-                    judge_model: LRModel | NNModel | None = player.get_opponent_models(self.current_judge)
+                    judge_model: Model | None = player.get_opponent_models(self.current_judge)
 
                     # Check that the judge model is not None
                     if judge_model is None:
