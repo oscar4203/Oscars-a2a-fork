@@ -118,6 +118,17 @@ class Model():
         # Define the directory to save the vectors
         directory = "./agents/"
 
+        # Ensure the tmp directory exists
+        tmp_directory = directory + "tmp/"
+        try:
+            if not os.path.exists(tmp_directory):
+                os.makedirs(tmp_directory, exist_ok=True)
+                logging.info(f"Created tmp directory: {tmp_directory}")
+            else:
+                logging.info(f"Tmp directory already exists: {tmp_directory}")
+        except OSError as e:
+            logging.error(f"Error creating tmp directory: {e}")
+
         try:
             # If pretrain is True, save the vectors to the pretrained model files
             if self._pretrain:
@@ -127,11 +138,11 @@ class Model():
                 np.save(bias_file, self._bias_vector)
                 logging.info(f"Saved vectors to {slope_file} and {bias_file}")
             else: # Otherwise, save the vectors to the temporary model files
-                temp_slope_file = f"{directory}{self._pretrained_model}_slope_{self._judge}-temp.npy"
-                temp_bias_file = f"{directory}{self._pretrained_model}_bias_{self._judge}-temp.npy"
-                np.save(temp_slope_file, self._slope_vector)
-                np.save(temp_bias_file, self._bias_vector)
-                logging.info(f"Saved vectors to {temp_slope_file} and {temp_bias_file}")
+                tmp_slope_file = f"{tmp_directory}{self._pretrained_model}_slope_{self._judge.get_name()}-tmp.npy"
+                tmp_bias_file = f"{tmp_directory}{self._pretrained_model}_bias_{self._judge.get_name()}-tmp.npy"
+                np.save(tmp_slope_file, self._slope_vector)
+                np.save(tmp_bias_file, self._bias_vector)
+                logging.info(f"Saved vectors to {tmp_slope_file} and {tmp_bias_file}")
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
         except Exception as e:
