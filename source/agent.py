@@ -23,7 +23,17 @@ class Agent:
         self._red_apples: list[RedApple] = []
 
     def __str__(self) -> str:
-        return f"Agent(name={self._name}, points={self._points}, judge={self._judge_status}, green_apple={self._green_apple}, red_apples={self._red_apples})"
+        # Retrieve the green apple
+        if self._green_apple is not None:
+            green_apple = self._green_apple.get_adjective()
+        else:
+            green_apple = None
+
+        # Retrieve the red apples
+        red_apples = [red_apple.get_noun() for red_apple in self._red_apples]
+
+        return f"Agent(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
+            f"green_apple={green_apple}, red_apples={red_apples})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -95,7 +105,7 @@ class Agent:
 
         # Display the green card drawn
         print(f"{self._name} drew the green card '{self._green_apple}'.")
-        logging.info(f"{self._name} drew the green card '{repr(self._green_apple)}'.")
+        logging.info(f"{self._name} drew the green card '{self._green_apple}'.")
 
         return self._green_apple
 
@@ -150,7 +160,7 @@ class HumanAgent(Agent):
 
         # Display the red card chosen
         print(f"{self._name} chose a red card.")
-        logging.info(f"{self._name} chose the red card '{repr(red_apple)}'.")
+        logging.info(f"{self._name} chose the red card '{red_apple}'.")
 
         return red_apple
 
@@ -201,7 +211,7 @@ class RandomAgent(Agent):
 
         # Display the red card chosen
         print(f"{self._name} chose a red card.")
-        logging.info(f"{self._name} chose the red card '{repr(red_apple)}'.")
+        logging.info(f"{self._name} chose the red card '{red_apple}'.")
 
         return red_apple
 
@@ -323,7 +333,7 @@ class AIAgent(Agent):
 
         # Display the red card chosen
         print(f"{self._name} chose a red card.")
-        logging.info(f"{self._name} chose the red card '{repr(red_apple)}'.")
+        logging.info(f"{self._name} chose the red card '{red_apple}'.")
 
         return red_apple
 

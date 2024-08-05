@@ -60,12 +60,12 @@ class Model():
         self._learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self._judge}, model_data={self._model_data}"
+
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(judge={self._judge}, model_data={self._model_data}, "\
                f"slope_vector={self._slope_vector}, bias_vector={self._bias_vector}, "\
                f"learning_rate={self._learning_rate})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
 
     def get_slope_vector(self) -> np.ndarray:
         return self._slope_vector
@@ -276,14 +276,14 @@ class LRModel(Model):
         self._slope_vector, self._bias_vector = self.__linear_regression(nxs, nys)
 
         # Save the updated slope and bias vectors
-        logging.debug(f"Updated slope vector: {self._slope_vector}")
-        logging.debug(f"Updated bias vector: {self._bias_vector}")
+        # logging.debug(f"Updated slope vector: {self._slope_vector}")
+        # logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 
         # Save the updated slope and bias vectors
-        logging.debug(f"Updated slope vector: {self._slope_vector}")
-        logging.debug(f"Updated bias vector: {self._bias_vector}")
+        # logging.debug(f"Updated slope vector: {self._slope_vector}")
+        # logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 
