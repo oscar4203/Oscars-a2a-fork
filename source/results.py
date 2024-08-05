@@ -114,7 +114,7 @@ def log_gameplay(game_results: GameResults, header: bool) -> None:
         # Write a header if requested
         if header:
             # Check if the file is empty
-            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            file_empty = os.path.getsize(GAMEPLAY_FILENAME) == 0
             if file_empty:
                 writer.writeheader()
 
@@ -154,7 +154,7 @@ def log_training(game_results: GameResults, header: bool) -> None:
         # Write a header if requested
         if header:
             # Check if the file is empty
-            file_empty = os.path.getsize(WINNERS_FILENAME) == 0
+            file_empty = os.path.getsize(TRAINING_FILENAME) == 0
             if file_empty:
                 writer.writeheader()
 
