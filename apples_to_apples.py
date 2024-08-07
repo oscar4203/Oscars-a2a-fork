@@ -206,9 +206,13 @@ class ApplesToApples:
             choice = input(f"Invalid input. Please enter a number (1-{self.number_of_players}): ")
             logging.error(f"Invalid input. Please enter a number (1-{self.number_of_players}): {choice}")
 
-        # Set the judge
+        # Clear the judge status for all players
+        for player in self.players:
+            player.set_judge_status(False)
+
+        # Set the current judge
         self.current_judge = self.players[int(choice) - 1]
-        self.players[int(choice) - 1].set_judge_status(True)
+        self.current_judge.set_judge_status(True)
         print(f"{self.players[int(choice) - 1].get_name()} is the starting judge.")
 
     def __assign_next_judge(self) -> None:
