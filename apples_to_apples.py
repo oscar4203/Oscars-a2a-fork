@@ -333,11 +333,11 @@ class ApplesToApples:
 
             losing_red_apples: list[RedApple] = red_apples_this_round.copy()
             losing_red_apples.remove(winning_red_card)
-            logging.info(f"Losing Apples: {repr(losing_red_apples)}")
+            logging.info(f"Losing Apples: {losing_red_apples}")
 
             # Print and log the winning red card
             print(f"{self.current_judge.get_name()} chose the winning red card '{winning_red_card}'.")
-            logging.info(f"{self.current_judge.get_name()} chose the winning red card '{repr(winning_red_card)}'.")
+            logging.info(f"{self.current_judge.get_name()} chose the winning red card '{winning_red_card}'.")
 
             # Award points to the winning player
             for player in self.players:

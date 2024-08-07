@@ -60,12 +60,12 @@ class Model():
         self._learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
+        return f"{self.__class__.__name__}(judge={self._judge}, model_data={self._model_data}"
+
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(judge={self._judge}, model_data={self._model_data}, "\
                f"slope_vector={self._slope_vector}, bias_vector={self._bias_vector}, "\
                f"learning_rate={self._learning_rate})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
 
     def get_slope_vector(self) -> np.ndarray:
         return self._slope_vector
@@ -118,6 +118,17 @@ class Model():
         # Define the directory to save the vectors
         directory = "./agents/"
 
+        # Ensure the tmp directory exists
+        tmp_directory = directory + "tmp/"
+        try:
+            if not os.path.exists(tmp_directory):
+                os.makedirs(tmp_directory, exist_ok=True)
+                logging.info(f"Created tmp directory: {tmp_directory}")
+            else:
+                logging.info(f"Tmp directory already exists: {tmp_directory}")
+        except OSError as e:
+            logging.error(f"Error creating tmp directory: {e}")
+
         try:
             # If pretrain is True, save the vectors to the pretrained model files
             if self._pretrain:
@@ -127,11 +138,11 @@ class Model():
                 np.save(bias_file, self._bias_vector)
                 logging.info(f"Saved vectors to {slope_file} and {bias_file}")
             else: # Otherwise, save the vectors to the temporary model files
-                temp_slope_file = f"{directory}{self._pretrained_model}_slope_{self._judge}-temp.npy"
-                temp_bias_file = f"{directory}{self._pretrained_model}_bias_{self._judge}-temp.npy"
-                np.save(temp_slope_file, self._slope_vector)
-                np.save(temp_bias_file, self._bias_vector)
-                logging.info(f"Saved vectors to {temp_slope_file} and {temp_bias_file}")
+                tmp_slope_file = f"{tmp_directory}{self._pretrained_model}_slope_{self._judge.get_name()}-tmp.npy"
+                tmp_bias_file = f"{tmp_directory}{self._pretrained_model}_bias_{self._judge.get_name()}-tmp.npy"
+                np.save(tmp_slope_file, self._slope_vector)
+                np.save(tmp_bias_file, self._bias_vector)
+                logging.info(f"Saved vectors to {tmp_slope_file} and {tmp_bias_file}")
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
         except Exception as e:
@@ -276,14 +287,14 @@ class LRModel(Model):
         self._slope_vector, self._bias_vector = self.__linear_regression(nxs, nys)
 
         # Save the updated slope and bias vectors
-        logging.debug(f"Updated slope vector: {self._slope_vector}")
-        logging.debug(f"Updated bias vector: {self._bias_vector}")
+        # logging.debug(f"Updated slope vector: {self._slope_vector}")
+        # logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 
         # Save the updated slope and bias vectors
-        logging.debug(f"Updated slope vector: {self._slope_vector}")
-        logging.debug(f"Updated bias vector: {self._bias_vector}")
+        # logging.debug(f"Updated slope vector: {self._slope_vector}")
+        # logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 

@@ -18,7 +18,9 @@ apples/vectors.bin
 # Log files
 logs/
 *.log
-results.csv
+gameplay.csv
+winners.csv
+training.csv
 
 # Numpy files and "agents" directory
 agents/
