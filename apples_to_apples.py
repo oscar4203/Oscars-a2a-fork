@@ -18,10 +18,11 @@ from source.w2vloader import VectorsW2V
 
 
 class ApplesToApples:
-    def __init__(self, number_of_players: int, points_to_win: int, green_expansion: str = '', red_expansion: str = '') -> None:
+    def __init__(self, number_of_players: int, points_to_win: int, number_of_games: int, green_expansion: str = '', red_expansion: str = '') -> None:
         self.number_of_players: int = number_of_players
         self.players: list[Agent] = []
         self.points_to_win: int = points_to_win
+        self.number_of_games: int = number_of_games
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
         self.green_apples_deck: Deck = Deck()
@@ -174,7 +175,7 @@ class ApplesToApples:
                 elif pretrained_model_type == '2':
                     pretrained_model_string = "Contrarian"
                 elif pretrained_model_type == '3':
-                    pretrained_model_string = "Satirist"
+                    pretrained_model_string = "Comedian"
                 logging.debug(f"Pretrained Model String: {pretrained_model_string}")
 
                 # Create the AI agent
@@ -357,7 +358,7 @@ class ApplesToApples:
             # Log the gameplay results for the round
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
                                   red_apples_list, winning_red_card, self.current_judge)
-            log_gameplay(results, True)
+            log_gameplay(results, self.number_of_games, True)
 
             # Train all AI agents (if applicable)
             for player in self.players:
@@ -397,7 +398,7 @@ class ApplesToApples:
                 # Print and log the winner message
                 print(message)
                 logging.info(message)
-                log_winner(self.winner, True)
+                log_winner(results, self.number_of_games, True)
 
                 break
 
@@ -410,6 +411,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Apples to Apples game configuration.")
     parser.add_argument("players", type=int, choices=range(3, 9), help="Total number of players (3-8).")
     parser.add_argument("points", type=int, choices=range(1, 11), help="Total number of points to win (1-10).")
+    parser.add_argument("games", type=int, choices=range(1, 1001), help="Total number of games to play (1-1000).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
 
@@ -424,11 +426,12 @@ def main() -> None:
     logging.info(f"Command line arguments: {args}")
     logging.info(f"Number of players: {args.players}")
     logging.info(f"Points to win: {args.points}")
+    logging.info(f"Number of games: {args.games}")
     logging.info(f"Green card expansion file: {args.green_expansion}")
     logging.info(f"Red card expansion file: {args.red_expansion}")
 
     # Create the game object
-    game = ApplesToApples(args.players, args.points, args.green_expansion, args.red_expansion)
+    game = ApplesToApples(args.players, args.points, args.games, args.green_expansion, args.red_expansion)
     # game.load_vectors()
 
     end_program = False

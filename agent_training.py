@@ -133,7 +133,7 @@ class ApplesToApples:
         elif pretrained_model_type == '2':
             pretrained_model_string = "Contrarian"
         elif pretrained_model_type == '3':
-            pretrained_model_string = "Satirist"
+            pretrained_model_string = "Comedian"
         logging.debug(f"Pretrained Model String: {pretrained_model_string}")
 
         # Create a new AI agent
