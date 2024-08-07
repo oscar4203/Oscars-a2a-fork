@@ -9,11 +9,11 @@ from gensim.models import KeyedVectors
 from datetime import datetime
 
 # Local Modules
-from source.config import configure_logging
+from source.logging import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
 from source.model import Model
-from source.results import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_preference_updates
+from source.logging import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_vectors
 from source.w2vloader import VectorsW2V
 
 
@@ -157,11 +157,11 @@ class ApplesToApples:
 
                 # Validate the user input for the pretrained model type
                 pretrained_model_type: str = ""
-                pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
-                logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+                pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
                 while pretrained_model_type not in ['1', '2', '3']:
-                    pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
-                    logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+                    pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                    logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
 
                 # Generate a unique name for the AI agent
                 model_type_class = model_type_mapping[model_type]
@@ -377,7 +377,7 @@ class ApplesToApples:
                     preference_updates = PreferenceUpdates(player, self.round, start_time,
                                                    winning_red_card, self.green_apples_in_play[self.current_judge],
                                                    current_bias, current_slope)
-                    log_preference_updates(preference_updates)
+                    log_vectors(results, self.number_of_games, preference_updates)
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])

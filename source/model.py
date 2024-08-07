@@ -1,10 +1,10 @@
 # Description: AI model logic for use in the AI agents in the 'Apples to Apples' game.
 
 # Standard Libraries
-import logging
-import numpy as np
-from dataclasses import dataclass
 import os
+import logging
+from dataclasses import dataclass
+import numpy as np
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
@@ -436,16 +436,17 @@ class NNModel(Model):
             red_apple.set_noun_vector(nlp_model)
 
         # Initialize the best score and best red apple
-        best_score = -np.inf
+        best_score: float = -np.inf
         best_red_apple: RedApple | None = None
         green_apple_vector = green_apple.get_adjective_vector()
 
         # Iterate through the red apples to find the best one
         for red_apple in red_apples:
             red_apple_vector = red_apple.get_noun_vector()
-            score = self.__forward_propagation(green_apple_vector, red_apple_vector)
+            score: np.ndarray = self.__forward_propagation(green_apple_vector, red_apple_vector)
             if score > best_score:
-                best_score = score
+                # ignore the type hinting error for now, #TODO - Change best_score to a vector, right now it's a scalar (or change the score to a scalar)
+                best_score = score # type: ignore
                 best_red_apple = red_apple
 
         # Check if the best red apple is None

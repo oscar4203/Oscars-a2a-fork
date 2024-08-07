@@ -1,10 +1,10 @@
 # Description: Module to log game results and player preferences
 
 # Standard Libraries
-import logging
-from dataclasses import dataclass
 import os
 import csv
+import logging
+from dataclasses import dataclass
 import numpy as np
 from datetime import datetime
 
@@ -15,8 +15,38 @@ from source.apples import GreenApple, RedApple
 from source.agent import Agent, AIAgent, HumanAgent, RandomAgent
 
 
-# Results Base Directory
-RESULTS_BASE_DIRECTORY = "./logs/"
+# Logging configuration
+DEBUG_MODE = True
+LOGGING_LEVEL = logging.INFO
+LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s - %(message)s"
+LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOGGING_BASE_DIRECTORY = "./logs/"
+LOGGING_FILENAME = "apples_to_apples.log"
+
+
+def configure_logging() -> None:
+    """
+    Configure logging parameters for the application.
+
+    Example usage:
+    ```python
+    def main() -> None:
+        # Configure and initialize the logging module
+        configure_logging()
+    ```
+    """
+    file_path = os.path.join(LOGGING_BASE_DIRECTORY, LOGGING_FILENAME)
+
+    # Check that the logging file and directory exist
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Configure logging
+    logging.basicConfig(
+        level=logging.DEBUG if DEBUG_MODE else LOGGING_LEVEL,
+        format=LOGGING_FORMAT,
+        datefmt=LOGGING_DATE_FORMAT,
+        filename=file_path
+    )
 
 
 # Game Results Datatype
@@ -43,7 +73,7 @@ class GameResults:
                f"green_apple={self.green_apple}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
                f"winning_red_apple={self.winning_red_apple.get_noun()}, winning_player={self.winning_player.get_name()}"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, list[str] | str | int]:
         return {
             "agents": [player.get_name() for player in self.agents],
             "points_to_win": self.points_to_win,
@@ -82,21 +112,6 @@ class PreferenceUpdates:
         }
 
 
-def log_preference_updates(preference_updates: PreferenceUpdates) -> None:
-    filename = f"{RESULTS_BASE_DIRECTORY}/Game-{preference_updates.time}.csv"
-
-    #Ensure the directory exists
-    os.makedirs(os.path.dirname(filename), exist_ok=True)
-
-    with open(filename, 'a') as file:
-        file.write("--------------------------------------------\n")
-        writer = csv.DictWriter(file, fieldnames=preference_updates.to_dict().keys())
-        file_empty = os.path.getsize(filename) == 0
-        if file_empty:
-            writer.writeheader()
-        writer.writerow(preference_updates.to_dict())
-
-
 def format_players_string(players: list[Agent]) -> str:
     # Initialize the abbreviations lists
     ai_abbrev_list = []
@@ -106,8 +121,10 @@ def format_players_string(players: list[Agent]) -> str:
     # Abbreviate the player names to the first 3 characters
     for player in players:
         if isinstance(player, AIAgent):
-            name = player.get_name()
-            ai_abbrev_list.append(name[:3])
+            name: str = player.get_name().lower()
+            name_parts: list[str] = name.split("-")
+            last_part: str = name_parts[-1].strip()
+            ai_abbrev_list.append(last_part[:3])
         elif isinstance(player, HumanAgent):
             human_abbrev_list.append("hum")
         elif isinstance(player, RandomAgent):
@@ -119,15 +136,16 @@ def format_players_string(players: list[Agent]) -> str:
     # Count the number of human players
     human_abbrev = ""
     if len(human_abbrev_list) > 0:
-        human_abbrev = f"hum-{len(human_abbrev_list)}"
+        human_abbrev = f"hum_{len(human_abbrev_list)}"
 
     # Count the number of random players
     random_abbrev = ""
     if len(random_list) > 0:
-        random_abbrev = f"rnd-{len(random_list)}"
+        random_abbrev = f"rnd_{len(random_list)}"
 
     # Join the strings
-    return f"{ai_abbrev}-{human_abbrev}-{random_abbrev}"
+    final_string: str = "-".join(filter(None, [ai_abbrev, human_abbrev, random_abbrev]))
+    return final_string
 
 
 def format_naming_scheme(players: list[Agent], number_of_games: int | None = None, points_to_win: int | None = None) -> str:
@@ -140,7 +158,7 @@ def format_naming_scheme(players: list[Agent], number_of_games: int | None = Non
     # Format the naming scheme
     string = f"{date}-"
     if number_of_games is not None:
-        string += f"{number_of_games}_games-{players_string}"
+        string += f"{number_of_games}_games-"
     if points_to_win is not None:
         string += f"{points_to_win}_pts-"
     string += f"{players_string}"
@@ -148,101 +166,52 @@ def format_naming_scheme(players: list[Agent], number_of_games: int | None = Non
     return string
 
 
-def log_gameplay(game_results: GameResults, number_of_games: int, header: bool) -> None:
-    # Define the naming scheme
-    naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
-
-    # Define the directory
-    directory = RESULTS_BASE_DIRECTORY + naming_scheme + "/"
-
-    # Define the filename
-    filename = "gameplay" + naming_scheme + ".csv"
-
+def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool) -> None:
     # Ensure the directory exists
-    os.makedirs(os.path.dirname(directory), exist_ok=True)
+    os.makedirs(directory, exist_ok=True)
+    file_path = os.path.join(directory, filename)
 
     # Open the file in append mode. This will create the file if it doesn't exist
-    with open(f"{directory}{filename}", 'a') as file:
+    with open(file_path, 'a') as file:
         # Create a CSV writer object
-        writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
 
-        # Write a header if requested
-        if header:
-            # Check if the file is empty
-            file_empty = os.path.getsize(f"{directory}{filename}") == 0
-            if file_empty:
-                writer.writeheader()
+        # Write a header if requested and the file is empty
+        if header and os.path.getsize(file_path) == 0:
+            writer.writeheader()
 
-        # Write the game results
-        writer.writerow(game_results.to_dict())
+        # Write the data
+        writer.writerow(data)
+
+
+def log_vectors(game_results: GameResults, number_of_games: int, preference_updates: PreferenceUpdates) -> None:
+    naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
+    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
+    filename = f"vectors-{naming_scheme}.csv"
+    log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header=True)
+
+
+def log_gameplay(game_results: GameResults, number_of_games: int, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
+    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
+    filename = f"gameplay-{naming_scheme}.csv"
+    log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
 
 
 def log_winner(game_results: GameResults, number_of_games: int, header: bool) -> None:
-    # Define the naming scheme
     naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
-
-    # Define the directory
-    directory = RESULTS_BASE_DIRECTORY + naming_scheme + "/"
-
-    # Define the filename
-    filename = "winners" + naming_scheme + ".csv"
-
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(directory), exist_ok=True)
-
-    # Open the file in append mode. This will create the file if it doesn't exist
-    with open(f"{directory}{filename}", 'a') as file:
-        # Create a CSV writer object
-        writer = csv.DictWriter(file, fieldnames=["Winner"])
-
-        # Write a header if requested
-        if header:
-            # Check if the file is empty
-            file_empty = os.path.getsize(f"{directory}{filename}") == 0
-            if file_empty:
-                writer.writeheader()
-
-        # Write the game results
-        writer.writerow({"Winner": game_results.winning_player.get_name()})
+    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
+    filename = f"winners-{naming_scheme}.csv"
+    log_to_csv(directory, filename, ["Winner"], {"Winner": game_results.winning_player.get_name()}, header)
 
 
 def log_training(game_results: GameResults, header: bool) -> None:
-    # Agent to be trained
-    agents = game_results.agents
-    ai_agent = []
-
-    # Find the AI agent
-    for agent in agents:
-        if isinstance(agent, AIAgent):
-            ai_agent.append(agent)
-            break
-
-    # Define the naming scheme
+    agents: list[Agent] = game_results.agents
+    ai_agent: list[Agent] = [agent for agent in agents if isinstance(agent, AIAgent)]
     naming_scheme = format_naming_scheme(ai_agent)
-
-    # Define the directory
-    directory = RESULTS_BASE_DIRECTORY + naming_scheme + "/"
-
-    # Define the filename
-    filename = "training" + naming_scheme + ".csv"
-
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(directory), exist_ok=True)
-
-    # Open the file in append mode. This will create the file if it doesn't exist
-    with open(f"{directory}{filename}", 'a') as file:
-        # Create a CSV writer object
-        writer = csv.DictWriter(file, fieldnames=game_results.to_dict().keys())
-
-        # Write a header if requested
-        if header:
-            # Check if the file is empty
-            file_empty = os.path.getsize(f"{directory}{filename}") == 0
-            if file_empty:
-                writer.writeheader()
-
-        # Write the game results
-        writer.writerow(game_results.to_dict())
+    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
+    filename = f"training{naming_scheme}.csv"
+    log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
 
 
 if __name__ == "__main__":

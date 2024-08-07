@@ -8,11 +8,11 @@ import argparse
 from gensim.models import KeyedVectors
 
 # Local Modules
-from source.config import configure_logging
+from source.logging import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
-from source.results import GameResults, log_training
+from source.logging import GameResults, log_training
 from source.w2vloader import VectorsW2V
 
 
