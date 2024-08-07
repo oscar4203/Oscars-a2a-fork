@@ -65,6 +65,9 @@ class ApplesToApples:
         logging.info("Starting new 'Apples to Apples' game.")
 
         if cycle_judges:
+            for player in self.players:
+                player.set_judge_status(False)
+
             #Automatically cycles through judges; used for automatic playing of multiple games
             judge = (games_played % len(self.players)) + 1
             self.current_judge = self.players[judge - 1]
@@ -213,9 +216,13 @@ class ApplesToApples:
             choice = input(f"Invalid input. Please enter a number (1-{self.number_of_players}): ")
             logging.error(f"Invalid input. Please enter a number (1-{self.number_of_players}): {choice}")
 
-        # Set the judge
+        # Clear the judge status for all players
+        for player in self.players:
+            player.set_judge_status(False)
+
+        # Set the current judge
         self.current_judge = self.players[int(choice) - 1]
-        self.players[int(choice) - 1].set_judge_status(True)
+        self.current_judge.set_judge_status(True)
         print(f"{self.players[int(choice) - 1].get_name()} is the starting judge.")
 
     def __assign_next_judge(self) -> None:
@@ -449,7 +456,7 @@ def main() -> None:
 
     #For this program to automaically play games, choose 'n'. 'y' is for unique situations.
     while True:
-        differing_players = input("Will you want to change which players will be playing between games?: (y/n)")
+        differing_players = input("Will you want to change which players will be playing between games? (y/n): ")
         if (differing_players == "y" or differing_players == "n"):
             break
         print("Invalid input. Type in either 'y' or 'n'.")
