@@ -332,7 +332,7 @@ def main() -> None:
     # Define the command line arguments
     parser = argparse.ArgumentParser(description="Apples to Apples agent training configuration.",
                                      usage="python agent_training.py <# of rounds> [green_expansion] [red_expansion]")
-    parser.add_argument("rounds", type=range_type(3, 8), help="Total number of rounds (1-100).")
+    parser.add_argument("rounds", type=range_type(1, 100), help="Total number of rounds (1-100).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
 

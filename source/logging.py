@@ -209,7 +209,7 @@ def log_training(game_results: GameResults, header: bool) -> None:
     ai_agent: list[Agent] = [agent for agent in agents if isinstance(agent, AIAgent)]
     naming_scheme = format_naming_scheme(ai_agent)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"training{naming_scheme}.csv"
+    filename = f"training-{naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
 
 
