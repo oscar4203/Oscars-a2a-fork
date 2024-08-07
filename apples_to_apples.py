@@ -18,10 +18,11 @@ from source.w2vloader import VectorsW2V
 
 
 class ApplesToApples:
-    def __init__(self, number_of_players: int, points_to_win: int, green_expansion: str = '', red_expansion: str = '') -> None:
+    def __init__(self, number_of_players: int, points_to_win: int, total_games: int, green_expansion: str = '', red_expansion: str = '') -> None:
         self.number_of_players: int = number_of_players
         self.players: list[Agent] = []
         self.points_to_win: int = points_to_win
+        self.total_games: int = total_games
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
         self.green_apples_deck: Deck = Deck()
@@ -59,13 +60,20 @@ class ApplesToApples:
             self.players = []
             self.__initialize_players()
 
-    def start_game(self) -> None:
+    def start_game(self, cycle_judges: bool, games_played: int) -> None:
         print("Starting new 'Apples to Apples' game.")
         logging.info("Starting new 'Apples to Apples' game.")
 
-        # Choose the starting judge
-        self.__choose_judge()
-
+        if cycle_judges:
+            #Automatically cycles through judges; used for automatic playing of multiple games
+            judge = (games_played % len(self.players)) + 1
+            self.current_judge = self.players[judge - 1]
+            self.players[judge - 1].set_judge_status(True)
+            print(f"{self.players[judge - 1].get_name()} is the starting judge.")
+        else:
+            # Choose the starting judge
+            self.__choose_judge()
+           
         # Start the game loop
         self.__game_loop()
 
@@ -410,6 +418,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Apples to Apples game configuration.")
     parser.add_argument("players", type=int, choices=range(3, 9), help="Total number of players (3-8).")
     parser.add_argument("points", type=int, choices=range(1, 11), help="Total number of points to win (1-10).")
+    parser.add_argument("total_games", type=int, choices=range(1,1000), help="Total number of games to play (1-1000).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
 
@@ -424,38 +433,64 @@ def main() -> None:
     logging.info(f"Command line arguments: {args}")
     logging.info(f"Number of players: {args.players}")
     logging.info(f"Points to win: {args.points}")
+    logging.info(f"Number of games to be played: {args.total_games}")
     logging.info(f"Green card expansion file: {args.green_expansion}")
     logging.info(f"Red card expansion file: {args.red_expansion}")
 
     # Create the game object
-    game = ApplesToApples(args.players, args.points, args.green_expansion, args.red_expansion)
+    game = ApplesToApples(args.players, args.points, args.total_games, args.green_expansion, args.red_expansion)
     # game.load_vectors()
 
-    end_program = False
+
     response = 'y'
 
     # Load the vectors
     game.load_vectors()
 
+    #For this program to automaically play games, choose 'n'. 'y' is for unique situations.
+    while True:
+        differing_players = input("Will you want to change which players will be playing between games?: (y/n)")
+        if (differing_players == "y" or differing_players == "n"):
+            break
+        print("Invalid input. Type in either 'y' or 'n'.")
+
     # Start the game
+    print (f"------------- GAME 1 of {game.total_games} -------------------")
     game.new_game(True)
-    game.start_game()
+    
+    if differing_players == "y":
+        game.start_game(False, 0)
+    else:
+        game.start_game(True, 0)
+
+    #First game is played above since it will be starting a brand new game
+    games_played = 1
 
     # Start the game, prompt the user for options
-    while end_program == False:
-        print("--------------------OPTIONS--------------------")
-        print("1.Restart the game (same players)\n2.Start a new game (new players)\n3.End Session.\n")
-        response = input("Which option do you choose?: ")
-        if response == '1':
+    while games_played != game.total_games:
+
+        print(f"------------- GAME {games_played+1} of {game.total_games} -------------------")
+
+        if (differing_players == "n"):
             game.new_game(False)
-            game.start_game()
-        elif response == '2':
-            game.new_game(True)
-            game.start_game()
-        elif response == '3':
-            end_program = True
+            game.start_game(True, games_played)
+            games_played += 1 
         else:
-            print("Invalid response. Please select '1', '2', or '3'.")
+            print("--------------------OPTIONS--------------------")
+            print("1.Restart the game (same players)\n2.Start a new game (new players)\n3.End Session.\n")
+            response = input("Which option do you choose?: ")
+            if response == '1':
+                game.new_game(False)
+                game.start_game(False, games_played)
+                games_played += 1
+            elif response == '2':
+                game.new_game(True)
+                game.start_game(False, games_played)
+                games_played += 1
+            elif response == '3':
+                games_played = game.total_games
+            else:
+                print("Invalid response. Please select '1', '2', or '3'.")
 
 
 if __name__ == "__main__":
