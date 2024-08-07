@@ -319,10 +319,20 @@ class ApplesToApples:
                 break
 
 
+def range_type(min_value, max_value):
+    def range_checker(value):
+        ivalue = int(value)
+        if ivalue < min_value or ivalue > max_value:
+            raise argparse.ArgumentTypeError(f"Value must be between {min_value} and {max_value}")
+        return ivalue
+    return range_checker
+
+
 def main() -> None:
     # Define the command line arguments
-    parser = argparse.ArgumentParser(description="Apples to Apples game configuration.")
-    parser.add_argument("rounds", type=int, choices=range(1, 100), help="Total number of rounds (1-100).")
+    parser = argparse.ArgumentParser(description="Apples to Apples agent training configuration.",
+                                     usage="python agent_training.py <# of rounds> [green_expansion] [red_expansion]")
+    parser.add_argument("rounds", type=range_type(3, 8), help="Total number of rounds (1-100).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
 
