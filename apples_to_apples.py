@@ -406,12 +406,22 @@ class ApplesToApples:
             self.__assign_next_judge()
 
 
+def range_type(min_value, max_value):
+    def range_checker(value):
+        ivalue = int(value)
+        if ivalue < min_value or ivalue > max_value:
+            raise argparse.ArgumentTypeError(f"Value must be between {min_value} and {max_value}")
+        return ivalue
+    return range_checker
+
+
 def main() -> None:
     # Define the command line arguments
-    parser = argparse.ArgumentParser(description="Apples to Apples game configuration.")
-    parser.add_argument("players", type=int, choices=range(3, 9), help="Total number of players (3-8).")
-    parser.add_argument("points", type=int, choices=range(1, 11), help="Total number of points to win (1-10).")
-    parser.add_argument("games", type=int, choices=range(1, 1001), help="Total number of games to play (1-1000).")
+    parser = argparse.ArgumentParser(description="Apples to Apples game configuration.",
+                                     usage="python apples_to_apples.py <# of players> <# of points to win> <# of games> [green_expansion] [red_expansion]")
+    parser.add_argument("players", type=range_type(3, 8), help="Total number of players (3-8).")
+    parser.add_argument("points", type=range_type(1, 10), help="Total number of points to win (1-10).")
+    parser.add_argument("games", type=range_type(1, 1000), help="Total number of games to play (1-1000).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
 
