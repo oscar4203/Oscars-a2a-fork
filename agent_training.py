@@ -115,11 +115,11 @@ class ApplesToApples:
 
         # Validate the user input for the pretrained model type
         pretrained_model_type: str = ""
-        pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
-        logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+        pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
+        logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
         while pretrained_model_type not in ['1', '2', '3']:
-            pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): ")
-            logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Satarist): {pretrained_model_type}")
+            pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
+            logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
 
         # Generate a unique name for the AI agent
         model_type_class = model_type_mapping[model_type]
