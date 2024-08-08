@@ -38,6 +38,12 @@ class ApplesToApples:
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
+    def reset_vectors(self) -> None:
+        for player in self.players:
+            if isinstance(player, AIAgent):
+                vector_size = player.__model_type._vector_size
+                player.__model_type.__load_vectors(vector_size)
+
     def new_game(self, new_players: bool) -> None:
         """
         Start a new game of 'Apples to Apples' and reset the game state.
@@ -468,6 +474,12 @@ def main() -> None:
     while True:
         differing_players = input("Will you want to change which players will be playing between games? (y/n): ")
         if (differing_players == "y" or differing_players == "n"):
+            break
+        print("Invalid input. Type in either 'y' or 'n'.")
+
+    while True:
+        vectors_reset = input("Would you like to have the vectors reset in between games? (y/n): ")
+        if (vectors_reset == "y" or vectors_reset == "n"):
             break
         print("Invalid input. Type in either 'y' or 'n'.")
 
