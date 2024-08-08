@@ -53,34 +53,48 @@ def configure_logging() -> None:
 class GameResults:
     agents: list[Agent]
     points_to_win: int
+    total_games: int
+    current_game: int
     round: int
     green_apple: GreenApple
     red_apples: list[RedApple]
     winning_red_apple: RedApple
-    winning_player: Agent
+    losing_red_apples: list[RedApple]
+    current_judge: Agent
+    round_winner: Agent | None = None
+    game_winner: Agent | None = None
 
     def __post_init__(self) -> None:
         logging.debug(f"Created GameResults object: {self}")
 
     def __str__(self) -> str:
-        return f"GameResults(agents={[player.get_name() for player in self.agents]}, points_to_win={self.points_to_win}, round={self.round}, " \
+        return f"GameResults(agents={[player.get_name() for player in self.agents]}, "\
+               f"points_to_win={self.points_to_win}, total_games={self.total_games}, "\
+               f"current_game={self.current_game}, round={self.round}, "\
                f"green_apple={self.green_apple.get_adjective()}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
-               f"winning_red_apple={self.winning_red_apple.get_noun()}, winning_player={self.winning_player.get_name()})"
+               f"winning_red_apple={self.winning_red_apple.get_noun()}, "\
+               f"losing_red_apples={[apple.get_noun() for apple in self.losing_red_apples]}, "\
+               f"current_judge={self.current_judge.get_name()}, "\
+               f"round_winner={self.round_winner.get_name() if self.round_winner is not None else None}, "\
+               f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None})"
 
     def __repr__(self) -> str:
-        return f"GameResults(agents={[player.get_name() for player in self.agents]}, points_to_win={self.points_to_win}, round={self.round}, " \
-               f"green_apple={self.green_apple}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
-               f"winning_red_apple={self.winning_red_apple.get_noun()}, winning_player={self.winning_player.get_name()}"
+        return self.__str__()
 
-    def to_dict(self) -> dict[str, list[str] | str | int]:
+    def to_dict(self) -> dict[str, list[str] | str | int | None]:
         return {
             "agents": [player.get_name() for player in self.agents],
             "points_to_win": self.points_to_win,
+            "total_games": self.total_games,
+            "current_game": self.current_game,
             "round": self.round,
             "green_apple": self.green_apple.get_adjective(),
             "red_apples": [apple.get_noun() for apple in self.red_apples],
             "winning_red_apple": self.winning_red_apple.get_noun(),
-            "winning_player": self.winning_player.get_name()
+            "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
+            "current_judge": self.current_judge.get_name(),
+            "round_winner": self.round_winner.get_name() if self.round_winner is not None else None,
+            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
         }
 
 
@@ -183,25 +197,27 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
         writer.writerow(data)
 
 
-def log_vectors(game_results: GameResults, number_of_games: int, preference_updates: PreferenceUpdates) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
+def log_vectors(game_results: GameResults, preference_updates: PreferenceUpdates) -> None:
+    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"vectors-{naming_scheme}.csv"
     log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header=True)
 
 
-def log_gameplay(game_results: GameResults, number_of_games: int, header: bool) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
+def log_gameplay(game_results: GameResults,header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"gameplay-{naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
 
 
-def log_winner(game_results: GameResults, number_of_games: int, header: bool) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, number_of_games, game_results.points_to_win)
+def log_winner(game_results: GameResults, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"winners-{naming_scheme}.csv"
-    log_to_csv(directory, filename, ["Winner"], {"Winner": game_results.winning_player.get_name()}, header)
+    log_to_csv(directory, filename, ["Game Winner"],
+               {"Game Winner": game_results.game_winner.get_name()} \
+               if game_results.game_winner is not None else {"Game Winner": None}, header)
 
 
 def log_training(game_results: GameResults, header: bool) -> None:
