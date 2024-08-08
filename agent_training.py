@@ -10,21 +10,22 @@ from gensim.models import KeyedVectors
 # Local Modules
 from source.logging import configure_logging
 from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, HumanAgent, AIAgent, model_type_mapping
-# from source.model import Model, LRModel, NNModel
+from source.agent import Agent, HumanAgent, AIAgent
+from source.model import Model, model_type_mapping
 from source.logging import GameResults, log_training
 from source.w2vloader import VectorsW2V
 
 
 class ApplesToApples:
     def __init__(self, number_of_rounds: int, green_expansion: str = '', red_expansion: str = '') -> None:
+        # Static game parameters
         self.number_of_rounds: int = number_of_rounds
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
         self.green_apples_deck: Deck = Deck()
         self.red_apples_deck: Deck = Deck()
         self.__cards_in_hand: int = 25
-
+        # Dynamic game parameters
         self.winner: Agent | None = None
         self.human: Agent = HumanAgent("Human Agent")
         self.agent: Agent | None = None
@@ -36,7 +37,7 @@ class ApplesToApples:
         self.discarded_red_apples: list[RedApple] = []
 
     def load_vectors(self) -> None:
-        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+        self.keyed_vectors: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
@@ -152,7 +153,7 @@ class ApplesToApples:
 
         # Initialize the models for the AI agents
         if isinstance(self.agent, AIAgent):
-            self.agent.initialize_models(self.nlp_model, human_list)
+            self.agent.initialize_models(self.keyed_vectors, human_list)
             logging.info(f"Initialized models for {new_agent.get_name()}.")
 
     def __choose_judge(self) -> None:
@@ -288,7 +289,7 @@ class ApplesToApples:
                 self.agent.set_judge_status(False)
 
                 # Train the AI agent
-                self.agent.train_models(self.nlp_model, self.green_apples_in_play[self.agent], winning_red_card, losing_red_cards, self.current_judge)
+                self.agent.train_models(self.keyed_vectors, self.green_apples_in_play[self.agent], winning_red_card, losing_red_cards, self.current_judge)
 
                 # Reset the judge to the AI agent
                 self.current_judge = self.agent

@@ -11,8 +11,8 @@ from datetime import datetime
 # Local Modules
 from source.logging import configure_logging
 from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
-from source.model import Model
+from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
+from source.model import Model, model_type_mapping
 from source.logging import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_vectors
 from source.w2vloader import VectorsW2V
 
@@ -34,7 +34,7 @@ class ApplesToApples:
         self.current_judge: Agent | None = None
 
     def load_vectors(self) -> None:
-        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+        self.keyed_vectors: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
@@ -136,7 +136,7 @@ class ApplesToApples:
             # Prompt the user to select the player type
             print(f"\nWhat type is Agent {i + 1}?")
             logging.info(f"What type is Agent {i + 1}?")
-            player_type = input("Please enter the player type (1: Human, 2: Random, 3: AI): ")
+            player_type: str = input("Please enter the player type (1: Human, 2: Random, 3: AI): ")
             logging.info(f"Please enter the player type (1: Human, 2: Random, 3: AI): {player_type}")
 
             # Validate the user input
@@ -157,40 +157,38 @@ class ApplesToApples:
                 new_agent_name = self.__generate_unique_name("Random Agent")
                 new_agent = RandomAgent(new_agent_name)
             elif player_type == '3':
-                # Validate the user input for the model type
-                model_type: str = ""
-                model_type = input("Please enter the model type (1: Linear Regression, 2: Neural Network): ")
-                logging.info(f"Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
-                while model_type not in ['1', '2']:
-                    model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
-                    logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
+                # Validate the user input for the machine learning model
+                ml_model_type: str = input("Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
+                logging.info(f"Please enter the machine learning model (1: Linear Regression, 2: Neural Network): {ml_model_type}")
+                while ml_model_type not in ['1', '2']:
+                    ml_model_type = input("Invalid input. Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
+                    logging.error(f"Invalid input. Please enter the machine learning model (1: Linear Regression, 2: Neural Network): {ml_model_type}")
 
-                # Validate the user input for the pretrained model type
-                pretrained_model_type: str = ""
-                pretrained_model_type = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
-                logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
-                while pretrained_model_type not in ['1', '2', '3']:
-                    pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
-                    logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
+                # Validate the user input for the pretrained archetype
+                pretrained_archetype: str = input("Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                logging.info(f"Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_archetype}")
+                while pretrained_archetype not in ['1', '2', '3']:
+                    pretrained_archetype = input("Invalid input. Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                    logging.error(f"Invalid input. Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_archetype}")
 
                 # Generate a unique name for the AI agent
-                model_type_class = model_type_mapping[model_type]
-                logging.debug(f"Model Type Class: {model_type_class}")
-                logging.debug(f"Model Type Name: {model_type_class.__name__}")
+                ml_model_type_class = model_type_mapping[ml_model_type]
+                logging.debug(f"Model Type Class: {ml_model_type_class}")
+                logging.debug(f"Model Type Name: {ml_model_type_class.__name__}")
 
                 # Create pretrained model
-                pretrained_model_string: str = ""
-                if pretrained_model_type == '1':
-                    pretrained_model_string = "Literalist"
-                elif pretrained_model_type == '2':
-                    pretrained_model_string = "Contrarian"
-                elif pretrained_model_type == '3':
-                    pretrained_model_string = "Comedian"
-                logging.debug(f"Pretrained Model String: {pretrained_model_string}")
+                pretrained_archetype_string: str = ""
+                if pretrained_archetype == '1':
+                    pretrained_archetype_string = "Literalist"
+                elif pretrained_archetype == '2':
+                    pretrained_archetype_string = "Contrarian"
+                elif pretrained_archetype == '3':
+                    pretrained_archetype_string = "Comedian"
+                logging.debug(f"Pretrained Model String: {pretrained_archetype_string}")
 
                 # Create the AI agent
-                new_agent_name = self.__generate_unique_name(f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}")
-                new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, False)
+                new_agent_name = self.__generate_unique_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
+                new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, False)
 
             # Append the player object
             self.players.append(new_agent)
@@ -202,7 +200,7 @@ class ApplesToApples:
         # Initialize the models for the AI agents
         for player in self.players:
             if isinstance(player, AIAgent):
-                player.initialize_models(self.nlp_model, self.players)
+                player.initialize_models(self.keyed_vectors, self.players)
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
 
@@ -378,7 +376,7 @@ class ApplesToApples:
             for player in self.players:
                 if isinstance(player, AIAgent) and player != self.current_judge:
 
-                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, losing_red_apples, self.current_judge)
+                    player.train_models(self.keyed_vectors, self.green_apples_in_play[self.current_judge], winning_red_card, losing_red_apples, self.current_judge)
                     judge_model: Model | None = player.get_opponent_models(self.current_judge)
 
                     # Check that the judge model is not None

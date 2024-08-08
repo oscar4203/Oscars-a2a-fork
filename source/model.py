@@ -49,7 +49,7 @@ class Model():
         self._judge: Agent = judge
         self._model_data: ModelData = ModelData([], [], [])
         self._judge_pairs = [] # Hopefully a better way to store the data.
-        self._pretrained_model: str = pretrained_model
+        self._pretrained_model: str = pretrained_model # The name of the pretrained model (e.g., Literalist, Contrarian, Comedian)
         self._pretrain: bool = pretrain
 
         # Initialize slope and bias vectors
@@ -148,13 +148,19 @@ class Model():
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
 
-    def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+        """
+        Train the model using pairs of green and red apple vectors.
+        """
+        raise NotImplementedError("Subclass must implement the 'train_model' method")
+
+    def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         """
@@ -241,16 +247,16 @@ class LRModel(Model):
 
         print(self)
 
-    def train_model(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         # Set the green and red apple vectors
-        green_apple.set_adjective_vector(nlp_model)
-        winning_red_apple.set_noun_vector(nlp_model)
+        green_apple.set_adjective_vector(keyed_vectors)
+        winning_red_apple.set_noun_vector(keyed_vectors)
 
         for i, red in enumerate(loosing_red_apples):
-            loosing_red_apples[i].set_noun_vector(nlp_model)
+            loosing_red_apples[i].set_noun_vector(keyed_vectors)
 
         # Add the new green and red apples to the model data
         # self.model_data.green_apples.append(new_green_apple)
@@ -298,20 +304,20 @@ class LRModel(Model):
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 
-    def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         This method applies the private linear regression methods to predict the best red apple.
         """
         # Set the green and red apple vectors
-        green_apple.set_adjective_vector(nlp_model)
+        green_apple.set_adjective_vector(keyed_vectors)
         green_apple_vector = green_apple.get_adjective_vector()
 
         best_red_apple: RedApple | None = None
         best_score: float = -np.inf
 
         for red in red_apples:
-            red.set_noun_vector(nlp_model)
+            red.set_noun_vector(keyed_vectors)
             r_vec = red.get_noun_vector()
 
             score = self.result(green_apple_vector, r_vec)
@@ -326,13 +332,13 @@ class LRModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private linear regression methods to predict the winning red apple.
         """
         # Set the green and red apple vectors
-        green_apple.set_adjective_vector(nlp_model)
+        green_apple.set_adjective_vector(keyed_vectors)
         green_apple_vector = green_apple.get_adjective_vector()
 
         # Initialize variables to track the best choice
@@ -342,7 +348,7 @@ class LRModel(Model):
         # Iterate through the red apples to find the best one
         for red_apple_dict in red_apples:
             for _, red_apple in red_apple_dict.items():
-                red_apple.set_noun_vector(nlp_model)
+                red_apple.set_noun_vector(keyed_vectors)
                 red_apple_vector = red_apple.get_noun_vector()
 
                 # Check that the green and red vectors are not None
@@ -400,13 +406,13 @@ class NNModel(Model):
         # Update the target score based on the error
         self._y_target = self._y_target - error
 
-    def train_model(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         # Set the green and red apple vectors
-        green_apple.set_adjective_vector(nlp_model)
-        winning_red_apple.set_noun_vector(nlp_model)
+        green_apple.set_adjective_vector(keyed_vectors)
+        winning_red_apple.set_noun_vector(keyed_vectors)
 
         # Add the new green and red apples to the model data
         self._model_data.green_apples.append(green_apple)
@@ -425,15 +431,15 @@ class NNModel(Model):
         # Save the updated slope and bias vectors
         super()._save_vectors()
 
-    def choose_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         This method applies the private neural network methods to predict the best red apple.
         """
         # Set the green and red apple vectors
-        green_apple.set_adjective_vector(nlp_model)
+        green_apple.set_adjective_vector(keyed_vectors)
         for red_apple in red_apples:
-            red_apple.set_noun_vector(nlp_model)
+            red_apple.set_noun_vector(keyed_vectors)
 
         # Initialize the best score and best red apple
         best_score: float = -np.inf
@@ -455,7 +461,7 @@ class NNModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, nlp_model: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private neural network methods to predict the winning red apple.
@@ -477,6 +483,13 @@ class NNModel(Model):
             raise ValueError("No winning red apple was chosen.")
 
         return winning_red_apple
+
+
+# Define the mapping from user input to model type
+model_type_mapping = {
+    '1': LRModel,
+    '2': NNModel
+}
 
 
 if __name__ == "__main__":

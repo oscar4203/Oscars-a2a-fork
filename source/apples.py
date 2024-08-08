@@ -46,23 +46,23 @@ class Apple:
     def _split_text(self, text: str) -> list[str]:
         return text.split("_")
 
-    def _calculate_average_vector(self, words: list[str], nlp_model: KeyedVectors) -> np.ndarray:
+    def _calculate_average_vector(self, words: list[str], keyed_vectors: KeyedVectors) -> np.ndarray:
         # Initialize the average vector
-        avg_vector = np.zeros(nlp_model.vector_size)
+        avg_vector = np.zeros(keyed_vectors.vector_size)
 
         # Iterate through the words
         for word in words:
-            # Try searching the nlp_model for the word
+            # Try searching the keyed_vectors for the word
             try:
                 # Add the vector of the word to the average vector
-                avg_vector += nlp_model[word]
+                avg_vector += keyed_vectors[word]
             except KeyError:
                 # If the word is not found, try converting it to lowercase
                 try:
                     # Add the vector of the word to the average vector
-                    avg_vector += nlp_model[word.lower()]
+                    avg_vector += keyed_vectors[word.lower()]
                 except KeyError:
-                    print(f"The word '{word}' was not found in the nlp_model.")
+                    print(f"The word '{word}' was not found in the keyed_vectors.")
 
         # Divide the average vector by the number of words
         avg_vector /= len(words)
@@ -101,7 +101,7 @@ class GreenApple(Apple):
     def get_synonyms_vector(self) -> np.ndarray | None:
         return self.__synonyms_vector
 
-    def set_adjective_vector(self, nlp_model: KeyedVectors) -> None:
+    def set_adjective_vector(self, keyed_vectors: KeyedVectors) -> None:
         # Clean the adjective
         cleaned_adjective = self._format_text(self.__adjective)
 
@@ -109,9 +109,9 @@ class GreenApple(Apple):
         split_cleaned_adjective = self._split_text(cleaned_adjective)
 
         # Calculate the average vector for the adjective
-        self.__adjective_vector = self._calculate_average_vector(split_cleaned_adjective, nlp_model)
+        self.__adjective_vector = self._calculate_average_vector(split_cleaned_adjective, keyed_vectors)
 
-    def set_synonyms_vector(self, nlp_model: KeyedVectors) -> None:
+    def set_synonyms_vector(self, keyed_vectors: KeyedVectors) -> None:
         # Check if synonyms exist
         if self.__synonyms is None:
             raise ValueError("Synonyms are not available for this Green Apple.")
@@ -120,7 +120,7 @@ class GreenApple(Apple):
         cleaned_synonyms = [self._format_text(synonym) for synonym in self.__synonyms]
 
         # Calculate the average vector for the synonyms
-        self.__synonyms_vector = self._calculate_average_vector(cleaned_synonyms, nlp_model)
+        self.__synonyms_vector = self._calculate_average_vector(cleaned_synonyms, keyed_vectors)
 
 
 class RedApple(Apple):
@@ -151,7 +151,7 @@ class RedApple(Apple):
     def get_description_vector(self) -> np.ndarray | None:
         return self.__description_vector
 
-    def set_noun_vector(self, nlp_model: KeyedVectors) -> None:
+    def set_noun_vector(self, keyed_vectors: KeyedVectors) -> None:
         # Clean the noun
         cleaned_noun = self._format_text(self.__noun)
 
@@ -159,9 +159,9 @@ class RedApple(Apple):
         split_cleaned_noun = self._split_text(cleaned_noun)
 
         # Calculate the average vector for the noun
-        self.__noun_vector = self._calculate_average_vector(split_cleaned_noun, nlp_model)
+        self.__noun_vector = self._calculate_average_vector(split_cleaned_noun, keyed_vectors)
 
-    def set_description_vector(self, nlp_model: KeyedVectors) -> None:
+    def set_description_vector(self, keyed_vectors: KeyedVectors) -> None:
         # Check if description exists
         if self.__description is None:
             raise ValueError("Description is not available for this Red Apple.")
@@ -173,7 +173,7 @@ class RedApple(Apple):
         split_cleaned_description = self._split_text(cleaned_description)
 
         # Calculate the average vector for the description
-        self.__description_vector = self._calculate_average_vector(split_cleaned_description, nlp_model)
+        self.__description_vector = self._calculate_average_vector(split_cleaned_description, keyed_vectors)
 
 
 class Deck:

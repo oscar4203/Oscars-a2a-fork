@@ -233,80 +233,64 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str, model_type: LRModel | NNModel, pretrained_model: str, pretrain: bool) -> None:
+    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, pretrain: bool) -> None:
         super().__init__(name)
-        self.__nlp_model: KeyedVectors | None = None
-        self.__vectors = None
-        self.__model_type: LRModel | NNModel = model_type
-        self.__pretrained_model: str = pretrained_model
+        self.__keyed_vectors: KeyedVectors | None = None
+        # self.__vectors = None # Vectors loaded via custom loader
+        self.__ml_model_type: LRModel | NNModel = ml_model_type
+        self.__pretrained_archetype: str = pretrained_archetype
         self.__pretrain: bool = pretrain
-        self.__self_model: Model | None = None
+
+        # Initialize all the models as None temporarily
+        self.__ml_model: Model | None = None
         self.__opponents: list[Agent] = []
-        self.__opponent_models: dict[Agent, LRModel | NNModel] | None = None
+        self.__opponent_ml_models: dict[Agent, Model] | None = None
 
-    def get_opponent_models(self, key: Agent) -> LRModel | NNModel | None:
-        if self.__opponent_models is None:
-            logging.error("Opponent Models have not been initialized.")
-            raise ValueError("Opponent Models have not been initialized.")
+    def get_opponent_models(self, key: Agent) -> Model | None:
+        if self.__opponent_ml_models is None:
+            logging.error("Opponent ML Models have not been initialized.")
+            raise ValueError("Opponent ML Models have not been initialized.")
         else:
-            return self.__opponent_models.get(key)
+            return self.__opponent_ml_models.get(key)
 
-    def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
-    # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
+    def initialize_models(self, keyed_vectors: KeyedVectors, all_players: list[Agent]) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
-        # Initialize the nlp model
-        self.__nlp_model = nlp_model
-
-        # # Initialize the vectors
-        # self.__vectors = vectors
-
-        # # Initialize the self_model
-        # if self.model_type is LRModel:
-        #     self.self_model = LRModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
-        # elif self.model_type is NNModel:
-        #     self.self_model = NNModel(self, self.nlp_model.vector_size, self.pretrained_model, self.pretrain)
+        # Initialize the vectors
+        self.__keyed_vectors = keyed_vectors
 
         # Determine the opponents
         self.__opponents = [agent for agent in all_players if agent != self]
         logging.debug(f"opponents: {[agent.get_name() for agent in self.__opponents]}")
 
-        # Initialize the self and opponent models
-        if self.__model_type is LRModel:
-            self.__self_model = LRModel(self, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain)
-            self.__opponent_models = {agent: LRModel(agent, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain) for agent in self.__opponents}
-            logging.debug(f"LRModel - opponent_models: {self.__opponent_models}")
-        elif self.__model_type is NNModel:
-            self.__self_model = NNModel(self, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain)
-            self.__opponent_models = {agent: NNModel(agent, self.__nlp_model.vector_size, self.__pretrained_model, self.__pretrain) for agent in self.__opponents}
-            logging.debug(f"NNModel - opponent_models: {self.__opponent_models}")
-        # if self.model_type is LRModel:
-        #     self.self_model = LRModel(self, self.vectors.vector_size)
-        #     self.opponent_models = {agent: LRModel(agent, self.vectors.vector_size) for agent in self.opponents}
-        # elif self.model_type is NNModel:
-        #     self.self_model = NNModel(self, self.vectors.vector_size)
-        #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
+        if self.__ml_model_type is LRModel:
+            self.__ml_model = LRModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain)
+            self.__opponent_ml_models = {agent: LRModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain) for agent in self.__opponents}
+            logging.debug(f"LRModel - opponent_ml_models: {self.__opponent_ml_models}")
+        elif self.__ml_model_type is NNModel:
+            self.__ml_model = NNModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain)
+            self.__opponent_ml_models = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain) for agent in self.__opponents}
+            logging.debug(f"NNModel - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def train_models(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], judge: Agent) -> None:
+    def train_models(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], judge: Agent) -> None:
         """
         Train the AI model with the new green card, red card, and judge.
         """
-        # Check if the agent self_model has been initialized
-        if self.__opponent_models is None:
-            logging.error("Opponent Models have not been initialized.")
-            raise ValueError("Opponent Models have not been initialized.")
+        # Check if the agent opponent ml models have been initialized
+        if self.__opponent_ml_models is None:
+            logging.error("Opponent ML Models have not been initialized.")
+            raise ValueError("Opponent ML Models have not been initialized.")
 
         # Train the AI models with the new green card, red card, and judge
         for agent in self.__opponents:
             if judge == agent:
-                agent_model: LRModel | NNModel = self.__opponent_models[agent]
-                if self.__model_type in [LRModel, NNModel]:
-                    agent_model.train_model(nlp_model, green_apple, winning_red_apple, loosing_red_apples)
-                    logging.debug(f"Trained {agent.get_name()}'s model with the new green card, red card, and judge.")
+                agent_model: Model = self.__opponent_ml_models[agent]
+                agent_model.train_model(keyed_vectors, green_apple, winning_red_apple, loosing_red_apples)
+                logging.debug(f"Trained {agent.get_name()}'s model with the new green card, red card, and judge.")
 
     def log_models(self):
-        print(self.__opponent_models)
+        print(self.__opponent_ml_models)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge
@@ -317,18 +301,18 @@ class AIAgent(Agent):
         # Choose a red card
         red_apple: RedApple | None = None
 
-        # Check that the models were initialized
-        if self.__opponent_models is None:
-            logging.error("Models have not been initialized.")
-            raise ValueError("Models have not been initialized.")
+        # Check that the opponent ml models were initialized
+        if self.__opponent_ml_models is None:
+            logging.error("Opponent ML Models have not been initialized.")
+            raise ValueError("Opponent ML Models have not been initialized.")
 
-        # Check that the nlp model was initialized
-        if self.__nlp_model is None:
-            logging.error("NLP model has not been initialized.")
-            raise ValueError("NLP model has not been initialized.")
+        # Check that the keyed vectors was initialized
+        if self.__keyed_vectors is None:
+            logging.error("Keyed vectors has not been initialized.")
+            raise ValueError("Keyed vectors has not been initialized.")
 
         # Run the AI model to choose a red card based on current judge
-        red_apple = self.__opponent_models[current_judge].choose_red_apple(self.__nlp_model, green_apple, self._red_apples)
+        red_apple = self.__opponent_ml_models[current_judge].choose_red_apple(self.__keyed_vectors, green_apple, self._red_apples)
         self._red_apples.remove(red_apple)
 
         # Display the red card chosen
@@ -344,26 +328,19 @@ class AIAgent(Agent):
             raise ValueError(f"{self._name} is not the judge.")
 
         # Check if the agent self_model has been initialized
-        if self.__self_model is None:
+        if self.__ml_model is None:
             logging.error("Model has not been initialized.")
             raise ValueError("Model has not been initialized.")
 
-        # Check that the nlp model was initialized
-        if self.__nlp_model is None:
-            logging.error("NLP model has not been initialized.")
-            raise ValueError("NLP model has not been initialized.")
+        # Check that the keyed vectors was initialized
+        if self.__keyed_vectors is None:
+            logging.error("Keyed vectors has not been initialized.")
+            raise ValueError("Keyed vectors has not been initialized.")
 
         # Choose a winning red card
-        winning_red_apple_dict: dict[str, RedApple] = self.__self_model.choose_winning_red_apple(self.__nlp_model, green_apple, red_apples)
+        winning_red_apple_dict: dict[str, RedApple] = self.__ml_model.choose_winning_red_apple(self.__keyed_vectors, green_apple, red_apples)
 
         return winning_red_apple_dict
-
-
-#Define the mapping from user input to model type
-model_type_mapping = {
-    '1': LRModel,
-    '2': NNModel
-}
 
 
 if __name__ == "__main__":
