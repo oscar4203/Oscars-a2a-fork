@@ -50,14 +50,15 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_model: str, pretrain: bool) -> None:
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, pretrain: bool) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agents/"
         self._vector_size = vector_size
         self._judge: Agent = judge
         self._model_data: ModelData = ModelData([], [], [])
-        self._judge_pairs = [] # Hopefully a better way to store the data.
-        self._pretrained_model: str = pretrained_model # The name of the pretrained model (e.g., Literalist, Contrarian, Comedian)
+        self._winning_apple_pairs: list[dict[GreenApple, RedApple]] = []
+        self._losing_apple_pairs: list[dict[GreenApple, RedApple]] = []
+        self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._pretrain: bool = pretrain
 
         # Initialize slope and bias vectors
@@ -96,8 +97,8 @@ class Model():
             logging.error(f"Error creating vector directory: {e}")
 
         # Define the file paths for the vectors
-        slope_vector_file: str = f"{self._vector_base_directory}{self._pretrained_model}_slope.npy"
-        bias_vector_file: str = f"{self._vector_base_directory}{self._pretrained_model}_bias.npy"
+        slope_vector_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_slope.npy"
+        bias_vector_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_bias.npy"
 
         # Load the vectors from the pretrained model
         try:
@@ -137,14 +138,14 @@ class Model():
         try:
             # If pretrain is True, save the vectors to the pretrained model files
             if self._pretrain:
-                slope_file: str = f"{self._vector_base_directory}{self._pretrained_model}_slope.npy"
-                bias_file: str = f"{self._vector_base_directory}{self._pretrained_model}_bias.npy"
+                slope_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_slope.npy"
+                bias_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_bias.npy"
                 np.save(slope_file, self._slope_vector)
                 np.save(bias_file, self._bias_vector)
                 logging.info(f"Saved vectors to {slope_file} and {bias_file}")
             else: # Otherwise, save the vectors to the temporary model files
-                tmp_slope_file = f"{tmp_directory}{self._pretrained_model}_slope_{self._judge.get_name()}-tmp.npy"
-                tmp_bias_file = f"{tmp_directory}{self._pretrained_model}_bias_{self._judge.get_name()}-tmp.npy"
+                tmp_slope_file = f"{tmp_directory}{self._pretrained_archetype}_slope_{self._judge.get_name()}-tmp.npy"
+                tmp_bias_file = f"{tmp_directory}{self._pretrained_archetype}_bias_{self._judge.get_name()}-tmp.npy"
                 np.save(tmp_slope_file, self._slope_vector)
                 np.save(tmp_bias_file, self._bias_vector)
                 logging.info(f"Saved vectors to {tmp_slope_file} and {tmp_bias_file}")
@@ -182,6 +183,79 @@ class Model():
     #     """
     #     return np.sum(self.__result_vector(green_apple_vector, red_apple_vector))
 
+    def _append_winning_losing_apple_pairs(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+        """
+        Collect the winning and losing green and red apple pairs for training the model.
+        """
+        # Append the winning apple pair
+        winning_apple_pair: dict[GreenApple, RedApple] = {green_apple: winning_red_apple}
+        self._winning_apple_pairs.append(winning_apple_pair)
+
+        # Append the losing apple pairs
+        for red_apple in loosing_red_apples:
+            losing_apple_pair: dict[GreenApple, RedApple] = {green_apple: red_apple}
+            self._winning_apple_pairs.append(losing_apple_pair)
+
+    def _get_winning_apple_pairs_vectors(self) -> list[dict[str, np.ndarray]]:
+        """
+        Get the winning green and red apple pairs vectors.
+        """
+        # Initialize the list of vectors
+        winning_list: list[dict[str, np.ndarray]] = []
+
+        # Process the winning apple pairs
+        for apple_pair in self._winning_apple_pairs:
+            for green_apple, red_apple in apple_pair.items():
+                green_apple_vector = green_apple.get_adjective_vector()
+                red_apple_vector = red_apple.get_noun_vector()
+
+                # Check that the green and red vectors are None
+                if green_apple_vector is None:
+                    logging.error(f"Green apple vector is None.")
+                    raise ValueError("Green apple vector is None.")
+                if red_apple_vector is None:
+                    logging.error(f"Red apple vector is None.")
+                    raise ValueError("Red apple vector is None.")
+
+                # Append the green and red apple vectors to the list
+                apple_pair_vectors: dict[str, np.ndarray] = {
+                    "green_apple_vector": green_apple_vector,
+                    "red_apple_vector": red_apple_vector,
+                }
+                winning_list.append(apple_pair_vectors)
+
+        return winning_list
+
+    def _get_losing_apple_pairs_vectors(self) -> list[dict[str, np.ndarray]]:
+        """
+        Get the losing green and red apple pairs vectors.
+        """
+        # Initialize the list of vectors
+        losing_list: list[dict[str, np.ndarray]] = []
+
+        # Process the losing apple pairs
+        for apple_pair in self._losing_apple_pairs:
+            for green_apple, red_apple in apple_pair.items():
+                green_apple_vector = green_apple.get_adjective_vector()
+                red_apple_vector = red_apple.get_noun_vector()
+
+                # Check that the green and red vectors are not None
+                if green_apple_vector is None:
+                    logging.error(f"Green apple vector is None.")
+                    raise ValueError("Green apple vector is None.")
+                if red_apple_vector is None:
+                    logging.error(f"Red apple vector is None.")
+                    raise ValueError("Red apple vector is None.")
+
+                # Append the green and red apple vectors to the list
+                apple_pair_vectors: dict[str, np.ndarray] = {
+                    "green_apple": green_apple_vector,
+                    "red_apple": red_apple_vector,
+                }
+                losing_list.append(apple_pair_vectors)
+
+        return losing_list
+
     def _calculate_score(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> float:
         """
         Produces the score of the model for a combination of red and green cards.
@@ -190,7 +264,7 @@ class Model():
         result_vector = np.multiply(self._slope_vector, x) + self._bias_vector
         return float(np.sum(result_vector))
 
-    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
@@ -319,48 +393,48 @@ class LRModel(Model):
 
     #     print(self)
 
-    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
-        Train the model using pairs of green and red apple vectors.
+        Train the model using winning green and red apple pairs and losing green and red apple pairs if applicable.
         """
-        # Set the green and red apple vectors
-        green_apple.set_adjective_vector(keyed_vectors)
-        winning_red_apple.set_noun_vector(keyed_vectors)
+        # Append the winning and losing apple pairs
+        self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, loosing_red_apples)
 
-        for i, red in enumerate(loosing_red_apples):
-            loosing_red_apples[i].set_noun_vector(keyed_vectors)
+        # Get the winning green and red apple pairs vectors
+        winning_apple_pairs_vectors = self._get_winning_apple_pairs_vectors()
 
-        # Add the new green and red apples to the model data
-        # self.model_data.green_apples.append(new_green_apple)
-        # self.model_data.red_apples.append(new_red_apple)
+        # Get the losing green and red apple vectors, if applicable
+        if train_on_losing_red_apples:
+            losing_green_apple_vectors = self._get_losing_apple_pairs_vectors()
 
-        self._judge_pairs.append((green_apple, winning_red_apple, 1.0))
-        for red in loosing_red_apples:
-            self._judge_pairs.append((green_apple, red, -1.0))
-
-        # # Get the green and red apple vectors
-        # green_apple_vectors = [apple.get_adjective_vector() for apple in self.model_data.green_apples]
-        # red_apple_vectors = [apple.get_noun_vector() for apple in self.model_data.red_apples]
-
-        # Calculate the target score
-        # for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
-        #     self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
-        #     self.__update_parameters(green_apple_vector, red_apple_vector)
-
+        # Initialize the x and y arrays
         xs = []
         ys = []
 
-        # an array of vectors of x and y data
-        for pair in self._judge_pairs:
-            g_vec = pair[0].get_adjective_vector()
-            r_vec = pair[1].get_noun_vector()
+        # Assign the x and y data for winning apple pairs
+        for pair in winning_apple_pairs_vectors:
+            g_vec = pair["green_apple_vector"]
+            r_vec = pair["red_apple_vector"]
             x_vec = np.multiply(g_vec, r_vec)
-            y_vec = np.full(self._vector_size, pair[2])
+            y_vec = np.full(self._vector_size, 1)
             xs.append(x_vec)
             ys.append(y_vec)
 
         nxs = np.array(xs)
         nys = np.array(ys)
+
+        # Assign the x and y data for losing apple pairs, if applicable
+        if train_on_losing_red_apples:
+            for pair in losing_green_apple_vectors:
+                g_vec = pair["green_apple"]
+                r_vec = pair["red_apple"]
+                x_vec = np.multiply(g_vec, r_vec)
+                y_vec = np.full(self._vector_size, -1)
+                xs.append(x_vec)
+                ys.append(y_vec)
+
+            nxs = np.array(xs)
+            nys = np.array(ys)
 
         logging.debug(f"Old slope vector: {self._slope_vector}")
         logging.debug(f"Old bias vector: {self._bias_vector}")
@@ -510,7 +584,7 @@ class NNModel(Model):
         x = np.multiply(green_apple_vector, red_apple_vector)
         self.model.train_on_batch(np.array([x]), np.array([self._y_target]))
 
-    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], extra_vectors: bool) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """

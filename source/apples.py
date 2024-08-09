@@ -10,6 +10,7 @@ import re
 from gensim.models import KeyedVectors
 
 # Local Modules
+from source.game_logger import logging
 
 
 class Apple:
@@ -62,7 +63,7 @@ class Apple:
                     # Add the vector of the word to the average vector
                     avg_vector += keyed_vectors[word.lower()]
                 except KeyError:
-                    print(f"The word '{word}' was not found in the keyed_vectors.")
+                    logging.info(f"The word '{word}' was not found in the keyed_vectors.")
 
         # Divide the average vector by the number of words
         avg_vector /= len(words)
