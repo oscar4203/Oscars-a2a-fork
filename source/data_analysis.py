@@ -1,11 +1,13 @@
 # Description: Small script to count the number of times each unique player has won a game
 
 # Standard Libraries
+import os
 import csv
 import argparse
 
 # Third-party Libraries
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import MaxNLocator
 from matplotlib.gridspec import GridSpec
@@ -98,11 +100,11 @@ def percent_ai_won(winners: dict[str, int]) -> float:
     return ai_wins / total_games * 100 if total_games > 0 else 0
 
 
-def plot_winners(winners: dict[str, int]) -> None:
+def create_plot_for_winners(winners: dict[str, int]) -> Figure:
     # Check if there are any winners
     if not winners:
         print("No winners found")
-        return
+        raise ValueError("No winners found")
 
     # Get the players and wins
     players = list(winners.keys())
@@ -162,14 +164,18 @@ def plot_winners(winners: dict[str, int]) -> None:
     # Adjust layout
     plt.tight_layout()
 
-    # Display the plot
-    plt.show()
+    return fig
 
 
-def main(filename: str) -> None:
+def save_plot(plot_figure: Figure, output_filepath: str) -> None:
+    # Save the plot to a file
+    plot_figure.savefig(output_filepath)
+
+
+def main(filepath: str) -> None:
     # Get the winners dictionary
     try:
-        winners = count_winners(filename)
+        winners = count_winners(filepath)
 
         # Print the winners
         print(f"Total games: {sum(winners.values())}")
@@ -180,8 +186,19 @@ def main(filename: str) -> None:
         if not winners:
             print("No winners found")
 
-        # Plot the winners
-        plot_winners(winners)
+        # Generate output filename
+        base_name = os.path.splitext(filepath)[0]
+        output_filepath = f"{base_name}.png"
+
+        # Create a plot of the winners
+        plot = create_plot_for_winners(winners)
+
+        # Save the plot to a file
+        save_plot(plot, output_filepath)
+
+        # Display the plot
+        plt.show()
+
     except csv.Error:
         print("Error reading CSV file")
     except Exception as e:
@@ -189,12 +206,17 @@ def main(filename: str) -> None:
 
 
 if __name__ == "__main__":
+    # Create an argument parser
     parser = argparse.ArgumentParser(description="Count winners from a CSV file.")
+
+    # Add an argument for the filename as input
     parser.add_argument(
         "filename",
         nargs="?",
         default="./logs/winners.csv",
         help="Path to the CSV file containing winners data"
     )
+
+    # Parse the arguments and call the main function
     args = parser.parse_args()
     main(args.filename)

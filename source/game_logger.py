@@ -161,7 +161,7 @@ def format_players_string(players: list[Agent]) -> str:
     return final_string
 
 
-def format_naming_scheme(players: list[Agent], number_of_games: int | None = None, points_to_win: int | None = None) -> str:
+def format_naming_scheme(players: list[Agent], total_games: int | None = None, points_to_win: int | None = None) -> str:
     # Get the current date
     date = datetime.now().strftime("%Y_%m_%d")
 
@@ -170,8 +170,8 @@ def format_naming_scheme(players: list[Agent], number_of_games: int | None = Non
 
     # Format the naming scheme
     string = f"{date}-"
-    if number_of_games is not None:
-        string += f"{number_of_games}_games-"
+    if total_games is not None:
+        string += f"{total_games}_games-"
     if points_to_win is not None:
         string += f"{points_to_win}_pts-"
     string += f"{players_string}"

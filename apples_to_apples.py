@@ -13,8 +13,9 @@ from source.game_logger import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import Model, model_type_mapping
-from source.game_logger import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_vectors
+from source.game_logger import GameResults, PreferenceUpdates, format_naming_scheme, log_vectors, log_gameplay, log_winner, LOGGING_BASE_DIRECTORY
 from source.w2vloader import VectorsW2V
+from source.data_analysis import main as data_analysis_main
 
 
 class ApplesToApples:
@@ -79,6 +80,10 @@ class ApplesToApples:
         else:
             if self.reset_vectors_between_games:
                 self.__reset_vectors()
+
+        # Define the naming scheme and the winner csv filepath
+        naming_scheme = format_naming_scheme(self.players, self.total_games, self.points_to_win)
+        self.winner_csv_filepath = f"{LOGGING_BASE_DIRECTORY}{naming_scheme}/winners-{naming_scheme}.csv"
 
         # Choose the starting judge
         self.__choose_starting_judge()
@@ -565,6 +570,9 @@ def main() -> None:
                 game.current_game = game.total_games
             else:
                 print("Invalid response. Please select '1', '2', or '3'.")
+
+    # Run the winner counter and plot the results
+    data_analysis_main(game.winner_csv_filepath)
 
 
 def get_user_input_y_or_n(prompt: str) -> str:
