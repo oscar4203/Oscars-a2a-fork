@@ -42,9 +42,9 @@ class ApplesToApples:
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
-    def set_between_game_options(self, extra_vectors: bool, losing_red_apples: bool) -> None:
-        self.include_synonym_description_vectors = extra_vectors
-        self.include_losing_red_apples = losing_red_apples
+    def set_between_game_options(self, train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+        self.train_on_extra_vectors = train_on_extra_vectors
+        self.train_on_losing_red_apples = train_on_losing_red_apples
 
     def new_game(self) -> None:
         """
@@ -329,7 +329,8 @@ class ApplesToApples:
                 self.green_apple_in_play[self.agent],
                 game_results.winning_red_apple,
                 game_results.losing_red_apples,
-                self.include_synonym_description_vectors
+                self.train_on_extra_vectors,
+                self.train_on_losing_red_apples
             )
 
             # Reset the judge to the AI agent
@@ -462,18 +463,19 @@ def main() -> None:
     game.load_keyed_vectors()
 
     # Initialize all between game option variables
-    include_synonym_description_vectors = "n"
+    train_on_extra_vectors = 'n'
+    train_on_losing_red_apples = 'n'
 
-    # Prompt the user on whether they want to include synonym and description vectors as part of the model
-    include_synonym_description_vectors = get_user_input_y_or_n("Do you want to include synonym and description vectors as part of the model? (y/n): ")
+    # Prompt the user on whether they want to include the synonym and description vectors as part of the model
+    train_on_extra_vectors = get_user_input_y_or_n("Do you want to include the synonym and description vectors as part of the model training? (y/n): ")
 
-    # Prompt the user on whether they want to include losing red apples in the model training
-    include_losing_red_apples = get_user_input_y_or_n("Do you want to include losing red apples in the model training? (y/n): ")
+    # Prompt the user on whether they want to include the losing red apples as part of the model training
+    train_on_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples as part of the model training? (y/n): ")
 
     # Set the between game options
     game.set_between_game_options(
-        include_synonym_description_vectors == 'y',
-        include_losing_red_apples == 'y'
+        train_on_extra_vectors == 'y',
+        train_on_losing_red_apples == 'y'
     )
 
     # Start the game

@@ -239,7 +239,7 @@ class AIAgent(Agent):
         self.__pretrained_archetype: str = pretrained_archetype
         self.__pretrain: bool = pretrain
 
-    def get_opponent_models(self, key: Agent) -> Model | None:
+    def get_opponent_model(self, key: Agent) -> Model | None:
         if self.__opponent_ml_models is None:
             logging.error("Opponent ML Models have not been initialized.")
             raise ValueError("Opponent ML Models have not been initialized.")
@@ -268,7 +268,7 @@ class AIAgent(Agent):
             self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain) for agent in self.__opponents}
             logging.debug(f"NNModel - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def train_opponent_models(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], current_judge: Agent) -> None:
+    def train_opponent_models(self, keyed_vectors: KeyedVectors, current_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the AI opponent model for the current judge, given the new green and red cards.
         """
@@ -276,7 +276,7 @@ class AIAgent(Agent):
         for agent in self.__opponents:
             if current_judge == agent:
                 agent_model: Model = self.__opponent_ml_models[agent]
-                agent_model.train_model(keyed_vectors, green_apple, winning_red_apple, loosing_red_apples)
+                agent_model.train_model(keyed_vectors, green_apple, winning_red_apple, loosing_red_apples, train_on_extra_vectors, train_on_losing_red_apples)
                 logging.debug(f"Trained {agent.get_name()}'s model with the new green card, red card, and judge.")
 
     def reset_opponent_models(self) -> None:
