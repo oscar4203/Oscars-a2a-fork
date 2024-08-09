@@ -27,7 +27,7 @@ class ApplesToApples:
         self.red_expansion_filename: str = red_expansion
         self.green_apples_deck: Deck = Deck()
         self.red_apples_deck: Deck = Deck()
-        self.__cards_in_hand: int = 7
+        self.cards_in_hand: int = 7
         # Initialize default game state values
         self.current_game: int = 0
         self.round: int = 0
@@ -40,13 +40,12 @@ class ApplesToApples:
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
-    def reset_vectors(self) -> None:
-        for player in self.players:
-            if isinstance(player, AIAgent):
-                vector_size = player.__model_type._vector_size
-                player.__model_type.__load_vectors(vector_size)
+    def set_between_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_vectors: bool) -> None:
+        self.change_players_between_games = change_players
+        self.cycle_starting_judges_between_games = cycle_starting_judges
+        self.reset_vectors_between_games = reset_vectors
 
-    def new_game(self, change_players_between_games: bool, cycle_starting_judges: bool) -> None:
+    def new_game(self) -> None:
         """
         Start a new game of 'Apples to Apples' and reset the game state.
         Optionally, initialize new players.
@@ -72,14 +71,17 @@ class ApplesToApples:
         self.__initialize_decks()
 
         # Initialize the players
-        if change_players_between_games or self.current_game == 1:
+        if self.change_players_between_games or self.current_game == 1:
             print("Initializing players.")
             logging.info("Initializing players.")
             self.players = []
             self.__initialize_players()
+        else:
+            if self.reset_vectors_between_games:
+                self.__reset_vectors()
 
         # Choose the starting judge
-        self.__choose_starting_judge(cycle_starting_judges)
+        self.__choose_starting_judge()
 
         # Start the game loop
         self.__game_loop()
@@ -250,7 +252,7 @@ class ApplesToApples:
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
-            self.players[i].draw_red_apples(self.red_apples_deck, self.__cards_in_hand)
+            self.players[i].draw_red_apples(self.red_apples_deck, self.cards_in_hand)
 
         # Initialize the models for the AI agents
         for player in self.players:
@@ -258,27 +260,30 @@ class ApplesToApples:
                 player.initialize_models(self.keyed_vectors, self.players)
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
-    def __choose_starting_judge(self, cycle_starting_judges: bool) -> None:
+    def __choose_starting_judge(self) -> None:
         # Clear the judge status for all players
         for player in self.players:
             player.set_judge_status(False)
 
         # If cycle starting judge is True, choose the starting judge automatically
-        if cycle_starting_judges:
+        if self.cycle_starting_judges_between_games:
             # Cycle through the judges to get the judge index
-            judge_index = ((self.current_game - 1) % len(self.players)) # -1 since 0-based index and current_game starts at 1
+            judge_index = ((self.current_game - 1) % len(self.players)) # Subtract 1 since 0-based index and current_game starts at 1
         else: # If cycle starting judge is False, prompt the user to choose the starting judge
-            # Choose the starting judge
-            choice = input(f"\nPlease choose the starting judge (1-{self.number_of_players}): ")
-            logging.info(f"Please choose the starting judge (1-{self.number_of_players}): {choice}")
+            if self.change_players_between_games:
+                # Choose the starting judge
+                choice = input(f"\nPlease choose the starting judge (1-{self.number_of_players}): ")
+                logging.info(f"Please choose the starting judge (1-{self.number_of_players}): {choice}")
 
-            # Validate the user input
-            while not choice.isdigit() or int(choice) < 1 or int(choice) > self.number_of_players:
-                choice = input(f"Invalid input. Please enter a number (1-{self.number_of_players}): ")
-                logging.error(f"Invalid input. Please enter a number (1-{self.number_of_players}): {choice}")
+                # Validate the user input
+                while not choice.isdigit() or int(choice) < 1 or int(choice) > self.number_of_players:
+                    choice = input(f"Invalid input. Please enter a number (1-{self.number_of_players}): ")
+                    logging.error(f"Invalid input. Please enter a number (1-{self.number_of_players}): {choice}")
 
-            # Set the current judge index
-            judge_index = int(choice)
+                # Set the current judge index
+                judge_index = int(choice)
+            else:
+                judge_index = 0
 
         # Assign the starting judge and set the judge status
         self.current_judge = self.players[judge_index]
@@ -341,8 +346,8 @@ class ApplesToApples:
             logging.info(f"Red card: {red_apple}")
 
             # Prompt the player to pick up a new red card
-            if len(player.get_red_apples()) < self.__cards_in_hand:
-                player.draw_red_apples(self.red_apples_deck, self.__cards_in_hand)
+            if len(player.get_red_apples()) < self.cards_in_hand:
+                player.draw_red_apples(self.red_apples_deck, self.cards_in_hand)
 
         return red_apples
 
@@ -379,6 +384,13 @@ class ApplesToApples:
                                                 game_results.winning_red_apple, self.green_apple_in_play[self.current_judge],
                                                 current_bias, current_slope)
                 log_vectors(game_results, preference_updates)
+
+    def __reset_vectors(self) -> None:
+        # for player in self.players:
+        #     if isinstance(player, AIAgent):
+        #         vector_size = player.__model_type._vector_size
+        #         player.__model_type.__load_vectors(vector_size)
+        pass
 
     def __is_game_over(self) -> Agent | None:
         for player in self.players:
@@ -517,46 +529,50 @@ def main() -> None:
     # Load the vectors
     game.load_keyed_vectors()
 
-    # Prompt the user on whether they want to change players between games
-    while True:
-        change_players_between_games = input("Do you want to change players between games? (y/n): ")
-        if (change_players_between_games == "y" or change_players_between_games == "n"):
-            break
-        print("Invalid input. Type in either 'y' or 'n'.")
+    # Initialize all between game option variables
+    change_players_between_games = "n"
+    cycle_starting_judges = "n"
+    reset_vectors_between_games = "n"
 
-    while True:
-        reset_vectors_between_games = input("Do you want to reset the vectors between games? (y/n): ")
-        if (reset_vectors_between_games == "y" or reset_vectors_between_games == "n"):
-            break
-        print("Invalid input. Type in either 'y' or 'n'.")
+    # Prompt the user on whether they want to change players between games
+    change_players_between_games = get_user_input_y_or_n("Do you want to change players between games? (y/n): ")
 
     # Prompt the user on whether they want to cycle the starting judge between games
     if change_players_between_games == "n":
-        while True:
-            cycle_starting_judges = input("Do you want to cycle the starting judge between games? (y/n): ")
-            if (cycle_starting_judges == "y" or cycle_starting_judges == "n"):
-                break
-            print("Invalid input. Type in either 'y' or 'n'.")
+        cycle_starting_judges = get_user_input_y_or_n("Do you want to cycle the starting judge between games? (y/n): ")
+
+    # Prompt the user on whether they want to reset the opponent model vectors between games
+    reset_vectors_between_games = get_user_input_y_or_n("Do you want to reset the opponent model vectors between games? (y/n): ")
+
+    # Set the between game options
+    game.set_between_game_options(change_players_between_games == 'y',
+                                  cycle_starting_judges == 'y',
+                                  reset_vectors_between_games == 'y')
 
     # Start the game, prompt the user for options
     while game.current_game < game.total_games:
-        if change_players_between_games == "n":
-            if cycle_starting_judges == "n":
-                game.new_game(False, False)
-            elif cycle_starting_judges == "y":
-                game.new_game(False, True)
+        if (not game.change_players_between_games) or (game.current_game == 0):
+            game.new_game()
         else:
             print("--------------------OPTIONS--------------------")
             print("1.Restart the game (same players)\n2.Start a new game (new players)\n3.End Session.\n")
             response = input("Which option do you choose?: ")
             if response == '1':
-                game.new_game(False, False)
+                game.new_game()
             elif response == '2':
-                game.new_game(True, False)
+                game.new_game()
             elif response == '3':
                 game.current_game = game.total_games
             else:
                 print("Invalid response. Please select '1', '2', or '3'.")
+
+
+def get_user_input_y_or_n(prompt: str) -> str:
+    while True:
+        response = input(prompt)
+        if response in ["y", "n"]:
+            return response
+        print("Invalid input. Type in either 'y' or 'n'.")
 
 
 if __name__ == "__main__":
