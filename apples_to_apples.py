@@ -3,10 +3,10 @@
 # Standard Libraries
 import logging
 import argparse
+from datetime import datetime
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
-from datetime import datetime
 
 # Local Modules
 from source.game_logger import configure_logging
@@ -31,7 +31,7 @@ class ApplesToApples:
         self.cards_in_hand: int = 7
         # Initialize default game state values
         self.current_game: int = 0
-        self.round: int = 0
+        self.current_round: int = 0
         self.current_judge: Agent | None = None
         self.round_winner: Agent | None = None
         self.game_winner: Agent | None = None
@@ -41,11 +41,12 @@ class ApplesToApples:
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
-    def set_between_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, extra_vectors: bool) -> None:
+    def set_between_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, extra_vectors: bool, losing_red_apples: bool) -> None:
         self.change_players_between_games = change_players
         self.cycle_starting_judges_between_games = cycle_starting_judges
         self.reset_models_between_games = reset_models
         self.include_synonym_description_vectors = extra_vectors
+        self.include_losing_red_apples = losing_red_apples
 
     def new_game(self) -> None:
         """
@@ -94,7 +95,7 @@ class ApplesToApples:
 
     def __reset_game_state(self) -> None:
         # Reset the game state for a new game
-        self.round = 0
+        self.current_round = 0
         self.current_judge = None
         self.game_winner = None
 
@@ -108,11 +109,11 @@ class ApplesToApples:
         self.round_winner = None
 
         # Increment the round counter
-        self.round += 1
+        self.current_round += 1
 
         # Print and log the round message
         round_message = f"\n===================" \
-                        f"\nROUND {self.round}:" \
+                        f"\nROUND {self.current_round}:" \
                         f"\n===================\n"
         print(round_message)
         logging.info(round_message)
@@ -123,13 +124,13 @@ class ApplesToApples:
             logging.info(f"{player.get_name()}: {player.get_points()} points")
 
         # Assign the next judge, except for the first round
-        if self.round > 1:
+        if self.current_round > 1:
             self.__assign_next_judge()
 
     def __initialize_decks(self) -> None:
         # Initialize the decks
         self.green_apple_in_play: dict[Agent, GreenApple] | None = None
-        self.red_apples_in_play: list[dict[str, RedApple]] = []
+        self.red_apples_in_play: list[dict[Agent, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
 
@@ -347,7 +348,7 @@ class ApplesToApples:
 
             # Set the red cards in play
             red_apple = player.choose_red_apple(self.current_judge, self.green_apple_in_play[self.current_judge])
-            self.red_apples_in_play.append({player.get_name(): red_apple})
+            self.red_apples_in_play.append({player: red_apple})
             red_apples.append(red_apple)
             logging.info(f"Red card: {red_apple}")
 
@@ -375,9 +376,15 @@ class ApplesToApples:
         for player in self.players:
             if isinstance(player, AIAgent) and player != self.current_judge:
 
-                player.train_models(self.keyed_vectors, self.green_apple_in_play[self.current_judge],
-                                    game_results.winning_red_apple, game_results.losing_red_apples, self.current_judge)
-                judge_model: Model | None = player.get_opponent_models(self.current_judge)
+                player.train_opponent_models(
+                    self.keyed_vectors, self.current_judge,
+                    self.green_apple_in_play[self.current_judge],
+                    game_results.winning_red_apple,
+                    game_results.losing_red_apples,
+                    self.include_synonym_description_vectors
+                )
+
+                judge_model: Model | None = player.get_opponent_model(self.current_judge)
 
                 # Check that the judge model is not None
                 if judge_model is None:
@@ -386,7 +393,7 @@ class ApplesToApples:
 
                 current_slope = judge_model.get_slope_vector()
                 current_bias = judge_model.get_bias_vector()
-                preference_updates = PreferenceUpdates(player, self.round, date_time,
+                preference_updates = PreferenceUpdates(player, self.current_round, date_time,
                                                 game_results.winning_red_apple, self.green_apple_in_play[self.current_judge],
                                                 current_bias, current_slope)
                 log_vectors(game_results, preference_updates)
@@ -451,27 +458,17 @@ class ApplesToApples:
                     print(f"{self.round_winner.get_name()} has won the round!")
                     logging.info(f"{self.round_winner} has won the round!")
 
-            # Check for None values
-            if self.green_apple_in_play is None:
-                logging.error("The green apple in play is None.")
-                raise ValueError("The green apple in play is None.")
-
-            if self.red_apples_in_play is None:
-                logging.error("The red apples in play is None.")
-                raise ValueError("The red apples in play is None.")
-            else:
-                red_apples_list = []
-                for red_apple in self.red_apples_in_play:
-                    red_apples_list.append(list(red_apple.values())[0])
-
              # Check if the game is over
             self.game_winner = self.__is_game_over()
 
             # Consolidate the gameplay results for the round and game
-            results = GameResults(self.players, self.points_to_win, self.total_games, self.current_game, self.round,
-                                  self.green_apple_in_play[self.current_judge], red_apples_list, winning_red_apple, losing_red_apples,
+            results = GameResults(self.players, self.points_to_win, self.total_games, self.current_game, self.current_round,
+                                  self.green_apple_in_play[self.current_judge], self.red_apples_in_play, winning_red_apple, losing_red_apples,
                                   self.current_judge, self.round_winner, self.game_winner)
             log_gameplay(results, True)
+
+            # Train the AI agents
+            self.__train_ai_agents(results)
 
             # Check if the game is over and print the winner message
             if self.game_winner is not None:
@@ -485,9 +482,6 @@ class ApplesToApples:
                 logging.info(message)
                 log_winner(results, True)
 
-            # Train the AI agents
-            self.__train_ai_agents(results)
-
             # Reset the round state
             self.__discard_apples_in_play()
 
@@ -499,6 +493,14 @@ def range_type(min_value, max_value):
             raise argparse.ArgumentTypeError(f"Value must be between {min_value} and {max_value}")
         return ivalue
     return range_checker
+
+
+def get_user_input_y_or_n(prompt: str) -> str:
+    while True:
+        response = input(prompt)
+        if response in ["y", "n"]:
+            return response
+        print("Invalid input. Type in either 'y' or 'n'.")
 
 
 def main() -> None:
@@ -537,9 +539,8 @@ def main() -> None:
 
     # Create the game object
     game = ApplesToApples(args.players, args.points, args.total_games, args.green_expansion, args.red_expansion)
-    # game.load_vectors()
 
-    # Load the vectors
+    # Load the keyed vectors
     game.load_keyed_vectors()
 
     # Initialize all between game option variables
@@ -561,11 +562,17 @@ def main() -> None:
     # Prompt the user on whether they want to include synonym and description vectors as part of the model
     include_synonym_description_vectors = get_user_input_y_or_n("Do you want to include synonym and description vectors as part of the model? (y/n): ")
 
+    # Prompt the user on whether they want to include losing red apples in the model training
+    include_losing_red_apples = get_user_input_y_or_n("Do you want to include losing red apples in the model training? (y/n): ")
+
     # Set the between game options
-    game.set_between_game_options(change_players_between_games == 'y',
-                                  cycle_starting_judges == 'y',
-                                  reset_models_between_games == 'y',
-                                    include_synonym_description_vectors == 'y')
+    game.set_between_game_options(
+        change_players_between_games == 'y',
+        cycle_starting_judges == 'y',
+        reset_models_between_games == 'y',
+        include_synonym_description_vectors == 'y',
+        include_losing_red_apples == 'y'
+    )
 
     # Start the game, prompt the user for options
     while game.current_game < game.total_games:
@@ -586,14 +593,6 @@ def main() -> None:
 
     # Run the winner counter and plot the results
     data_analysis_main(game.winner_csv_filepath)
-
-
-def get_user_input_y_or_n(prompt: str) -> str:
-    while True:
-        response = input(prompt)
-        if response in ["y", "n"]:
-            return response
-        print("Invalid input. Type in either 'y' or 'n'.")
 
 
 if __name__ == "__main__":

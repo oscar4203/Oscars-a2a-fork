@@ -42,8 +42,9 @@ class ApplesToApples:
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
-    def set_between_game_options(self, extra_vectors: bool) -> None:
+    def set_between_game_options(self, extra_vectors: bool, losing_red_apples: bool) -> None:
         self.include_synonym_description_vectors = extra_vectors
+        self.include_losing_red_apples = losing_red_apples
 
     def new_game(self) -> None:
         """
@@ -84,10 +85,10 @@ class ApplesToApples:
         self.current_judge = None
         self.game_winner = None
 
-        # Reset the player points and judge status
-        for player in self.players:
-            player.reset_points()
-            player.set_judge_status(False)
+        # # Reset the player points and judge status
+        # for player in self.players:
+        #     player.reset_points()
+        #     player.set_judge_status(False)
 
     def __new_round(self) -> None:
         # Reset the game state for a new round
@@ -323,7 +324,13 @@ class ApplesToApples:
             logging.debug(f"Green Apple: {self.green_apple_in_play[self.agent]}")
             logging.debug(f"Winning Red Apple: {game_results.winning_red_apple}")
             # logging.debug(f"Losing Red Apples: {losing_red_apples}")
-            self.agent.train_models(self.keyed_vectors, self.green_apple_in_play[self.agent], game_results.winning_red_apple, game_results.losing_red_apples, self.current_judge)
+            self.agent.train_opponent_models(
+                self.keyed_vectors, self.current_judge,
+                self.green_apple_in_play[self.agent],
+                game_results.winning_red_apple,
+                game_results.losing_red_apples,
+                self.include_synonym_description_vectors
+            )
 
             # Reset the judge to the AI agent
             self.current_judge = self.agent
@@ -384,14 +391,6 @@ class ApplesToApples:
                     print(f"{self.round_winner.get_name()} has won the round!")
                     logging.info(f"{self.round_winner} has won the round!")
 
-            # Convert the red apples in play to a list
-            red_apples_list = []
-            for red_apple in self.red_apples_in_play:
-                red_apples_list.append(list(red_apple.values())[0])
-
-            # Train the AI agents
-            self.__train_ai_agents(results)
-
             # Check if the agent is None
             if self.agent is None:
                 logging.error("The agent is None.")
@@ -405,10 +404,12 @@ class ApplesToApples:
 
             # Log the training
             results = GameResults(agent_list, self.number_of_rounds, self.number_of_rounds, self.current_round, self.current_round,
-                                  self.green_apple_in_play[self.current_judge], red_apples_list, winning_red_apple, losing_red_apples,
+                                  self.green_apple_in_play[self.current_judge], self.red_apples_in_play, winning_red_apple, losing_red_apples,
                                   self.current_judge, self.current_judge, self.current_judge)
             log_training(results, True)
 
+            # Train the AI agents
+            self.__train_ai_agents(results)
 
             # Check if the game is over and print the winner message
             if self.round_winner is not None:
@@ -466,8 +467,14 @@ def main() -> None:
     # Prompt the user on whether they want to include synonym and description vectors as part of the model
     include_synonym_description_vectors = get_user_input_y_or_n("Do you want to include synonym and description vectors as part of the model? (y/n): ")
 
+    # Prompt the user on whether they want to include losing red apples in the model training
+    include_losing_red_apples = get_user_input_y_or_n("Do you want to include losing red apples in the model training? (y/n): ")
+
     # Set the between game options
-    game.set_between_game_options(include_synonym_description_vectors == 'y')
+    game.set_between_game_options(
+        include_synonym_description_vectors == 'y',
+        include_losing_red_apples == 'y'
+    )
 
     # Start the game
     game.new_game()
