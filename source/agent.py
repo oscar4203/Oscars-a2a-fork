@@ -289,8 +289,21 @@ class AIAgent(Agent):
                 agent_model.train_model(keyed_vectors, green_apple, winning_red_apple, loosing_red_apples)
                 logging.debug(f"Trained {agent.get_name()}'s model with the new green card, red card, and judge.")
 
-    def log_models(self):
-        print(self.__opponent_ml_models)
+    def reset_opponent_models(self) -> None:
+        """
+        Reset the opponent models to the default archetype.
+        """
+        # Check if the agent opponent ml models have been initialized
+        if self.__opponent_ml_models is None:
+            logging.error("Opponent ML Models have not been initialized.")
+            raise ValueError("Opponent ML Models have not been initialized.")
+
+        # Reset the opponent models
+        for opponent in self.__opponents:
+            agent_model: Model = self.__opponent_ml_models[opponent]
+            agent_model.reset_model()
+            print(f"Reset {opponent.get_name()}'s model.")
+            logging.debug(f"Reset {opponent.get_name()}'s model.")
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
         # Check if the agent is a judge

@@ -152,6 +152,13 @@ class Model():
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
 
+    def reset_model(self) -> None:
+        """
+        Reset the model data and vectors.
+        """
+        self._model_data = ModelData([], [], [])
+        self._slope_vector, self._bias_vector = self.__load_vectors(self._vector_size)
+
     # def __result_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
     #     """
     #     Produces the resultant vector when you run through the algorithm
