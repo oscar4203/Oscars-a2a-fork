@@ -408,9 +408,8 @@ class ApplesToApples:
             winning_red_apple_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
                 self.green_apple_in_play[self.current_judge], self.red_apples_in_play)
 
-            # Extract the winning red card
+            # Extract the winning red apple and losing red apples
             winning_red_apple: RedApple = list(winning_red_apple_dict.values())[0]
-
             losing_red_apples: list[RedApple] = red_apples_this_round.copy()
             losing_red_apples.remove(winning_red_apple)
             logging.info(f"Losing Apples: {losing_red_apples}")
