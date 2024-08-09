@@ -16,14 +16,13 @@ from source.agent import Agent, AIAgent, HumanAgent, RandomAgent
 
 
 # Logging configuration
-DEBUG_MODE = True
 LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s - %(message)s"
 LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 LOGGING_BASE_DIRECTORY = "./logs/"
 LOGGING_FILENAME = "apples_to_apples.log"
 
 
-def configure_logging() -> None:
+def configure_logging(debug_mode: bool) -> None:
     """
     Configure logging parameters for the application.
 
@@ -41,7 +40,7 @@ def configure_logging() -> None:
 
     # Configure logging
     logging.basicConfig(
-        level=logging.DEBUG if DEBUG_MODE else logging.INFO,
+        level=logging.DEBUG if debug_mode else logging.INFO,
         format=LOGGING_FORMAT,
         datefmt=LOGGING_DATE_FORMAT,
         filename=file_path

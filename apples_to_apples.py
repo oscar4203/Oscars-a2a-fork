@@ -41,10 +41,11 @@ class ApplesToApples:
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
-    def set_between_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_vectors: bool) -> None:
+    def set_between_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, extra_vectors: bool) -> None:
         self.change_players_between_games = change_players
         self.cycle_starting_judges_between_games = cycle_starting_judges
-        self.reset_vectors_between_games = reset_vectors
+        self.reset_models_between_games = reset_models
+        self.include_synonym_description_vectors = extra_vectors
 
     def new_game(self) -> None:
         """
@@ -78,8 +79,8 @@ class ApplesToApples:
             self.players = []
             self.__initialize_players()
         else:
-            if self.reset_vectors_between_games:
-                self.__reset_vectors()
+            if self.reset_models_between_games:
+                self.__reset_opponent_models()
 
         # Define the naming scheme and the winner csv filepath
         naming_scheme = format_naming_scheme(self.players, self.total_games, self.points_to_win)
@@ -390,12 +391,10 @@ class ApplesToApples:
                                                 current_bias, current_slope)
                 log_vectors(game_results, preference_updates)
 
-    def __reset_vectors(self) -> None:
-        # for player in self.players:
-        #     if isinstance(player, AIAgent):
-        #         vector_size = player.__model_type._vector_size
-        #         player.__model_type.__load_vectors(vector_size)
-        pass
+    def __reset_opponent_models(self) -> None:
+        for player in self.players:
+            if isinstance(player, AIAgent):
+                player.reset_opponent_models()
 
     def __is_game_over(self) -> Agent | None:
         for player in self.players:
@@ -504,19 +503,21 @@ def range_type(min_value, max_value):
 
 def main() -> None:
     # Define the command line arguments
-    parser = argparse.ArgumentParser(description="Apples to Apples game configuration.",
-                                     usage="python apples_to_apples.py <# of players> <# of points to win> <# of games> [green_expansion] [red_expansion]")
+    parser = argparse.ArgumentParser(description="Apples to Apples game configuration. Use the -D flag for debug mode.",
+                                     usage="python apples_to_apples.py <# of players> <# of points to win> <# of games> "\
+                                     "[green_expansion] [red_expansion] [-D]")
     parser.add_argument("players", type=range_type(3, 8), help="Total number of players (3-8).")
     parser.add_argument("points", type=range_type(1, 10), help="Total number of points to win (1-10).")
     parser.add_argument("total_games", type=int, choices=range(1,1000), help="Total number of games to play (1-1000).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
+    parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode")
 
     # Parse the command line arguments
     args = parser.parse_args()
 
     # Configure and initialize the logging module
-    configure_logging()
+    configure_logging(args.debug)
     logging.info("Starting 'Apples to Apples' application.")
 
     # Log the command line arguments
@@ -537,7 +538,8 @@ def main() -> None:
     # Initialize all between game option variables
     change_players_between_games = "n"
     cycle_starting_judges = "n"
-    reset_vectors_between_games = "n"
+    reset_models_between_games = "n"
+    include_synonym_description_vectors = "n"
 
     # Prompt the user on whether they want to change players between games
     change_players_between_games = get_user_input_y_or_n("Do you want to change players between games? (y/n): ")
@@ -547,12 +549,16 @@ def main() -> None:
         cycle_starting_judges = get_user_input_y_or_n("Do you want to cycle the starting judge between games? (y/n): ")
 
     # Prompt the user on whether they want to reset the opponent model vectors between games
-    reset_vectors_between_games = get_user_input_y_or_n("Do you want to reset the opponent model vectors between games? (y/n): ")
+    reset_models_between_games = get_user_input_y_or_n("Do you want to reset the opponent models between games? (y/n): ")
+
+    # Prompt the user on whether they want to include synonym and description vectors as part of the model
+    include_synonym_description_vectors = get_user_input_y_or_n("Do you want to include synonym and description vectors as part of the model? (y/n): ")
 
     # Set the between game options
     game.set_between_game_options(change_players_between_games == 'y',
                                   cycle_starting_judges == 'y',
-                                  reset_vectors_between_games == 'y')
+                                  reset_models_between_games == 'y',
+                                    include_synonym_description_vectors == 'y')
 
     # Start the game, prompt the user for options
     while game.current_game < game.total_games:

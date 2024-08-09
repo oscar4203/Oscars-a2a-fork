@@ -342,17 +342,18 @@ def range_type(min_value, max_value):
 
 def main() -> None:
     # Define the command line arguments
-    parser = argparse.ArgumentParser(description="Apples to Apples agent training configuration.",
+    parser = argparse.ArgumentParser(description="Apples to Apples agent training configuration. Use the -D flag for debug mode.",
                                      usage="python agent_training.py <# of rounds> [green_expansion] [red_expansion]")
     parser.add_argument("rounds", type=range_type(1, 100), help="Total number of rounds (1-100).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
+    parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode")
 
     # Parse the command line arguments
     args = parser.parse_args()
 
     # Configure and initialize the logging module
-    configure_logging()
+    configure_logging(args.debug)
     logging.info("Starting 'Apples to Apples' agent training application.")
 
     # Log the command line arguments
