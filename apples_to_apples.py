@@ -9,11 +9,11 @@ from gensim.models import KeyedVectors
 from datetime import datetime
 
 # Local Modules
-from source.logging import configure_logging
+from source.game_logger import configure_logging
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import Model, model_type_mapping
-from source.logging import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_vectors
+from source.game_logger import GameResults, log_gameplay, log_winner, PreferenceUpdates, log_vectors
 from source.w2vloader import VectorsW2V
 
 

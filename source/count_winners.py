@@ -31,7 +31,7 @@ def count_winners(filename: str) -> dict[str, int]:
             # Iterate through the rows
             for row in reader:
                 # Get the winning player
-                winner = row["Winner"]
+                winner = row["Game Winner"]
 
                 # Check if the 'Winner' column exists
                 if winner is None:
@@ -53,13 +53,49 @@ def count_winners(filename: str) -> dict[str, int]:
 
 
 def abbreviate_name(name: str) -> str:
-    # Keep only capital letters and hyphens, ignore spaces
-    return "".join(
-        char for char in name
-            if char.isupper()
-            or char == '-'
-            or char.isdigit()
-        )
+    # Define the archetype words and their abbreviations
+    archetypes = {
+        "Literalist": "Lit",
+        "Contrarian": "Con",
+        "Comedian": "Com"
+    }
+
+    # Split the name into words
+    words = name.split()
+
+    # Initialize the result list
+    result = []
+
+    for word in words:
+        if word in archetypes:
+            # If the word is an archetype, use its abbreviation
+            result.append(archetypes[word])
+        else:
+            # Otherwise, keep only capital letters, hyphens, and digits
+            result.append("".join(
+                char for char in word
+                    if char.isupper()
+                    or char == '-'
+                    or char.isdigit()
+            ))
+
+    # Join the result list into a single string
+    return "".join(result)
+
+
+def percent_ai_won(winners: dict[str, int]) -> float:
+    # Get the total number of games
+    total_games = sum(winners.values())
+
+    # Get the number of games won by AI agents
+    ai_wins = sum(
+        wins
+        for player, wins in winners.items()
+        if "AI" in player
+    )
+
+    # Calculate the percentage of games won by AI agents
+    return ai_wins / total_games * 100 if total_games > 0 else 0
 
 
 def plot_winners(winners: dict[str, int]) -> None:
@@ -95,9 +131,9 @@ def plot_winners(winners: dict[str, int]) -> None:
     # Bar plot
     bar_ax = fig.add_subplot(gs[1, 0])
     bar_ax.bar(abbreviated_names, wins, color=colors)
+    bar_ax.set_title("Total Wins per Unique Player", fontsize=18, fontweight="bold")
     bar_ax.set_xlabel("Players", fontsize=16, fontweight="bold")
     bar_ax.set_ylabel("Wins", fontsize=16, fontweight="bold")
-    bar_ax.set_title("Total Wins per Unique Player", fontsize=18, fontweight="bold")
     bar_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Use the default black color for the legend handle
@@ -112,9 +148,16 @@ def plot_winners(winners: dict[str, int]) -> None:
         for autotext in autotexts:
             autotext.set_fontweight("bold")
             autotext.set_fontsize(14)
-    else:
-        wedges, texts = pie_result
+
+    # Add a title to the pie chart
     pie_ax.set_title("Proportion of Wins per Player", fontsize=18, fontweight="bold")
+
+    # Calculate the percentage of games won by AI agents
+    ai_wins = sum(wins[i] for i, player in enumerate(players) if "AI" in player)
+    percent_ai = ai_wins / total_games * 100 if total_games > 0 else 0
+
+    # Add the percentage of games won by AI agents as a title below the pie chart
+    pie_ax.text(0.5, -0.1, f"AI Wins: {percent_ai:.2f}%", ha='center', va='center', fontsize=14, transform=pie_ax.transAxes)
 
     # Adjust layout
     plt.tight_layout()
