@@ -31,7 +31,7 @@ class ApplesToApples:
         self.agent: Agent | None = None
         self.round: int = 0
         self.current_judge: Agent | None = None
-        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
+        self.green_apple_in_play: dict[Agent, GreenApple] | None = None
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
@@ -81,7 +81,7 @@ class ApplesToApples:
 
     def __initialize_decks(self) -> None:
         # Initialize the decks
-        self.green_apples_in_play: dict[Agent, GreenApple] | None = None
+        self.green_apple_in_play: dict[Agent, GreenApple] | None = None
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
@@ -182,7 +182,7 @@ class ApplesToApples:
         logging.info(f"{self.current_judge.get_name()}, please draw a green card.")
 
         # Set the green card in play
-        self.green_apples_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
+        self.green_apple_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
 
     def __player_prompt(self) -> list[RedApple]:
         # # Check if the agent is None
@@ -200,12 +200,12 @@ class ApplesToApples:
             raise ValueError("The current judge is None.")
 
         # Check if the green apples in play is None
-        if self.green_apples_in_play is None:
+        if self.green_apple_in_play is None:
             logging.error("The green apples in play is None.")
             raise ValueError("The green apples in play is None.")
 
         # Set the red cards in play
-        red_apple = self.human.choose_red_apple(self.current_judge, self.green_apples_in_play[self.current_judge])
+        red_apple = self.human.choose_red_apple(self.current_judge, self.green_apple_in_play[self.current_judge])
         self.red_apples_in_play.append({self.human.get_name(): red_apple})
         red_apples.append(red_apple)
         logging.info(f"Red card: {red_apple}")
@@ -241,7 +241,7 @@ class ApplesToApples:
                 raise ValueError("The current judge is None.")
 
             # Check if the green apples in play is None
-            if self.green_apples_in_play is None:
+            if self.green_apple_in_play is None:
                 logging.error("The green apples in play is None.")
                 raise ValueError("The green apples in play is None.")
 
@@ -249,7 +249,7 @@ class ApplesToApples:
             print(f"\n{self.current_judge.get_name()}, please select the winning red card.")
             logging.info(f"{self.current_judge.get_name()}, please select the winning red card.")
             winning_red_apple_dict: dict[str, RedApple] = self.current_judge.choose_winning_red_apple(
-                self.green_apples_in_play[self.current_judge], self.red_apples_in_play)
+                self.green_apple_in_play[self.current_judge], self.red_apples_in_play)
 
             # Extract the winning red apple and losing red apples
             winning_red_apple: RedApple = list(winning_red_apple_dict.values())[0]
@@ -262,7 +262,7 @@ class ApplesToApples:
                 logging.error("The agent is None.")
                 raise ValueError("The agent is None.")
 
-            if self.green_apples_in_play is None:
+            if self.green_apple_in_play is None:
                 logging.error("The green apples in play is None.")
                 raise ValueError("The green apples in play is None.")
 
@@ -275,22 +275,22 @@ class ApplesToApples:
                     red_apples_list.append(list(red_apple.values())[0])
 
             # Extract the winning red card
-            winning_red_card: RedApple = list(winning_red_apple_dict.values())[0]
+            winning_red_apple: RedApple = list(winning_red_apple_dict.values())[0]
 
             # Put the agent into a list
             agent_list = [self.agent]
 
             # Log the training
             results = GameResults(agent_list, self.number_of_rounds, self.number_of_rounds, self.round, self.round,
-                                  self.green_apples_in_play[self.current_judge], red_apples_list, winning_red_card, losing_red_apples,
+                                  self.green_apple_in_play[self.current_judge], red_apples_list, winning_red_apple, losing_red_apples,
                                   self.current_judge, self.current_judge, self.current_judge)
             log_training(results, True)
 
             # Collect all the non-winning red cards
-            losing_red_cards = []
+            losing_red_apples = []
             for red_apple in red_apples_list:
-                if red_apple != winning_red_card:
-                    losing_red_cards.append(red_apple)
+                if red_apple != winning_red_apple:
+                    losing_red_apples.append(red_apple)
 
             # Train AI agent on human selected apples
             if isinstance(self.agent, AIAgent):
@@ -300,7 +300,11 @@ class ApplesToApples:
                 self.agent.set_judge_status(False)
 
                 # Train the AI agent
-                self.agent.train_models(self.keyed_vectors, self.green_apples_in_play[self.agent], winning_red_card, losing_red_cards, self.current_judge)
+                logging.debug(f"Training the AI agent on the human selected apples.")
+                logging.debug(f"Green Apple: {self.green_apple_in_play[self.agent]}")
+                logging.debug(f"Winning Red Apple: {winning_red_apple}")
+                # logging.debug(f"Losing Red Apples: {losing_red_apples}")
+                self.agent.train_models(self.keyed_vectors, self.green_apple_in_play[self.agent], winning_red_apple, losing_red_apples, self.current_judge)
 
                 # Reset the judge to the AI agent
                 self.current_judge = self.agent
@@ -309,8 +313,8 @@ class ApplesToApples:
 
 
             # Discard the green cards
-            self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
-            self.green_apples_in_play = None
+            self.discarded_green_apples.append(self.green_apple_in_play[self.current_judge])
+            self.green_apple_in_play = None
 
             # Discard the red cards
             self.discarded_red_apples.extend(red_apples_list)
@@ -342,8 +346,15 @@ def range_type(min_value, max_value):
 
 def main() -> None:
     # Define the command line arguments
-    parser = argparse.ArgumentParser(description="Apples to Apples agent training configuration. Use the -D flag for debug mode.",
-                                     usage="python agent_training.py <# of rounds> [green_expansion] [red_expansion]")
+    parser = argparse.ArgumentParser(
+        prog="'Apples to Apples' agent training program",
+        usage="python agent_training.py <# of rounds> [green_expansion] [red_expansion] [-D]",
+        description="Configure and run the 'Apples to Apples' agent training program. "\
+                    "Specify the number of rounds of training, and optional green and red card expansions. "
+                    "Use the '-D' flag to enable debug mode for detailed logging."
+    )
+
+    # Add the command line arguments
     parser.add_argument("rounds", type=range_type(1, 100), help="Total number of rounds (1-100).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")

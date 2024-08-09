@@ -503,9 +503,16 @@ def range_type(min_value, max_value):
 
 def main() -> None:
     # Define the command line arguments
-    parser = argparse.ArgumentParser(description="Apples to Apples game configuration. Use the -D flag for debug mode.",
-                                     usage="python apples_to_apples.py <# of players> <# of points to win> <# of games> "\
-                                     "[green_expansion] [red_expansion] [-D]")
+    parser = argparse.ArgumentParser(
+        prog="'Apples to Apples' card game",
+        usage="python apples_to_apples.py <# of players> <# of points to win> <# of games> "\
+              "[green_expansion] [red_expansion] [-D]",
+        description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
+                    "points to win, and total games to play. Include optional green and red card expansions. "\
+                    "Use the -D flag to enable debug mode for detailed logging."
+    )
+
+    # Add the command line arguments
     parser.add_argument("players", type=range_type(3, 8), help="Total number of players (3-8).")
     parser.add_argument("points", type=range_type(1, 10), help="Total number of points to win (1-10).")
     parser.add_argument("total_games", type=int, choices=range(1,1000), help="Total number of games to play (1-1000).")

@@ -115,6 +115,7 @@ class Model():
             logging.error(f"Error loading vectors: {e}")
             slope_vector = np.random.rand(vector_size)
             bias_vector = np.random.rand(vector_size)
+            logging.info("Initialized random vectors")
 
         return slope_vector, bias_vector
 
@@ -156,8 +157,17 @@ class Model():
         """
         Reset the model data and vectors.
         """
+        logging.debug(f"Resetting model data and vectors")
+        logging.debug(f"Old model data: {self._model_data}")
         self._model_data = ModelData([], [], [])
+        logging.debug(f"New model data: {self._model_data}")
+
+        # Reset the slope and bias vectors
+        logging.debug(f"Old slope vector: {self._slope_vector}")
+        logging.debug(f"Old bias vector: {self._bias_vector}")
         self._slope_vector, self._bias_vector = self.__load_vectors(self._vector_size)
+        logging.debug(f"New slope vector: {self._slope_vector}")
+        logging.debug(f"New bias vector: {self._bias_vector}")
 
     # def __result_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
     #     """
@@ -258,12 +268,12 @@ class LRModel(Model):
         assert(len(x_vectors) == len(y_vectors))
 
         # Initalize the sum variables
-        n = float(len(x_vectors))
-        sumx = np.zeros(self._vector_size)
-        sumx2 = np.zeros(self._vector_size)
-        sumxy = np.zeros(self._vector_size)
-        sumy = np.zeros(self._vector_size)
-        sumy2 = np.zeros(self._vector_size)
+        n: float = float(len(x_vectors))
+        sumx: np.ndarray = np.zeros(self._vector_size)
+        sumx2: np.ndarray = np.zeros(self._vector_size)
+        sumxy: np.ndarray = np.zeros(self._vector_size)
+        sumy: np.ndarray = np.zeros(self._vector_size)
+        sumy2: np.ndarray = np.zeros(self._vector_size)
 
         # Calculate the sums
         for x, y in zip(x_vectors, y_vectors):
@@ -276,9 +286,9 @@ class LRModel(Model):
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
-        # Calculate the slopes and intercepts
-        ms = np.zeros(self._vector_size)
-        bs = np.zeros(self._vector_size)
+        # Initialize the slopes and intercepts to zero
+        ms: np.ndarray = np.zeros(self._vector_size)
+        bs: np.ndarray = np.zeros(self._vector_size)
 
         # Avoid division by zero
         for i, denom in enumerate(denoms):
@@ -337,7 +347,7 @@ class LRModel(Model):
         #     self.y_target = self.__linear_regression(green_apple_vector, red_apple_vector)
         #     self.__update_parameters(green_apple_vector, red_apple_vector)
 
-        xs= []
+        xs = []
         ys = []
 
         # an array of vectors of x and y data
@@ -352,17 +362,13 @@ class LRModel(Model):
         nxs = np.array(xs)
         nys = np.array(ys)
 
+        logging.debug(f"Old slope vector: {self._slope_vector}")
+        logging.debug(f"Old bias vector: {self._bias_vector}")
         self._slope_vector, self._bias_vector = self.__linear_regression(nxs, nys)
 
         # Save the updated slope and bias vectors
-        # logging.debug(f"Updated slope vector: {self._slope_vector}")
-        # logging.debug(f"Updated bias vector: {self._bias_vector}")
-        self._save_vectors()
-        logging.debug(f"Saved updated vectors")
-
-        # Save the updated slope and bias vectors
-        # logging.debug(f"Updated slope vector: {self._slope_vector}")
-        # logging.debug(f"Updated bias vector: {self._bias_vector}")
+        logging.debug(f"Updated slope vector: {self._slope_vector}")
+        logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 
