@@ -56,7 +56,7 @@ class GameResults:
     current_game: int
     round: int
     green_apple: GreenApple
-    red_apples: list[RedApple]
+    red_apples: list[dict[Agent, RedApple]]
     winning_red_apple: RedApple
     losing_red_apples: list[RedApple]
     current_judge: Agent
@@ -70,7 +70,8 @@ class GameResults:
         return f"GameResults(agents={[player.get_name() for player in self.agents]}, "\
                f"points_to_win={self.points_to_win}, total_games={self.total_games}, "\
                f"current_game={self.current_game}, round={self.round}, "\
-               f"green_apple={self.green_apple.get_adjective()}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
+               f"green_apple={self.green_apple.get_adjective()}, "\
+               f"red_apples={[{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()]}, "\
                f"winning_red_apple={self.winning_red_apple.get_noun()}, "\
                f"losing_red_apples={[apple.get_noun() for apple in self.losing_red_apples]}, "\
                f"current_judge={self.current_judge.get_name()}, "\
@@ -80,7 +81,7 @@ class GameResults:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def to_dict(self) -> dict[str, list[str] | str | int | None]:
+    def to_dict(self) -> dict[str, list[str] | str | int | list[dict[str, str]] | None]:
         return {
             "agents": [player.get_name() for player in self.agents],
             "points_to_win": self.points_to_win,
@@ -88,7 +89,7 @@ class GameResults:
             "current_game": self.current_game,
             "round": self.round,
             "green_apple": self.green_apple.get_adjective(),
-            "red_apples": [apple.get_noun() for apple in self.red_apples],
+            "red_apples": [{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()],
             "winning_red_apple": self.winning_red_apple.get_noun(),
             "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
             "current_judge": self.current_judge.get_name(),
