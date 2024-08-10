@@ -91,8 +91,8 @@ class Agent:
             raise ValueError(f"{self._name} is the judge.")
 
         # Display the green card drawn
-        print(f"{self._name} drew the green card '{self._green_apple}'.")
-        logging.info(f"{self._name} drew the green card '{self._green_apple}'.")
+        from source.game_logger import print_and_log
+        print_and_log(f"{self._name} drew the green card '{self._green_apple}'.")
 
         return self._green_apple
 
@@ -101,6 +101,7 @@ class Agent:
         Draw red apples from the deck, ensuring the agent has enough red apples.
         The vectors are set as soon as the new red apples are drawn.
         """
+        from source.game_logger import print_and_log
         # Calculate the number of red apples to pick up
         diff = cards_in_hand - len(self._red_apples)
         if diff > 0:
@@ -120,14 +121,11 @@ class Agent:
                 # Append the red apple to the agent's hand
                 self._red_apples.append(new_red_apple)
             if diff == 1:
-                print(f"{self._name} picked up 1 red apple.")
-                logging.info(f"{self._name} picked up 1 red apple.")
+                print_and_log(f"{self._name} picked up 1 red apple.")
             else:
-                print(f"{self._name} picked up {diff} red apples.")
-                logging.info(f"{self._name} picked up {diff} red apples.")
+                print_and_log(f"{self._name} picked up {diff} red apples.")
         else:
-            print(f"{self._name} cannot pick up any more red apples. Agent already has enough red apples")
-            logging.info(f"{self._name} cannot pick up the red apple. Agent already has enough red apples")
+            print_and_log(f"{self._name} cannot pick up any more red apples. Agent already has enough red apples")
 
     def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> RedApple: # Define the type of current_judge as a string
         """
@@ -135,7 +133,7 @@ class Agent:
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict["Agent", RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict["Agent", RedApple]]) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red apples submitted by the other agents (when the agent is the judge).
         """
@@ -184,7 +182,7 @@ class HumanAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         # Check if the agent is a judge
         if not self._judge_status:
             logging.error(f"{self._name} is not the judge.")
@@ -235,7 +233,7 @@ class RandomAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         # Check if the agent is a judge
         if not self._judge_status:
             logging.error(f"{self._name} is not the judge.")
@@ -288,7 +286,7 @@ class AIAgent(Agent):
             self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain) for agent in self.__opponents}
             logging.debug(f"NNModel - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def train_opponent_models(self, keyed_vectors: KeyedVectors, current_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+    def train_opponent_models(self, current_judge: Agent | None, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the AI opponent model for the current judge, given the new green and red apples.
         """
@@ -303,11 +301,12 @@ class AIAgent(Agent):
         """
         Reset the opponent models to the default archetype.
         """
+        from source.game_logger import print_and_log
         # Reset the opponent models
         for opponent in self.__opponents:
             agent_model: Model = self.__opponent_ml_models[opponent]
             agent_model.reset_model()
-            print(f"Reset {opponent.get_name()}'s model.")
+            print_and_log(f"Reset {opponent.get_name()}'s model.")
             logging.debug(f"Reset {opponent.get_name()}'s model.")
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
@@ -320,7 +319,7 @@ class AIAgent(Agent):
         red_apple: RedApple | None = None
 
         # Run the AI model to choose a red apple based on current judge
-        red_apple = self.__opponent_ml_models[current_judge].choose_red_apple(self.__keyed_vectors, green_apple, self._red_apples)
+        red_apple = self.__opponent_ml_models[current_judge].choose_red_apple(green_apple, self._red_apples)
         self._red_apples.remove(red_apple)
 
         # Display the red apple chosen
@@ -329,9 +328,9 @@ class AIAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         # Choose a winning red apple
-        winning_red_apple_dict: dict[str, RedApple] = self.__self_ml_model.choose_winning_red_apple(self.__keyed_vectors, green_apple, red_apples)
+        winning_red_apple_dict: dict[Agent, RedApple] = self.__self_ml_model.choose_winning_red_apple(green_apple, red_apples)
 
         return winning_red_apple_dict
 
