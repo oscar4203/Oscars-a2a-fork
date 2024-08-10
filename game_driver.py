@@ -9,25 +9,34 @@ from datetime import datetime
 from gensim.models import KeyedVectors
 
 # Local Modules
-from source.apples_to_apples import ApplesToApples, GameState
-from source.game_logger import configure_logging
 from source.w2vloader import VectorsW2V
+from source.apples_to_apples import ApplesToApples
+from source.game_logger import configure_logging, print_and_log
 from source.data_analysis import main as data_analysis_main
+from source.data_classes import GameState
 
 
 class GameDriver:
     def __init__(self, training_mode: bool, number_of_players: int, points_to_win: int, total_games: int, green_expansion: str = '', red_expansion: str = '') -> None:
-        max_cards_in_hand = 7 if not training_mode else 25
+        # Set the game state for training mode
+        if training_mode:
+            number_of_players = 2
+            max_cards_in_hand = 25
+        else: # Set the game state for non-training mode
+            max_cards_in_hand = 7
+
+        # Initialize the game state
         self.game_state: GameState = GameState(number_of_players, max_cards_in_hand, total_games, points_to_win, 0, 0, None, None, None)
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
 
-    def load_keyed_vectors(self) -> None:
-        print("Loading keyed vectors...")
-        logging.info("Loading keyed vectors...")
-        self.keyed_vectors: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
-        # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
-        # embeddings.load()
+    def load_keyed_vectors(self, use_custom_loader: bool) -> None:
+        # if use_custom_loader:
+        #     print_and_log("Loading keyed vectors using custom loader...")
+        #     self.keyed_vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
+        # else:
+            print_and_log("Loading keyed vectors...")
+            self.keyed_vectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
 
 
 def range_type(min_value, max_value):
@@ -55,9 +64,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="'Apples to Apples' card game",
         usage="python apples_to_apples.py <number_of_players> <points_to_win> <total_games> "\
-              "[green_expansion] [red_expansion] [-T] [-D]",
+              "[green_expansion] [red_expansion] [-V] [-T] [-D]",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
                     "points to win, and total games to play. Include optional green and red card expansions. "\
+                    "Use the -V flag to use the custom vector loader. "\
                     "Use the -T flag to run the program in training mode. "\
                     "Use the -D flag to enable debug mode for detailed logging."
     )
@@ -68,6 +78,7 @@ def main() -> None:
     parser.add_argument("total_games", type=range_type(1,1000), help="Total number of games to play (1-1000).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
+    parser.add_argument("-V", "--vector_loader", action="store_true", help="Use the custom vector loader")
     parser.add_argument("-T", "--training_mode", action="store_true", help="Train a user specified model archetype")
     parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode for detailed logging")
 
@@ -84,7 +95,8 @@ def main() -> None:
     logging.info(f"Total games to be played: {args.total_games}")
     logging.info(f"Green card expansion file: {args.green_expansion}")
     logging.info(f"Red card expansion file: {args.red_expansion}")
-    logging.info(f"Train model: {args.training_mode}")
+    logging.info(f"Use custom vector loader: {args.vector_loader}")
+    logging.info(f"Training mode: {args.training_mode}")
     logging.info(f"Debug mode: {args.debug}")
 
     # Create the game driver object
@@ -93,7 +105,7 @@ def main() -> None:
     game_driver = GameDriver(args.training_mode, args.number_of_players, args.points_to_win, args.total_games, args.green_expansion, args.red_expansion)
 
     # Load the keyed vectors
-    game_driver.load_keyed_vectors()
+    game_driver.load_keyed_vectors(args.vector_loader)
 
     # Create the game object
     game = ApplesToApples(game_driver.keyed_vectors, args.training_mode, args.green_expansion, args.red_expansion)
@@ -109,7 +121,8 @@ def main() -> None:
     train_on_losing_red_apples = "n"
 
     # Prompt the user on whether they want to change players between games
-    change_players_between_games = get_user_input_y_or_n("Do you want to change players between games? (y/n): ")
+    if not args.training_mode:
+        change_players_between_games = get_user_input_y_or_n("Do you want to change players between games? (y/n): ")
 
     # Prompt the user on whether they want to cycle the starting judge between games
     if change_players_between_games == "n" and not args.training_mode:

@@ -1,50 +1,20 @@
-# Description: Main driver for the 'Apples to Apples' game.
+# Description: 'Apples to Apples' game class.
 
 # Standard Libraries
 import logging
-from dataclasses import dataclass
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
 
 # Local Modules
+from source.w2vloader import VectorsW2V
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import Model, model_type_mapping
-from source.game_logger import print_and_log, GameResults, format_naming_scheme, \
-                            log_vectors, log_gameplay, log_winner, \
+from source.game_logger import print_and_log, format_naming_scheme, \
+                            log_vectors, log_gameplay, log_winner, log_training, \
                             LOGGING_BASE_DIRECTORY
-
-
-@dataclass
-class GameState:
-    number_of_players: int
-    max_cards_in_hand: int
-    total_games: int
-    points_to_win: int
-    current_game: int
-    current_round: int
-    current_judge: Agent | None
-    round_winner: Agent | None
-    game_winner: Agent | None
-
-    def __post_init__(self) -> None:
-        logging.debug(f"Created GameState object: {self}")
-
-    def __str__(self) -> str:
-        return f"GameState("\
-                f"number_of_players={self.number_of_players}, "\
-                f"max_cards_in_hand={self.max_cards_in_hand}, "\
-                f"points_to_win={self.points_to_win}, "\
-                f"total_games={self.total_games}, "\
-                f"current_game={self.current_game}, "\
-                f"current_round={self.current_round}, "\
-                f"current_judge={self.current_judge.get_name() if self.current_judge is not None else None}, "\
-                f"round_winner={self.round_winner.get_name() if self.round_winner is not None else None}, "\
-                f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
+from source.data_classes import GameState, GameResults
 
 
 class ApplesToApples:
@@ -125,6 +95,7 @@ class ApplesToApples:
         self.__game_state.current_judge = None
         self.__game_state.game_winner = None
 
+        # TODO - check if need to skip for training mode
         # Reset the player points and judge status
         for player in self.__players:
             player.reset_points()
@@ -151,8 +122,9 @@ class ApplesToApples:
         # Discard the apples in play
         self.__discard_apples_in_play()
 
-        # Assign the next judge
-        self.__assign_next_judge()
+        # Assign the next judge if not in training mode
+        if not self.__training_mode:
+            self.__assign_next_judge()
 
     def __initialize_decks(self) -> None:
         # Initialize the decks
@@ -219,69 +191,114 @@ class ApplesToApples:
         # Display the number of players
         print_and_log(f"There are {self.__game_state.number_of_players} players.")
 
-        # Create the players
-        for i in range(self.__game_state.number_of_players):
-            # Prompt the user to select the player type
-            print_and_log(f"\nWhat type is Agent {i + 1}?")
-            player_type: str = input("Please enter the player type (1: Human, 2: Random, 3: AI): ")
+        if self.__training_mode:
+            # Validate the user input for the model type
+            model_type: str = input("Please enter the model type (1: Linear Regression, 2: Neural Network): ")
+            logging.info(f"Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
+            while model_type not in ['1', '2']:
+                model_type = input("Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): ")
+                logging.error(f"Invalid input. Please enter the model type (1: Linear Regression, 2: Neural Network): {model_type}")
 
-            # Validate the user input
-            while player_type not in ['1', '2', '3']:
-                player_type = input("Invalid input. Please enter the player type (1: Human, 2: Random, 3: AI): ")
-                logging.error(f"Invalid input. Please enter the player type (1: Human, 2: Random, 3: AI): {player_type}")
+            # Validate the user input for the pretrained model type
+            pretrained_model_type: str = input("Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
+            logging.info(f"Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
+            while pretrained_model_type not in ['1', '2', '3']:
+                pretrained_model_type = input("Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                logging.error(f"Invalid input. Please enter the pretrained model type (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_model_type}")
 
-            # Determine the player name
-            if player_type == '1':
-                # Validate the user input for a unique name
-                new_agent_name: str = ""
-                while True:
-                    new_agent_name = input(f"Please enter the name for the Human Agent: ")
-                    if new_agent_name not in [agent.get_name() for agent in self.__players]:
-                        break
-                new_agent = HumanAgent(f"Human Agent - {new_agent_name}")
-            elif player_type == '2':
-                new_agent_name = self.__generate_unique_agent_name("Random Agent")
-                new_agent = RandomAgent(new_agent_name)
-            elif player_type == '3':
-                # Validate the user input for the machine learning model
-                ml_model_type: str = input("Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
-                logging.info(f"Please enter the machine learning model (1: Linear Regression, 2: Neural Network): {ml_model_type}")
-                while ml_model_type not in ['1', '2']:
-                    ml_model_type = input("Invalid input. Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
-                    logging.error(f"Invalid input. Please enter the machine learning model (1: Linear Regression, 2: Neural Network): {ml_model_type}")
+            # Generate a unique name for the AI agent
+            model_type_class = model_type_mapping[model_type]
+            logging.debug(f"Model Type Class: {model_type_class}")
+            logging.debug(f"Model Type Name: {model_type_class.__name__}")
 
-                # Validate the user input for the pretrained archetype
-                pretrained_archetype: str = input("Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): ")
-                logging.info(f"Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_archetype}")
-                while pretrained_archetype not in ['1', '2', '3']:
-                    pretrained_archetype = input("Invalid input. Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): ")
-                    logging.error(f"Invalid input. Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_archetype}")
+            # Create pretrained model
+            pretrained_model_string: str = ""
+            if pretrained_model_type == '1':
+                pretrained_model_string = "Literalist"
+            elif pretrained_model_type == '2':
+                pretrained_model_string = "Contrarian"
+            elif pretrained_model_type == '3':
+                pretrained_model_string = "Comedian"
+            logging.debug(f"Pretrained Model String: {pretrained_model_string}")
 
-                # Generate a unique name for the AI agent
-                ml_model_type_class = model_type_mapping[ml_model_type]
-                logging.debug(f"Model Type Class: {ml_model_type_class}")
-                logging.debug(f"Model Type Name: {ml_model_type_class.__name__}")
+            # Create a new AI agent
+            new_agent_name = f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}"
+            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, True)
 
-                # Create pretrained model
-                pretrained_archetype_string: str = ""
-                if pretrained_archetype == '1':
-                    pretrained_archetype_string = "Literalist"
-                elif pretrained_archetype == '2':
-                    pretrained_archetype_string = "Contrarian"
-                elif pretrained_archetype == '3':
-                    pretrained_archetype_string = "Comedian"
-                logging.debug(f"Pretrained Model String: {pretrained_archetype_string}")
+            # Create the human agent
+            human_agent = HumanAgent("Human Agent")
 
-                # Create the AI agent
-                new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
-                new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, False)
+            # Have the human agent pick up max red apples in hand
+            human_agent.draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__train_on_extra_vectors)
 
-            # Append the player object
+            # Append the human agent and AI agent
+            self.__players.append(human_agent) # APPEND HUMAN AGENT FIRST!!!
             self.__players.append(new_agent)
-            logging.info(self.__players[i])
 
-            # Have each player pick up 7 red apples
-            self.__players[i].draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__train_on_extra_vectors)
+        else:
+            # Create the players when not in training mode
+            for i in range(self.__game_state.number_of_players):
+                # Prompt the user to select the player type
+                print_and_log(f"\nWhat type is Agent {i + 1}?")
+                player_type: str = input("Please enter the player type (1: Human, 2: Random, 3: AI): ")
+
+                # Validate the user input
+                while player_type not in ['1', '2', '3']:
+                    player_type = input("Invalid input. Please enter the player type (1: Human, 2: Random, 3: AI): ")
+                    logging.error(f"Invalid input. Please enter the player type (1: Human, 2: Random, 3: AI): {player_type}")
+
+                # Determine the player name
+                if player_type == '1':
+                    # Validate the user input for a unique name
+                    new_agent_name: str = ""
+                    while True:
+                        new_agent_name = input(f"Please enter the name for the Human Agent: ")
+                        if new_agent_name not in [agent.get_name() for agent in self.__players]:
+                            break
+                    new_agent = HumanAgent(f"Human Agent - {new_agent_name}")
+                elif player_type == '2':
+                    new_agent_name = self.__generate_unique_agent_name("Random Agent")
+                    new_agent = RandomAgent(new_agent_name)
+                elif player_type == '3':
+                    # Validate the user input for the machine learning model
+                    ml_model_type: str = input("Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
+                    logging.info(f"Please enter the machine learning model (1: Linear Regression, 2: Neural Network): {ml_model_type}")
+                    while ml_model_type not in ['1', '2']:
+                        ml_model_type = input("Invalid input. Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
+                        logging.error(f"Invalid input. Please enter the machine learning model (1: Linear Regression, 2: Neural Network): {ml_model_type}")
+
+                    # Validate the user input for the pretrained archetype
+                    pretrained_archetype: str = input("Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                    logging.info(f"Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_archetype}")
+                    while pretrained_archetype not in ['1', '2', '3']:
+                        pretrained_archetype = input("Invalid input. Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): ")
+                        logging.error(f"Invalid input. Please enter the pretrained archetype (1: Literalist, 2: Contrarian, 3: Comedian): {pretrained_archetype}")
+
+                    # Generate a unique name for the AI agent
+                    ml_model_type_class = model_type_mapping[ml_model_type]
+                    logging.debug(f"Model Type Class: {ml_model_type_class}")
+                    logging.debug(f"Model Type Name: {ml_model_type_class.__name__}")
+
+                    # Create pretrained model
+                    pretrained_archetype_string: str = ""
+                    if pretrained_archetype == '1':
+                        pretrained_archetype_string = "Literalist"
+                    elif pretrained_archetype == '2':
+                        pretrained_archetype_string = "Contrarian"
+                    elif pretrained_archetype == '3':
+                        pretrained_archetype_string = "Comedian"
+                    logging.debug(f"Pretrained Model String: {pretrained_archetype_string}")
+
+                    # Create the AI agent
+                    new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
+                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, False)
+
+                # Append the player object
+                self.__players.append(new_agent)
+                logging.info(self.__players[i])
+
+                # Have each player pick up max red apples in hand
+                self.__players[i].draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__train_on_extra_vectors)
 
         # Initialize the models for the AI agents
         for player in self.__players:
@@ -294,25 +311,32 @@ class ApplesToApples:
         for player in self.__players:
             player.set_judge_status(False)
 
-        # If cycle starting judge is True, choose the starting judge automatically
-        if self.__cycle_starting_judges_between_games:
-            # Cycle through the judges to get the judge index
-            judge_index = ((self.__game_state.current_game - 1) % len(self.__players)) # Subtract 1 since 0-based index and current_game starts at 1
-        else: # If cycle starting judge is False, prompt the user to choose the starting judge
-            if self.__change_players_between_games:
-                # Choose the starting judge
-                choice = input(f"\nPlease choose the starting judge (1-{self.__game_state.number_of_players}): ")
-                logging.info(f"Please choose the starting judge (1-{self.__game_state.number_of_players}): {choice}")
+        if self.__training_mode:
+            # Choose the ai agent as the starting judge
+            for player in self.__players:
+                if isinstance(player, AIAgent):
+                    judge_index = self.__players.index(player)
+                    break
+        else:
+            # If cycle starting judge is True, choose the starting judge automatically
+            if self.__cycle_starting_judges_between_games:
+                # Cycle through the judges to get the judge index
+                judge_index = ((self.__game_state.current_game - 1) % len(self.__players)) # Subtract 1 since 0-based index and current_game starts at 1
+            else: # If cycle starting judge is False, prompt the user to choose the starting judge
+                if self.__change_players_between_games:
+                    # Choose the starting judge
+                    choice = input(f"\nPlease choose the starting judge (1-{self.__game_state.number_of_players}): ")
+                    logging.info(f"Please choose the starting judge (1-{self.__game_state.number_of_players}): {choice}")
 
-                # Validate the user input
-                while not choice.isdigit() or int(choice) < 1 or int(choice) > self.__game_state.number_of_players:
-                    choice = input(f"Invalid input. Please enter a number (1-{self.__game_state.number_of_players}): ")
-                    logging.error(f"Invalid input. Please enter a number (1-{self.__game_state.number_of_players}): {choice}")
+                    # Validate the user input
+                    while not choice.isdigit() or int(choice) < 1 or int(choice) > self.__game_state.number_of_players:
+                        choice = input(f"Invalid input. Please enter a number (1-{self.__game_state.number_of_players}): ")
+                        logging.error(f"Invalid input. Please enter a number (1-{self.__game_state.number_of_players}): {choice}")
 
-                # Set the current judge index
-                judge_index = int(choice)
-            else:
-                judge_index = 0
+                    # Set the current judge index
+                    judge_index = int(choice)
+                else:
+                    judge_index = 0
 
         # Assign the starting judge and set the judge status
         self.__game_state.current_judge = self.__players[judge_index]
@@ -389,29 +413,58 @@ class ApplesToApples:
 
         # Train all AI agents (if applicable)
         for player in self.__players:
-            if isinstance(player, AIAgent) and player != game_results.current_judge:
+            # Train the AI agent
+            if isinstance(player, AIAgent):
+                # In training mode, train on the human agent
+                if self.__training_mode:
+                    for agent in self.__players:
+                        if isinstance(agent, HumanAgent):
+                            player.train_opponent_judge_model(
+                                agent,
+                                game_results.green_apple,
+                                game_results.winning_red_apple,
+                                game_results.losing_red_apples,
+                                self.__train_on_extra_vectors,
+                                self.__train_on_losing_red_apples
+                            )
 
-                player.train_opponent_models(
-                    game_results.current_judge,
-                    game_results.green_apple,
-                    game_results.winning_red_apple,
-                    game_results.losing_red_apples,
-                    self.__train_on_extra_vectors,
-                    self.__train_on_losing_red_apples
-                )
+                        # Get the opponent judge model
+                        opponent_judge_model: Model | None = player.get_opponent_model(agent)
 
-                judge_model: Model | None = player.get_opponent_model(game_results.current_judge)
+                        # Check that the judge model is not None
+                        if opponent_judge_model is None:
+                            logging.error("The opponent judge model is None.")
+                            raise ValueError("The opponent judge model is None.")
 
-                # Check that the judge model is not None
-                if judge_model is None:
-                    logging.error("The judge model is None.")
-                    raise ValueError("The judge model is None.")
+                        current_slope = opponent_judge_model.get_slope_vector()
+                        current_bias = opponent_judge_model.get_bias_vector()
+                        log_vectors(game_results, player, current_slope, current_bias, True)
+                else:
+                    # In non-training mode, train only if the player is not the current judge
+                    if player != game_results.current_judge:
+                        player.train_opponent_judge_model(
+                            game_results.current_judge,
+                            game_results.green_apple,
+                            game_results.winning_red_apple,
+                            game_results.losing_red_apples,
+                            self.__train_on_extra_vectors,
+                            self.__train_on_losing_red_apples
+                        )
 
-                current_slope = judge_model.get_slope_vector()
-                current_bias = judge_model.get_bias_vector()
-                log_vectors(game_results, player, current_bias, current_slope, True)
+                        # Get the opponent judge model
+                        opponent_judge_model: Model | None = player.get_opponent_model(game_results.current_judge)
+
+                        # Check that the judge model is not None
+                        if opponent_judge_model is None:
+                            logging.error("The opponent judge model is None.")
+                            raise ValueError("The opponent judge model is None.")
+
+                        current_slope = opponent_judge_model.get_slope_vector()
+                        current_bias = opponent_judge_model.get_bias_vector()
+                        log_vectors(game_results, player, current_slope, current_bias, True)
 
     def __reset_opponent_models(self) -> None:
+        # TODO - check if need to skip for training mode
         for player in self.__players:
             if isinstance(player, AIAgent):
                 player.reset_opponent_models()
@@ -434,7 +487,6 @@ class ApplesToApples:
 
             # Extract the winning red apple
             winning_red_apple: RedApple = list(winning_red_apple_dict.values())[0]
-            logging.info(f"Winning Red Card: {winning_red_apple}")
 
             # Print and log the winning red apple
             print_and_log(f"{self.__game_state.current_judge.get_name()} chose the winning red apple '{winning_red_apple}'.")
@@ -490,7 +542,7 @@ class ApplesToApples:
 
     def __is_game_over(self) -> Agent | None:
         for player in self.__players:
-            if player.get_points() >= self.__game_state.current_game:
+            if player.get_points() >= self.__game_state.points_to_win:
                 return player
         return None
 
@@ -509,7 +561,7 @@ class ApplesToApples:
             # Determine the round winner
             winning_red_apple, losing_red_apples = self.__determine_round_winner(red_apples_this_round)
 
-             # Check if the game is over
+            # Check if the game is over
             self.__game_state.game_winner = self.__is_game_over()
 
             # Check if the current judge is None
@@ -525,8 +577,11 @@ class ApplesToApples:
             # Consolidate the gameplay results for the round and game
             game_results = self.__consolidate_game_results(winning_red_apple, losing_red_apples)
 
-            # Log the gameplay and winner
-            log_gameplay(game_results, True)
+            # Log the gameplay or training results
+            if not self.__training_mode:
+                log_gameplay(game_results, True)
+            else:
+                log_training(game_results, True)
 
             # Train the AI agents
             self.__train_ai_agents(game_results)
@@ -543,7 +598,10 @@ class ApplesToApples:
 
                 # Print and log the winner message
                 print_and_log(message)
-                log_winner(game_results, True)
+
+                # Log the winner if not in training mode
+                if not self.__training_mode:
+                    log_winner(game_results, True)
 
 
 if __name__ == "__main__":
