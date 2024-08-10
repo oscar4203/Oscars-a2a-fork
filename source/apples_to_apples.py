@@ -433,17 +433,17 @@ class ApplesToApples:
                                 self.__train_on_losing_red_apples
                             )
 
-                        # Get the opponent judge model
-                        opponent_judge_model: Model | None = player.get_opponent_model(agent)
+                            # Get the opponent judge model
+                            opponent_judge_model: Model | None = player.get_opponent_model(agent)
 
-                        # Check that the judge model is not None
-                        if opponent_judge_model is None:
-                            logging.error("The opponent judge model is None.")
-                            raise ValueError("The opponent judge model is None.")
+                            # Check that the judge model is not None
+                            if opponent_judge_model is None:
+                                logging.error("The opponent judge model is None.")
+                                raise ValueError("The opponent judge model is None.")
 
-                        current_slope = opponent_judge_model.get_slope_vector()
-                        current_bias = opponent_judge_model.get_bias_vector()
-                        log_vectors(game_state, player, current_slope, current_bias, True)
+                            current_slope = opponent_judge_model.get_slope_vector()
+                            current_bias = opponent_judge_model.get_bias_vector()
+                            log_vectors(game_state, player, current_slope, current_bias, True)
                 else:
                     # In non-training mode, train only if the player is not the current judge
                     if player != game_state.current_judge:

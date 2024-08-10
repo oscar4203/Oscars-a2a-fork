@@ -54,8 +54,7 @@ class Model():
         # Initialize the model attributes
         self._vector_base_directory = "./agents/"
         self._vector_size = vector_size
-        self._judge: Agent = judge
-        self._model_data: ModelData = ModelData([], [], [])
+        self._judge: Agent = judge # The judge to be modeled
         self._winning_apple_pairs: list[dict[GreenApple, RedApple]] = []
         self._losing_apple_pairs: list[dict[GreenApple, RedApple]] = []
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
@@ -69,12 +68,12 @@ class Model():
         self._learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(judge={self._judge}, model_data={self._model_data}"
+        return f"{self.__class__.__name__}(judge={self._judge}"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(judge={self._judge}, model_data={self._model_data}, "\
+        return f"{self.__class__.__name__}(judge={self._judge}, "\
                f"slope_vector={self._slope_vector}, bias_vector={self._bias_vector}, "\
-               f"learning_rate={self._learning_rate})"
+               f"y_target={self._y_target}, learning_rate={self._learning_rate})"
 
     def get_slope_vector(self) -> np.ndarray:
         return self._slope_vector
@@ -137,18 +136,24 @@ class Model():
 
         try:
             # If training_mode is True, save the vectors to the pretrained model files
+            logging.debug(f"=============SUPER TESTING - SAVE VECTORS===============")
             if self._training_mode:
                 slope_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_slope.npy"
                 bias_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_bias.npy"
                 np.save(slope_file, self._slope_vector)
                 np.save(bias_file, self._bias_vector)
                 logging.info(f"Saved vectors to {slope_file} and {bias_file}")
+                logging.debug(f"slope_vector saved: {self._slope_vector}")
+                logging.debug(f"bias_vector saved: {self._bias_vector}")
             else: # Otherwise, save the vectors to the temporary model files
                 tmp_slope_file = f"{tmp_directory}{self._pretrained_archetype}_slope_{self._judge.get_name()}-tmp.npy"
                 tmp_bias_file = f"{tmp_directory}{self._pretrained_archetype}_bias_{self._judge.get_name()}-tmp.npy"
                 np.save(tmp_slope_file, self._slope_vector)
                 np.save(tmp_bias_file, self._bias_vector)
                 logging.info(f"Saved vectors to {tmp_slope_file} and {tmp_bias_file}")
+                logging.debug(f"slope_vector saved to tmp: {self._slope_vector}")
+                logging.debug(f"bias_vector saved to tmp: {self._bias_vector}")
+            logging.debug(f"=============SUPER TESTING - SAVE VECTORS===============")
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
         except Exception as e:
@@ -158,10 +163,14 @@ class Model():
         """
         Reset the model data and vectors.
         """
+        logging.debug("=============SUPER TESTING - RESET MODEL===============")
         logging.debug(f"Resetting model data and vectors")
-        logging.debug(f"Old model data: {self._model_data}")
-        self._model_data = ModelData([], [], [])
-        logging.debug(f"New model data: {self._model_data}")
+        logging.debug(f"Old winning apple pairs: {self._winning_apple_pairs}")
+        logging.debug(f"Old losing apple pairs: {self._losing_apple_pairs}")
+        self._winning_apple_pairs = []
+        self._losing_apple_pairs = []
+        logging.debug(f"New winning apple pairs: {self._winning_apple_pairs}")
+        logging.debug(f"New losing apple pairs: {self._losing_apple_pairs}")
 
         # Reset the slope and bias vectors
         logging.debug(f"Old slope vector: {self._slope_vector}")
@@ -169,6 +178,7 @@ class Model():
         self._slope_vector, self._bias_vector = self.__load_vectors(self._vector_size)
         logging.debug(f"New slope vector: {self._slope_vector}")
         logging.debug(f"New bias vector: {self._bias_vector}")
+        logging.debug("=============SUPER TESTING - RESET MODEL===============")
 
     # def __result_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
     #     """
@@ -339,6 +349,10 @@ class LRModel(Model):
         """
         assert(len(x_vectors) == len(y_vectors))
 
+        logging.debug(f"-----------------SUPER TESTING - LINEAR REGRESSION-----------------")
+        logging.debug(f"X vectors: {x_vectors}")
+        logging.debug(f"Y vectors: {y_vectors}")
+
         # Initalize the sum variables
         n: float = float(len(x_vectors))
         sumx: np.ndarray = np.zeros(self._vector_size)
@@ -346,6 +360,8 @@ class LRModel(Model):
         sumxy: np.ndarray = np.zeros(self._vector_size)
         sumy: np.ndarray = np.zeros(self._vector_size)
         sumy2: np.ndarray = np.zeros(self._vector_size)
+
+        logging.debug(f"n: {n}")
 
         # Calculate the sums
         for x, y in zip(x_vectors, y_vectors):
@@ -355,20 +371,29 @@ class LRModel(Model):
             sumy = np.add(sumy, y)
             sumy2 = np.add(sumy2, np.multiply(y, y))
 
+        logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
+
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
+
+        logging.debug(f"Denominators: {denoms}")
 
         # Initialize the slopes and intercepts to zero
         ms: np.ndarray = np.zeros(self._vector_size)
         bs: np.ndarray = np.zeros(self._vector_size)
 
-        # Avoid division by zero
+        # Calculate the slopes and intercepts
         for i, denom in enumerate(denoms):
+            # Avoid division by zero
             if denom == 0.0:
                 continue
             ms[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
             bs[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
 
+        logging.debug(f"Final slopes: {ms}")
+        logging.debug(f"Final intercepts: {bs}")
+
+        logging.debug(f"-----------------SUPER TESTING - LINEAR REGRESSION-----------------")
         return ms, bs
 
     # def __update_parameters(self, green_apple_vectors, red_apple_vectors):
@@ -398,12 +423,15 @@ class LRModel(Model):
         # Append the winning and losing apple pairs
         self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, losing_red_apples)
 
+        logging.debug(f"-----------------SUPER TESTING - TRAIN MODEL-----------------")
         # Get the winning green and red apple pairs vectors
         winning_apple_pairs_vectors = self._get_winning_apple_pairs_vectors()
+        logging.debug(f"Winning apple pairs: {winning_apple_pairs_vectors}")
 
         # Get the losing green and red apple vectors, if applicable
         if train_on_losing_red_apples:
-            losing_green_apple_vectors = self._get_losing_apple_pairs_vectors()
+            losing_apple_pairs_vectors = self._get_losing_apple_pairs_vectors()
+            logging.debug(f"Losing apple pairs: {losing_apple_pairs_vectors}")
 
         # Initialize the x and y arrays
         xs = []
@@ -423,7 +451,7 @@ class LRModel(Model):
 
         # Assign the x and y data for losing apple pairs, if applicable
         if train_on_losing_red_apples:
-            for pair in losing_green_apple_vectors:
+            for pair in losing_apple_pairs_vectors:
                 g_vec = pair["green_apple"]
                 r_vec = pair["red_apple"]
                 x_vec = np.multiply(g_vec, r_vec)
@@ -431,8 +459,11 @@ class LRModel(Model):
                 xs.append(x_vec)
                 ys.append(y_vec)
 
-            nxs = np.array(xs)
-            nys = np.array(ys)
+            np.append(nxs, np.array(xs))
+            np.append(nys, np.array(ys))
+
+        logging.debug(f"nxs: {nxs}")
+        logging.debug(f"nys: {nys}")
 
         logging.debug(f"Old slope vector: {self._slope_vector}")
         logging.debug(f"Old bias vector: {self._bias_vector}")
@@ -441,8 +472,9 @@ class LRModel(Model):
         # Save the updated slope and bias vectors
         logging.debug(f"Updated slope vector: {self._slope_vector}")
         logging.debug(f"Updated bias vector: {self._bias_vector}")
+
+        logging.debug(f"-----------------SUPER TESTING - TRAIN MODEL-----------------")
         self._save_vectors()
-        logging.debug(f"Saved updated vectors")
 
     # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
     #     """
@@ -507,17 +539,10 @@ class LRModel(Model):
                 # Evaluate the score difference using Euclidean distances
                 score_difference = np.linalg.norm(predicted_score - self._y_target)
 
+                # Update the best score and red apple
                 if score_difference < best_score:
                     best_score = score_difference
                     winning_red_apple = red_apple_dict
-
-                # # Calculate the score
-                # score = self._calculate_score(green_apple_vector, red_apple_vector)
-
-                # # Update the best score and red apple
-                # if score > best_score:
-                #     winning_red_apple = red_apple_dict
-                #     best_score = score
 
         # Check if the winning red apple is None
         if winning_red_apple is None:
@@ -582,24 +607,29 @@ class NNModel(Model):
         """
         Train the model using pairs of green and red apple vectors.
         """
-        # Get the green and red apple vectors
+        # Append the winning and losing apple pairs
+        self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, losing_red_apples)
 
-        # Add the new green and red apples to the model data
-        self._model_data.green_apples.append(green_apple)
-        self._model_data.red_apples.append(winning_red_apple)
+        # Get the winning green and red apple pairs vectors
+        winning_apple_pairs_vectors = self._get_winning_apple_pairs_vectors()
 
-        # Get the green and red apple vectors
-        green_apple_vectors = [apple.get_adjective_vector() for apple in self._model_data.green_apples]
-        red_apple_vectors = [apple.get_noun_vector() for apple in self._model_data.red_apples]
+        # Get the losing green and red apple vectors, if applicable
+        if train_on_losing_red_apples:
+            losing_green_apple_vectors = self._get_losing_apple_pairs_vectors()
+
+        # Log the old slope and bias vectors
+        logging.debug(f"Old slope vector: {self._slope_vector}")
+        logging.debug(f"Old bias vector: {self._bias_vector}")
 
         # Calculate the target score
-        for green_apple_vector, red_apple_vector in zip(green_apple_vectors, red_apple_vectors):
-            self._y_target = self.__forward_propagation(green_apple_vector, red_apple_vector)
-            self.__back_propagation(green_apple_vector, red_apple_vector)
+        for pair in winning_apple_pairs_vectors:
+            self._y_target = self.__forward_propagation(pair["green_apple_vector"], pair["red_apple_vector"])
+            self.__back_propagation(pair["green_apple_vector"], pair["red_apple_vector"])
 
         # Save the updated slope and bias vectors
-        super()._save_vectors()
-        logging.debug(f"Saved updated vectors")
+        logging.debug(f"Updated slope vector: {self._slope_vector}")
+        logging.debug(f"Updated bias vector: {self._bias_vector}")
+        self._save_vectors()
 
     # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
     #     """
