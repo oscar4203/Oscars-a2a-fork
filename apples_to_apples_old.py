@@ -28,7 +28,7 @@ class ApplesToApples:
         self.red_expansion_filename: str = red_expansion
         self.green_apples_deck: Deck = Deck()
         self.red_apples_deck: Deck = Deck()
-        self.cards_in_hand: int = 7
+        self.max_cards_in_hand: int = 7
         # Initialize default game state values
         self.current_game: int = 0
         self.current_round: int = 0
@@ -259,7 +259,7 @@ class ApplesToApples:
             logging.info(self.players[i])
 
             # Have each player pick up 7 red cards
-            self.players[i].draw_red_apples(self.red_apples_deck, self.cards_in_hand)
+            self.players[i].draw_red_apples(self.keyed_vectors, self.red_apples_deck, self.max_cards_in_hand, self.train_on_extra_vectors)
 
         # Initialize the models for the AI agents
         for player in self.players:
@@ -324,7 +324,7 @@ class ApplesToApples:
         logging.info(f"{self.current_judge.get_name()}, please draw a green card.")
 
         # Set the green card in play
-        self.green_apple_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.green_apples_deck)}
+        self.green_apple_in_play = {self.current_judge: self.current_judge.draw_green_apple(self.keyed_vectors, self.green_apples_deck, self.train_on_extra_vectors)}
 
     def __player_prompt(self) -> list[RedApple]:
         red_apples: list[RedApple] = []
@@ -353,8 +353,8 @@ class ApplesToApples:
             logging.info(f"Red card: {red_apple}")
 
             # Prompt the player to pick up a new red card
-            if len(player.get_red_apples()) < self.cards_in_hand:
-                player.draw_red_apples(self.red_apples_deck, self.cards_in_hand)
+            if len(player.get_red_apples()) < self.max_cards_in_hand:
+                player.draw_red_apples(self.keyed_vectors, self.red_apples_deck, self.max_cards_in_hand, self.train_on_extra_vectors)
 
         return red_apples
 
