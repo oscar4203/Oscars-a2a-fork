@@ -47,6 +47,11 @@ def configure_logging(debug_mode: bool) -> None:
     )
 
 
+def print_and_log(message: str) -> None:
+    print(message)
+    logging.info(message)
+
+
 # Game Results Datatype
 @dataclass
 class GameResults:
@@ -54,12 +59,12 @@ class GameResults:
     points_to_win: int
     total_games: int
     current_game: int
-    round: int
+    current_round: int
     green_apple: GreenApple
     red_apples: list[dict[Agent, RedApple]]
     winning_red_apple: RedApple
     losing_red_apples: list[RedApple]
-    current_judge: Agent
+    current_judge: Agent | None = None
     round_winner: Agent | None = None
     game_winner: Agent | None = None
 
@@ -69,12 +74,12 @@ class GameResults:
     def __str__(self) -> str:
         return f"GameResults(agents={[player.get_name() for player in self.agents]}, "\
                f"points_to_win={self.points_to_win}, total_games={self.total_games}, "\
-               f"current_game={self.current_game}, round={self.round}, "\
+               f"current_game={self.current_game}, current_round={self.current_round}, "\
                f"green_apple={self.green_apple.get_adjective()}, "\
                f"red_apples={[{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()]}, "\
                f"winning_red_apple={self.winning_red_apple.get_noun()}, "\
                f"losing_red_apples={[apple.get_noun() for apple in self.losing_red_apples]}, "\
-               f"current_judge={self.current_judge.get_name()}, "\
+               f"current_judge={self.current_judge.get_name() if self.current_judge is not None else None}, "\
                f"round_winner={self.round_winner.get_name() if self.round_winner is not None else None}, "\
                f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None})"
 
@@ -87,12 +92,12 @@ class GameResults:
             "points_to_win": self.points_to_win,
             "total_games": self.total_games,
             "current_game": self.current_game,
-            "round": self.round,
+            "current_round": self.current_round,
             "green_apple": self.green_apple.get_adjective(),
             "red_apples": [{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()],
             "winning_red_apple": self.winning_red_apple.get_noun(),
             "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
-            "current_judge": self.current_judge.get_name(),
+            "current_judge": self.current_judge.get_name() if self.current_judge is not None else None,
             "round_winner": self.round_winner.get_name() if self.round_winner is not None else None,
             "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
         }
@@ -102,26 +107,29 @@ class GameResults:
 class PreferenceUpdates:
     agent: Agent
     round: int
-    time: str
-    winning_red_apple: RedApple
+    datetime: str
     green_apple: GreenApple
-    bias: np.ndarray
+    winning_red_apple: RedApple
     slope: np.ndarray
+    bias: np.ndarray
 
     def __str__(self) -> str:
-        return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.get_noun()}, green apple={self.green_apple.get_adjective()}, bias={self.bias}, slope={self.slope})"
+        return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, datetime={self.datetime}, "\
+               f"green apple={self.green_apple.get_adjective()}, winning red apple={self.winning_red_apple.get_noun()}, "\
+               f"slope={self.slope}), bias={self.bias}"
+
     def __repr__(self) -> str:
-         return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.get_noun()}, green apple={self.green_apple.get_adjective()}, bias={self.bias}, slope={self.slope})"
+         return self.__str__()
 
     def to_dict(self) -> dict:
         return {
             "Agent": self.agent.get_name(),
             "round": self.round,
-            "time": self.time,
+            "datetime": self.datetime,
             "green_apple": self.green_apple.get_adjective(),
             "winning_red_apple": self.winning_red_apple.get_noun(),
-            "Bias": f"{self.bias}\n",
-            "Slope": f"{self.slope}\n"
+            "slope": f"{self.slope}\n",
+            "bias": f"{self.bias}\n"
         }
 
 
@@ -179,7 +187,7 @@ def format_naming_scheme(players: list[Agent], total_games: int | None = None, p
     return string
 
 
-def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool) -> None:
+def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool = True) -> None:
     # Ensure the directory exists
     os.makedirs(directory, exist_ok=True)
     file_path = os.path.join(directory, filename)
@@ -197,14 +205,18 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
         writer.writerow(data)
 
 
-def log_vectors(game_results: GameResults, preference_updates: PreferenceUpdates) -> None:
+def log_vectors(game_results: GameResults, player: Agent, current_slope, current_bias, header: bool) -> None:
+    date_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
     naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"vectors-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header=True)
+    preference_updates = PreferenceUpdates(player, game_results.current_round, date_time,
+                                           game_results.green_apple, game_results.winning_red_apple,
+                                           current_slope, current_bias)
+    log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
 
 
-def log_gameplay(game_results: GameResults,header: bool) -> None:
+def log_gameplay(game_results: GameResults, header: bool) -> None:
     naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"gameplay-{naming_scheme}.csv"
