@@ -153,9 +153,7 @@ def log_winner(game_state: GameState, header: bool) -> None:
 
 
 def log_training(game_state: GameState, header: bool) -> None:
-    agents: list[Agent] = game_state.players
-    ai_agent: list[Agent] = [agent for agent in agents if isinstance(agent, AIAgent)]
-    naming_scheme = format_naming_scheme(ai_agent)
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"training-{naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_state.training_to_dict().keys()), game_state.training_to_dict(), header)

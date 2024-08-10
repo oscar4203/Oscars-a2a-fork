@@ -123,16 +123,17 @@ class Model():
         """
         Save the slope and bias vectors to .npy files.
         """
-        # Ensure the tmp directory exists
-        tmp_directory = self._vector_base_directory + "tmp/"
-        try:
-            if not os.path.exists(tmp_directory):
-                os.makedirs(tmp_directory, exist_ok=True)
-                logging.info(f"Created tmp directory: {tmp_directory}")
-            else:
-                logging.info(f"Tmp directory already exists: {tmp_directory}")
-        except OSError as e:
-            logging.error(f"Error creating tmp directory: {e}")
+        # Ensure the tmp directory exists, if not in training mode
+        if not self._training_mode:
+            tmp_directory = self._vector_base_directory + "tmp/"
+            try:
+                if not os.path.exists(tmp_directory):
+                    os.makedirs(tmp_directory, exist_ok=True)
+                    logging.info(f"Created tmp directory: {tmp_directory}")
+                else:
+                    logging.info(f"Tmp directory already exists: {tmp_directory}")
+            except OSError as e:
+                logging.error(f"Error creating tmp directory: {e}")
 
         try:
             # If training_mode is True, save the vectors to the pretrained model files
