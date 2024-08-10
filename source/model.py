@@ -276,22 +276,20 @@ class Model():
     #     """
     #     raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         This method applies the private linear regression methods to predict the best red apple.
         """
-        # Set the green apple vector
-        green_apple.set_adjective_vector(keyed_vectors)
+        # Get the green apple vector
         green_apple_vector = green_apple.get_adjective_vector()
 
         # Initialize the best score and best red apple
         best_red_apple: RedApple | None = None
         best_score: float = -np.inf
 
-        # Set the red apple vectors and calculate the score
+        # Get the red apple vectors and calculate the score
         for red_apple in red_apples:
-            red_apple.set_noun_vector(keyed_vectors)
             red_apple_vector = red_apple.get_noun_vector()
 
             # Check that the green and red vectors are not None
@@ -314,7 +312,7 @@ class Model():
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         """
@@ -446,22 +444,20 @@ class LRModel(Model):
         self._save_vectors()
         logging.debug(f"Saved updated vectors")
 
-    # def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
     #     """
     #     Choose a red card from the agent's hand to play (when the agent is a regular player).
     #     This method applies the private linear regression methods to predict the best red apple.
     #     """
-    #     # Set the green apple vector
-    #     green_apple.set_adjective_vector(keyed_vectors)
+    #     # Get the green apple vector
     #     green_apple_vector = green_apple.get_adjective_vector()
 
     #     # Initialize the best score and best red apple
     #     best_red_apple: RedApple | None = None
     #     best_score: float = -np.inf
 
-    #     # Set the red apple vectors and calculate the score
+    #     # Get the red apple vectors and calculate the score
     #     for red_apple in red_apples:
-    #         red_apple.set_noun_vector(keyed_vectors)
     #         red_apple_vector = red_apple.get_noun_vector()
 
     #         # Check that the green and red vectors are not None
@@ -482,23 +478,21 @@ class LRModel(Model):
 
     #     return best_red_apple
 
-    def choose_winning_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private linear regression methods to predict the winning red apple.
         """
-        # Set the green and red apple vectors
-        green_apple.set_adjective_vector(keyed_vectors)
+        # Get the green and red apple vectors
         green_apple_vector = green_apple.get_adjective_vector()
 
         # Initialize variables to track the best choice
-        winning_red_apple: dict[str, RedApple] | None = None
+        winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = np.inf
 
         # Iterate through the red apples to find the best one
         for red_apple_dict in red_apples:
             for _, red_apple in red_apple_dict.items():
-                red_apple.set_noun_vector(keyed_vectors)
                 red_apple_vector = red_apple.get_noun_vector()
 
                 # Check that the green and red vectors are not None
@@ -584,13 +578,11 @@ class NNModel(Model):
         x = np.multiply(green_apple_vector, red_apple_vector)
         self.model.train_on_batch(np.array([x]), np.array([self._y_target]))
 
-    def train_model(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], extra_vectors: bool) -> None:
+    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], extra_vectors: bool) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
-        # Set the green and red apple vectors
-        green_apple.set_adjective_vector(keyed_vectors)
-        winning_red_apple.set_noun_vector(keyed_vectors)
+        # Get the green and red apple vectors
 
         # Add the new green and red apples to the model data
         self._model_data.green_apples.append(green_apple)
@@ -609,13 +601,12 @@ class NNModel(Model):
         super()._save_vectors()
         logging.debug(f"Saved updated vectors")
 
-    # def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
     #     """
     #     Choose a red card from the agent's hand to play (when the agent is a regular player).
     #     This method applies the private neural network methods to predict the best red apple.
     #     """
-    #     # Set the green vector
-    #     green_apple.set_adjective_vector(keyed_vectors)
+    #     # Get the green vector
     #     green_apple_vector = green_apple.get_adjective_vector()
 
     #     # Initialize the best score and best red apple
@@ -624,7 +615,6 @@ class NNModel(Model):
 
     #     # Iterate through the red apples to find the best one
     #     for red_apple in red_apples:
-    #         red_apple.set_noun_vector(keyed_vectors)
     #         red_apple_vector = red_apple.get_noun_vector()
 
     #         # Check that the green and red vectors are not None
@@ -645,22 +635,20 @@ class NNModel(Model):
 
     #     return best_red_apple
 
-    def choose_winning_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[dict[str, RedApple]]) -> dict[str, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private neural network methods to predict the winning red apple.
         """
-        # Set the green and red apple vectors
-        green_apple.set_adjective_vector(keyed_vectors)
+        # Get the green and red apple vectors
         green_apple_vector = green_apple.get_adjective_vector()
 
         # Initialize variables to track the best choice
-        winning_red_apple: dict[str, RedApple] | None = None
+        winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = -np.inf
 
         for red_apple_dict in red_apples:
             for _, red_apple in red_apple_dict.items():
-                red_apple.set_noun_vector(keyed_vectors)
                 red_apple_vector = red_apple.get_noun_vector()
 
                 # Check that the green and red vectors are not None
