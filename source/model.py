@@ -341,13 +341,13 @@ class Model():
         result_vector = np.multiply(self._slope_vector, x) + self._bias_vector
         return float(np.sum(result_vector))
 
-    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], train_on_losing_red_apples: bool) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         """
@@ -367,47 +367,63 @@ class LRModel(Model):
     def __repr__(self) -> str:
         return super().__repr__()
 
-    def __linear_regression(self, train_on_losing_red_apples: bool) -> tuple[np.ndarray, np.ndarray]:
+    def __linear_regression(self, train_on_losing_red_apples: bool = False) -> tuple[np.ndarray, np.ndarray]:
         """
         Linear regression algorithm for the AI agent.
         \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
         """
-        # Initialize the y target vectors
-        y_target_winning = np.full(self._vector_size, 1)
+        # Get the number of vectors
+        num_winning_vectors = len(self._winning_apple_vectors)
+
+        # Create an ndarray filled with 1's
+        y_target_winning = np.full((num_winning_vectors, self._vector_size), 1)
+
+        # Ensure the x and y target arrays have the same number of vectors with the same dimensions
+        assert len(self._winning_apple_vectors) == len(y_target_winning), "Number of vectors do not match"
+        assert all(x.shape == y.shape for x, y in zip(self._winning_apple_vectors, y_target_winning)), "Vector dimensions do not match"
+
+        # Process the losing apple vectors, if applicable
         if train_on_losing_red_apples:
-            y_target_losing = np.full(self._vector_size, -1)
+            # Get the number of vectors
+            num_loser_vectors = len(self._losing_apple_vectors)
 
+            # Create an ndarray filled with -1's
+            y_target_losing = np.full((num_loser_vectors, self._vector_size), -1)
 
-
-    def __linear_regression(self, x_vectors: np.ndarray, y_vectors: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Linear regression algorithm for the AI agent.
-        """
-        assert(len(x_vectors) == len(y_vectors))
-
-        logging.debug(f"-----------------SUPER TESTING - LINEAR REGRESSION-----------------")
-        logging.debug(f"X vectors: {x_vectors}")
-        logging.debug(f"Y vectors: {y_vectors}")
+            # Ensure the x and y target arrays have the same number of vectors with the same dimensions
+            assert len(self._losing_apple_vectors) == len(y_target_losing), "Number of vectors do not match"
+            assert all(x.shape == y.shape for x, y in zip(self._losing_apple_vectors, y_target_losing)), "Vector dimensions do not match"
 
         # Initalize the sum variables
-        n: float = float(len(x_vectors))
         sumx: np.ndarray = np.zeros(self._vector_size)
         sumx2: np.ndarray = np.zeros(self._vector_size)
         sumxy: np.ndarray = np.zeros(self._vector_size)
         sumy: np.ndarray = np.zeros(self._vector_size)
         sumy2: np.ndarray = np.zeros(self._vector_size)
 
-        logging.debug(f"n: {n}")
-
-        # Calculate the sums
-        for x, y in zip(x_vectors, y_vectors):
+        # Calculate the sums for winning apple vectors
+        for x, y in zip(self._winning_apple_vectors, y_target_winning):
             sumx = np.add(sumx, x)
             sumx2 = np.add(sumx2, np.multiply(x, x))
             sumxy = np.add(sumxy, np.multiply(x, y))
             sumy = np.add(sumy, y)
             sumy2 = np.add(sumy2, np.multiply(y, y))
 
+        # Calculate the sums for losing apple vectors if applicable
+        if train_on_losing_red_apples:
+            for x, y in zip(self._losing_apple_vectors, y_target_losing):
+                sumx = np.add(sumx, x)
+                sumx2 = np.add(sumx2, np.multiply(x, x))
+                sumxy = np.add(sumxy, np.multiply(x, y))
+                sumy = np.add(sumy, y)
+                sumy2 = np.add(sumy2, np.multiply(y, y))
+
         logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
+
+        # Determine the number of vectors
+        n: float = float(len(self._winning_apple_vectors)
+                         if not train_on_losing_red_apples
+                         else len(self._winning_apple_vectors) + len(self._losing_apple_vectors))
 
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
@@ -429,7 +445,6 @@ class LRModel(Model):
         logging.debug(f"Final slopes: {ms}")
         logging.debug(f"Final intercepts: {bs}")
 
-        logging.debug(f"-----------------SUPER TESTING - LINEAR REGRESSION-----------------")
         return ms, bs
 
     def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
@@ -452,7 +467,7 @@ class LRModel(Model):
         logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
 
-    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], train_on_losing_red_apples: bool) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         This method applies the private linear regression methods to predict the best red apple.
@@ -465,7 +480,7 @@ class LRModel(Model):
         best_score: float = -np.inf
 
         # Get the red apple vectors and calculate the score
-        for red_apple in red_apples:
+        for red_apple in red_apples_in_hand:
             red_apple_vector = red_apple.get_noun_vector()
 
             # Check that the green and red vectors are not None
@@ -486,7 +501,7 @@ class LRModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]], train_on_losing_red_apples: bool) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private linear regression methods to predict the winning red apple.
@@ -499,7 +514,7 @@ class LRModel(Model):
         best_score = np.inf
 
         # Iterate through the red apples to find the best one
-        for red_apple_dict in red_apples:
+        for red_apple_dict in opponent_red_apples:
             for _, red_apple in red_apple_dict.items():
                 red_apple_vector = red_apple.get_noun_vector()
 
@@ -510,7 +525,7 @@ class LRModel(Model):
                     raise ValueError("Red apple vector is None.")
 
                 # Calculate the predicted score
-                predicted_score = self.__linear_regression(green_apple_vector, red_apple_vector)
+                predicted_score = self.__linear_regression()
 
                 # Evaluate the score difference using Euclidean distances
                 score_difference = np.linalg.norm(predicted_score - self._y_target)
@@ -593,17 +608,18 @@ class NNModel(Model):
         logging.debug(f"Old slope vector: {self._slope_vector}")
         logging.debug(f"Old bias vector: {self._bias_vector}")
 
-        # Calculate the target score
-        for pair in winning_apple_pairs_vectors:
-            self._y_target = self.__forward_propagation(pair["green_apple_vector"], pair["red_apple_vector"])
-            self.__back_propagation(pair["green_apple_vector"], pair["red_apple_vector"])
+        # TODO - Finish implementing the neural network training
+        # # Calculate the target score
+        # for pair in winning_apple_pairs_vectors:
+        #     self._y_target = self.__forward_propagation(pair["green_apple_vector"], pair["red_apple_vector"])
+        #     self.__back_propagation(pair["green_apple_vector"], pair["red_apple_vector"])
 
-        # Save the updated slope and bias vectors
-        logging.debug(f"Updated slope vector: {self._slope_vector}")
-        logging.debug(f"Updated bias vector: {self._bias_vector}")
-        self._save_vectors()
+        # # Save the updated slope and bias vectors
+        # logging.debug(f"Updated slope vector: {self._slope_vector}")
+        # logging.debug(f"Updated bias vector: {self._bias_vector}")
+        # self._save_vectors()
 
-    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], train_on_losing_red_apples: bool) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         This method applies the private neural network methods to predict the best red apple.
@@ -616,7 +632,7 @@ class NNModel(Model):
         best_score: float = -np.inf
 
         # Iterate through the red apples to find the best one
-        for red_apple in red_apples:
+        for red_apple in red_apples_in_hand:
             red_apple_vector = red_apple.get_noun_vector()
 
             # Check that the green and red vectors are not None
@@ -637,7 +653,7 @@ class NNModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private neural network methods to predict the winning red apple.
@@ -649,7 +665,7 @@ class NNModel(Model):
         winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = -np.inf
 
-        for red_apple_dict in red_apples:
+        for red_apple_dict in opponent_red_apples:
             for _, red_apple in red_apple_dict.items():
                 red_apple_vector = red_apple.get_noun_vector()
 

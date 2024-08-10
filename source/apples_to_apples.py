@@ -389,10 +389,13 @@ class ApplesToApples:
                 raise ValueError("The green apple in play is None.")
 
             # Set the red apples in play
-            red_apple = player.choose_red_apple(self.__game_state.current_judge, self.__game_state.green_apple[self.__game_state.current_judge])
+            red_apple = player.choose_red_apple(
+                self.__game_state.current_judge,
+                self.__game_state.green_apple[self.__game_state.current_judge],
+                self.__train_on_losing_red_apples)
             self.__game_state.red_apples.append({player: red_apple})
             red_apples.append(red_apple)
-            logging.info(f"Red card: {red_apple}")
+            logging.info(f"Chosen red apple: {red_apple}")
 
             # Prompt the player to pick up a new red apple
             if len(player.get_red_apples()) < self.__game_state.max_cards_in_hand:
