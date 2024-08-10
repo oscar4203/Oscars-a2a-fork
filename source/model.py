@@ -121,7 +121,7 @@ class Model():
 
         return slope_vector, bias_vector
 
-    def _save_vectors(self) -> None:
+    def _save_vectors_to_npy(self, slope_vector: np.ndarray, bias_vector: np.ndarray) -> None:
         """
         Save the slope and bias vectors to .npy files.
         """
@@ -143,19 +143,19 @@ class Model():
             if self._training_mode:
                 slope_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_slope.npy"
                 bias_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_bias.npy"
-                np.save(slope_file, self._slope_vector)
-                np.save(bias_file, self._bias_vector)
+                np.save(slope_file, slope_vector)
+                np.save(bias_file, bias_vector)
                 logging.info(f"Saved vectors to {slope_file} and {bias_file}")
-                logging.debug(f"slope_vector saved: {self._slope_vector}")
-                logging.debug(f"bias_vector saved: {self._bias_vector}")
+                logging.debug(f"slope_vector saved: {slope_vector}")
+                logging.debug(f"bias_vector saved: {bias_vector}")
             else: # Otherwise, save the vectors to the temporary model files
                 tmp_slope_file = f"{tmp_directory}{self._pretrained_archetype}_slope_{self._judge.get_name()}-tmp.npy"
                 tmp_bias_file = f"{tmp_directory}{self._pretrained_archetype}_bias_{self._judge.get_name()}-tmp.npy"
-                np.save(tmp_slope_file, self._slope_vector)
-                np.save(tmp_bias_file, self._bias_vector)
+                np.save(tmp_slope_file, slope_vector)
+                np.save(tmp_bias_file, bias_vector)
                 logging.info(f"Saved vectors to {tmp_slope_file} and {tmp_bias_file}")
-                logging.debug(f"slope_vector saved to tmp: {self._slope_vector}")
-                logging.debug(f"bias_vector saved to tmp: {self._bias_vector}")
+                logging.debug(f"slope_vector saved to tmp: {slope_vector}")
+                logging.debug(f"bias_vector saved to tmp: {bias_vector}")
             logging.debug(f"=============SUPER TESTING - SAVE VECTORS===============")
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
@@ -183,19 +183,6 @@ class Model():
         logging.debug(f"New bias vector: {self._bias_vector}")
         logging.debug("=============SUPER TESTING - RESET MODEL===============")
 
-    # def __result_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
-    #     """
-    #     Produces the resultant vector when you run through the algorithm
-    #     """
-    #     x = np.multiply(green_apple_vector, red_apple_vector)
-    #     return np.multiply(self._slope_vector, x) + self._bias_vector
-
-    # def _calculate_score(self, green_apple_vector, red_apple_vector) -> float:
-    #     """
-    #     Produces the score of the model for a combination of red and green cards.
-    #     """
-    #     return np.sum(self.__result_vector(green_apple_vector, red_apple_vector))
-
     def _append_new_winning_losing_apples(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple]) -> None:
         """
         Append the new winning and losing green and red apple pairs.
@@ -209,13 +196,13 @@ class Model():
             losing_apple_pair: dict[GreenApple, RedApple] = {green_apple: red_apple}
             self._losing_apples.append(losing_apple_pair)
 
-    def _calculate_and_append_winning_x_vectors(self, green_apple: GreenApple, winning_red_apple: RedApple, train_on_extra_vectors: bool) -> None:
+    def _calculate_x_vector(self, green_apple: GreenApple, red_apple: RedApple, train_on_extra_vectors: bool) -> np.ndarray:
         """
-        Calculate and append the new winning x vectors, which are a multiplication of green and red apple vectors.
+        Calculate and return the new winning x vector, which is the product of the green and red apple vectors.
         """
         # Get the green and red apple vectors
         green_vector: np.ndarray | None = green_apple.get_adjective_vector()
-        winning_red_vector: np.ndarray | None = winning_red_apple.get_noun_vector()
+        red_vector: np.ndarray | None = red_apple.get_noun_vector()
 
         # Check that the green vector is not None
         if green_vector is None:
@@ -223,22 +210,19 @@ class Model():
             raise ValueError("Green apple vector is None.")
 
         # Check that the red vector is not None
-        if winning_red_vector is None:
+        if red_vector is None:
             logging.error(f"Red apple vector is None.")
             raise ValueError("Red apple vector is None.")
 
         # Calculate the x vector (product of green and red vectors)
-        x_vector: np.ndarray = np.multiply(green_vector, winning_red_vector)
+        x_vector: np.ndarray = np.multiply(green_vector, red_vector)
         logging.debug(f"New winning apple pair vector: {x_vector}")
-
-        # Append the x vector to the list of winning apple pair vectors
-        self._winning_apple_vectors = np.vstack([self._winning_apple_vectors, x_vector])
 
         # Train on the extra vectors, if applicable
         if train_on_extra_vectors:
             # Get the extra vectors
             green_vector_extra: np.ndarray | None = green_apple.get_synonyms_vector()
-            winning_red_vector_extra: np.ndarray | None = winning_red_apple.get_description_vector()
+            winning_red_vector_extra: np.ndarray | None = red_apple.get_description_vector()
 
             # Check that the green extra vector is not None
             if green_vector_extra is None:
@@ -254,10 +238,12 @@ class Model():
             x_vector_extra: np.ndarray = np.multiply(green_vector_extra, winning_red_vector_extra)
             logging.debug(f"New winning apple pair extra vector: {x_vector_extra}")
 
-            # Append the extra x vector to the list of winning apple pair vectors
-            self._winning_apple_vectors = np.vstack([self._winning_apple_vectors, x_vector_extra])
+            # Calculate the average of the x and extra x vectors
+            x_vector = np.add(x_vector, x_vector_extra) / 2
 
+        return x_vector
 
+    # TODO - REMOVE THIS METHOD
     def _calculate_and_append_losing_x_vectors(self, green_apple: GreenApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool) -> None:
         """
         Calculate and append the new losing x vectors, which are a multiplication of green and red apple vectors.
@@ -313,6 +299,7 @@ class Model():
                 # Append the extra x vector to the list of losing apple pair vectors
                 self._losing_apple_vectors = np.vstack([self._losing_apple_vectors, x_vector_extra])
 
+    # TODO - REMOVE THIS METHOD
     def _calculate_and_append_all_x_vectors(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Helper function for train_model(). Calculate and append methods for the x vectors for all winning and losing green and red apple pairs.
@@ -321,7 +308,7 @@ class Model():
         self._append_new_winning_losing_apples(green_apple, winning_red_apple, losing_red_apples)
 
         # Calculate and append the new winning x vectors
-        self._calculate_and_append_winning_x_vectors(green_apple, winning_red_apple, train_on_extra_vectors)
+        winning_x_vector: np.ndarray = self._calculate_x_vector(green_apple, winning_red_apple, train_on_extra_vectors)
 
         # Calculate and append the new losing x vectors, if applicable
         if train_on_losing_red_apples:
@@ -333,19 +320,25 @@ class Model():
         """
         raise NotImplementedError("Subclass must implement the 'train_model' method")
 
-    def _calculate_score(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> float:
-        """
-        Helper function for choose_red_apple(). Produces the score of the model for a combination of red and green cards.
-        """
-        x = np.multiply(green_apple_vector, red_apple_vector)
-        result_vector = np.multiply(self._slope_vector, x) + self._bias_vector
-        return float(np.sum(result_vector))
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], train_on_losing_red_apples: bool) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
+
+    def _calculate_preference_output(self, slope_vector: np.ndarray, x_vector: np.ndarray, bias_vector: np.ndarray) -> np.ndarray:
+        """
+        Caculates the y_vector preference output given a slope vector, x vector, and bias vector.
+        """
+        return np.multiply(slope_vector, x_vector) + bias_vector
+
+    def _calculate_score(self, y_predict: np.ndarray, y_target: np.ndarray) -> float:
+        """
+        Calculates the Euclidean distance given the predicted preference output and the target preference output.
+        """
+        euclidean_distance = np.linalg.norm(y_predict - y_target)
+        return float(euclidean_distance)
 
     def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
@@ -367,33 +360,11 @@ class LRModel(Model):
     def __repr__(self) -> str:
         return super().__repr__()
 
-    def __linear_regression(self, train_on_losing_red_apples: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    def __linear_regression(self, x_vector_array: np.ndarray, y_vector_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Linear regression algorithm for the AI agent.
         \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
         """
-        # Get the number of vectors
-        num_winning_vectors = len(self._winning_apple_vectors)
-
-        # Create an ndarray filled with 1's
-        y_target_winning = np.full((num_winning_vectors, self._vector_size), 1)
-
-        # Ensure the x and y target arrays have the same number of vectors with the same dimensions
-        assert len(self._winning_apple_vectors) == len(y_target_winning), "Number of vectors do not match"
-        assert all(x.shape == y.shape for x, y in zip(self._winning_apple_vectors, y_target_winning)), "Vector dimensions do not match"
-
-        # Process the losing apple vectors, if applicable
-        if train_on_losing_red_apples:
-            # Get the number of vectors
-            num_loser_vectors = len(self._losing_apple_vectors)
-
-            # Create an ndarray filled with -1's
-            y_target_losing = np.full((num_loser_vectors, self._vector_size), -1)
-
-            # Ensure the x and y target arrays have the same number of vectors with the same dimensions
-            assert len(self._losing_apple_vectors) == len(y_target_losing), "Number of vectors do not match"
-            assert all(x.shape == y.shape for x, y in zip(self._losing_apple_vectors, y_target_losing)), "Vector dimensions do not match"
-
         # Initalize the sum variables
         sumx: np.ndarray = np.zeros(self._vector_size)
         sumx2: np.ndarray = np.zeros(self._vector_size)
@@ -402,50 +373,65 @@ class LRModel(Model):
         sumy2: np.ndarray = np.zeros(self._vector_size)
 
         # Calculate the sums for winning apple vectors
-        for x, y in zip(self._winning_apple_vectors, y_target_winning):
+        for x, y in zip(x_vector_array, y_vector_array):
             sumx = np.add(sumx, x)
             sumx2 = np.add(sumx2, np.multiply(x, x))
             sumxy = np.add(sumxy, np.multiply(x, y))
             sumy = np.add(sumy, y)
             sumy2 = np.add(sumy2, np.multiply(y, y))
 
-        # Calculate the sums for losing apple vectors if applicable
-        if train_on_losing_red_apples:
-            for x, y in zip(self._losing_apple_vectors, y_target_losing):
-                sumx = np.add(sumx, x)
-                sumx2 = np.add(sumx2, np.multiply(x, x))
-                sumxy = np.add(sumxy, np.multiply(x, y))
-                sumy = np.add(sumy, y)
-                sumy2 = np.add(sumy2, np.multiply(y, y))
-
         logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
 
         # Determine the number of vectors
-        n: float = float(len(self._winning_apple_vectors)
-                         if not train_on_losing_red_apples
-                         else len(self._winning_apple_vectors) + len(self._losing_apple_vectors))
+        n: float = float(len(x_vector_array))
 
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
         logging.debug(f"Denominators: {denoms}")
 
-        # Initialize the slopes and intercepts to zero
-        ms: np.ndarray = np.zeros(self._vector_size)
-        bs: np.ndarray = np.zeros(self._vector_size)
+        # Initialize the slope and intercept elements to zero
+        m: np.ndarray = np.zeros(self._vector_size)
+        b: np.ndarray = np.zeros(self._vector_size)
+
+        logging.debug(f"Initial slope: {m}")
+        logging.debug(f"Initial intercept: {b}")
 
         # Calculate the slopes and intercepts
         for i, denom in enumerate(denoms):
             # Avoid division by zero
             if denom == 0.0:
                 continue
-            ms[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
-            bs[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
+            m[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
+            b[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
 
-        logging.debug(f"Final slopes: {ms}")
-        logging.debug(f"Final intercepts: {bs}")
+        logging.debug(f"Final slope: {m}")
+        logging.debug(f"Final intercept: {b}")
 
-        return ms, bs
+        return m, b
+
+    def __initialize_y_vectors(self, x_vectors: np.ndarray, winning_apple: bool = True) -> np.ndarray:
+        """
+        Linear regression algorithm for the AI agent.
+        \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
+        """
+        # Set the y value
+        if winning_apple:
+            y_value = 1
+        else:
+            y_value = -1
+
+        # Get the number of vectors
+        num_of_vectors = len(x_vectors)
+
+        # Create an ndarray filled with y values
+        y_vectors = np.full((num_of_vectors, self._vector_size), y_value)
+
+        # Ensure the x and y target arrays have the same number of vectors with the same dimensions
+        assert num_of_vectors == len(y_vectors), "Number of vectors do not match"
+        assert all(x.shape == y.shape for x, y in zip(x_vectors, y_vectors)), "Vector dimensions do not match"
+
+        return y_vectors
 
     def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
@@ -460,12 +446,14 @@ class LRModel(Model):
         # Run the linear regression algorithm
         logging.debug(f"Old slope vector: {self._slope_vector}")
         logging.debug(f"Old bias vector: {self._bias_vector}")
-        self._slope_vector, self._bias_vector = self.__linear_regression(train_on_losing_red_apples)
+        slope_vector, bias_vector = self.__linear_regression(train_on_losing_red_apples)
 
         # Save the updated slope and bias vectors to .npy files
-        logging.debug(f"Updated slope vector: {self._slope_vector}")
-        logging.debug(f"Updated bias vector: {self._bias_vector}")
-        self._save_vectors()
+        self._save_vectors_to_npy(slope_vector, bias_vector)
+
+        # Update the slope and bias vectors locally
+        self._slope_vector = slope_vector
+        self._bias_vector = bias_vector
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], train_on_losing_red_apples: bool) -> RedApple:
         """
@@ -501,14 +489,11 @@ class LRModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]], train_on_losing_red_apples: bool) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]], train_on_extra_vectors: bool = False) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private linear regression methods to predict the winning red apple.
         """
-        # Get the green and red apple vectors
-        green_apple_vector = green_apple.get_adjective_vector()
-
         # Initialize variables to track the best choice
         winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = np.inf
@@ -516,23 +501,26 @@ class LRModel(Model):
         # Iterate through the red apples to find the best one
         for red_apple_dict in opponent_red_apples:
             for _, red_apple in red_apple_dict.items():
-                red_apple_vector = red_apple.get_noun_vector()
+                # Calculate the x vectors for the given green and red apple pair
+                x_vector = self._calculate_x_vector(green_apple, red_apple, train_on_extra_vectors)
+                logging.debug(f"X vector: {x_vector}")
 
-                # Check that the green and red vectors are not None
-                if green_apple_vector is None:
-                    raise ValueError("Green apple vector is None.")
-                if red_apple_vector is None:
-                    raise ValueError("Red apple vector is None.")
+                # Load the slope and bias vectors from file
+                slope, bias = self.__load_vectors(self._vector_size)
+                logging.debug(f"Slope: {slope}, Bias: {bias}")
 
-                # Calculate the predicted score
-                predicted_score = self.__linear_regression()
+                # Calculate the predicted preference output
+                y_predict = self._calculate_preference_output(slope, x_vector, bias)
 
-                # Evaluate the score difference using Euclidean distances
-                score_difference = np.linalg.norm(predicted_score - self._y_target)
+                # Calculate the target preference output
+                y_target = self.__initialize_y_vectors(x_vector, winning_apple=True)
+
+                # Evaluate the score using Euclidean distances
+                score = np.linalg.norm(y_predict - y_target)
 
                 # Update the best score and red apple
-                if score_difference < best_score:
-                    best_score = score_difference
+                if score < best_score:
+                    best_score = score
                     winning_red_apple = red_apple_dict
 
         # Check if the winning red apple is None
