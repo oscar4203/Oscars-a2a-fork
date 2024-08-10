@@ -201,8 +201,10 @@ def main(filepath: str) -> None:
 
     except csv.Error:
         print("Error reading CSV file")
+        raise csv.Error
     except Exception as e:
         print(f"An error occurred in main: {e}")
+        raise e
 
 
 if __name__ == "__main__":
@@ -211,7 +213,7 @@ if __name__ == "__main__":
 
     # Add an argument for the filename as input
     parser.add_argument(
-        "filename",
+        "filepath",
         nargs="?",
         default="./logs/winners.csv",
         help="Path to the CSV file containing winners data"
@@ -219,4 +221,4 @@ if __name__ == "__main__":
 
     # Parse the arguments and call the main function
     args = parser.parse_args()
-    main(args.filename)
+    main(args.filepath)
