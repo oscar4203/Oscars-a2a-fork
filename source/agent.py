@@ -286,13 +286,13 @@ class AIAgent(Agent):
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def train_opponent_judge_model(self, opponent_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+    def train_opponent_judge_model(self, current_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the AI opponent model for the current judge, given the new green and red apples.
         """
         # Train the AI models with the new green card, red apple, and judge
         for agent in self.__opponents:
-            if agent is opponent_judge:
+            if agent is current_judge:
                 self.__opponent_ml_models[agent].train_model(green_apple, winning_red_apple, losing_red_apples, train_on_extra_vectors, train_on_losing_red_apples)
                 logging.debug(f"Trained {self.get_name()}'s opponent model '{agent.get_name()}' with the new green card, red apple, and judge.")
 

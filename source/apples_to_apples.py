@@ -338,11 +338,6 @@ class ApplesToApples:
                 else:
                     judge_index = 0
 
-        print("-----------------TESTING-----------------")
-        print(f"Judge Index: {judge_index}")
-        print(f"Current Judge: {self.__game_state.current_judge.get_name() if self.__game_state.current_judge is not None else None}")
-        print(f"Players: {self.__game_state.players}")
-        print("-----------------TESTING-----------------")
         # Assign the starting judge and set the judge status
         self.__game_state.current_judge = self.__game_state.players[judge_index]
         self.__game_state.current_judge.set_judge_status(True)
