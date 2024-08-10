@@ -18,7 +18,7 @@ from keras.callbacks import EarlyStopping
 # Local Modules
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
-from source.data_classes import GameResults
+from source.data_classes import GameState
 
 
 @dataclass

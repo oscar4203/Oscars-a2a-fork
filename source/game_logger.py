@@ -10,7 +10,7 @@ from datetime import datetime
 
 # Local Modules
 from source.agent import Agent, AIAgent, HumanAgent, RandomAgent
-from source.data_classes import GameResults, PreferenceUpdates
+from source.data_classes import GameState, PreferenceUpdates
 
 
 # Logging configuration
@@ -124,40 +124,41 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
         writer.writerow(data)
 
 
-def log_vectors(game_results: GameResults, player: Agent, current_slope, current_bias, header: bool) -> None:
+def log_vectors(game_state: GameState, player: Agent, current_slope, current_bias, header: bool) -> None:
     date_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"vectors-{naming_scheme}.csv"
-    preference_updates = PreferenceUpdates(player, game_results.current_round, date_time,
-                                           game_results.green_apple, game_results.winning_red_apple,
+    # Check that the green and red apples and current judge are not None
+    if game_state.green_apple is None or game_state.winning_red_apple is None or game_state.current_judge is None:
+        raise ValueError("Green apple or winning red apple or current judge is None.")
+    preference_updates = PreferenceUpdates(player, game_state.current_round, date_time,
+                                           game_state.green_apple[game_state.current_judge], game_state.winning_red_apple,
                                            current_slope, current_bias)
     log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
 
 
-def log_gameplay(game_results: GameResults, header: bool) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
+def log_gameplay(game_state: GameState, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"gameplay-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
+    log_to_csv(directory, filename, list(game_state.gameplay_to_dict().keys()), game_state.gameplay_to_dict(), header)
 
 
-def log_winner(game_results: GameResults, header: bool) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
+def log_winner(game_state: GameState, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"winners-{naming_scheme}.csv"
-    log_to_csv(directory, filename, ["Game Winner"],
-               {"Game Winner": game_results.game_winner.get_name()} \
-               if game_results.game_winner is not None else {"Game Winner": None}, header)
+    log_to_csv(directory, filename, list(game_state.winner_to_dict().keys()), game_state.winner_to_dict(), header)
 
 
-def log_training(game_results: GameResults, header: bool) -> None:
-    agents: list[Agent] = game_results.agents
+def log_training(game_state: GameState, header: bool) -> None:
+    agents: list[Agent] = game_state.players
     ai_agent: list[Agent] = [agent for agent in agents if isinstance(agent, AIAgent)]
     naming_scheme = format_naming_scheme(ai_agent)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"training-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
+    log_to_csv(directory, filename, list(game_state.training_to_dict().keys()), game_state.training_to_dict(), header)
 
 
 if __name__ == "__main__":
