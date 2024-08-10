@@ -55,8 +55,10 @@ class Model():
         self._vector_base_directory = "./agents/"
         self._vector_size = vector_size
         self._judge: Agent = judge # The judge to be modeled
-        self._winning_apple_pairs: list[dict[GreenApple, RedApple]] = []
-        self._losing_apple_pairs: list[dict[GreenApple, RedApple]] = []
+        self._winning_apples: list[dict[GreenApple, RedApple]] = []
+        self._losing_apples: list[dict[GreenApple, RedApple]] = []
+        self._winning_apple_vectors: np.ndarray = np.empty((0, self._vector_size))
+        self._losing_apple_vectors: np.ndarray = np.empty((0, self._vector_size))
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._training_mode: bool = training_mode
 
@@ -166,12 +168,12 @@ class Model():
         """
         logging.debug("=============SUPER TESTING - RESET MODEL===============")
         logging.debug(f"Resetting model data and vectors")
-        logging.debug(f"Old winning apple pairs: {self._winning_apple_pairs}")
-        logging.debug(f"Old losing apple pairs: {self._losing_apple_pairs}")
-        self._winning_apple_pairs = []
-        self._losing_apple_pairs = []
-        logging.debug(f"New winning apple pairs: {self._winning_apple_pairs}")
-        logging.debug(f"New losing apple pairs: {self._losing_apple_pairs}")
+        logging.debug(f"Old winning apple pairs: {self._winning_apples}")
+        logging.debug(f"Old losing apple pairs: {self._losing_apples}")
+        self._winning_apples = []
+        self._losing_apples = []
+        logging.debug(f"New winning apple pairs: {self._winning_apples}")
+        logging.debug(f"New losing apple pairs: {self._losing_apples}")
 
         # Reset the slope and bias vectors
         logging.debug(f"Old slope vector: {self._slope_vector}")
@@ -194,86 +196,136 @@ class Model():
     #     """
     #     return np.sum(self.__result_vector(green_apple_vector, red_apple_vector))
 
-    def _append_winning_losing_apple_pairs(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple]) -> None:
+    def _append_new_winning_losing_apples(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple]) -> None:
         """
-        Collect the winning and losing green and red apple pairs for training the model.
+        Append the new winning and losing green and red apple pairs.
         """
         # Append the winning apple pair
         winning_apple_pair: dict[GreenApple, RedApple] = {green_apple: winning_red_apple}
-        self._winning_apple_pairs.append(winning_apple_pair)
+        self._winning_apples.append(winning_apple_pair)
 
         # Append the losing apple pairs
         for red_apple in losing_red_apples:
             losing_apple_pair: dict[GreenApple, RedApple] = {green_apple: red_apple}
-            self._winning_apple_pairs.append(losing_apple_pair)
+            self._losing_apples.append(losing_apple_pair)
 
-    def _get_winning_apple_pairs_vectors(self) -> list[dict[str, np.ndarray]]:
+    def _calculate_and_append_winning_x_vectors(self, green_apple: GreenApple, winning_red_apple: RedApple, train_on_extra_vectors: bool) -> None:
         """
-        Get the winning green and red apple pairs vectors.
+        Calculate and append the new winning x vectors, which are a multiplication of green and red apple vectors.
         """
-        # Initialize the list of vectors
-        winning_list: list[dict[str, np.ndarray]] = []
+        # Get the green and red apple vectors
+        green_vector: np.ndarray | None = green_apple.get_adjective_vector()
+        winning_red_vector: np.ndarray | None = winning_red_apple.get_noun_vector()
 
-        # Process the winning apple pairs
-        for apple_pair in self._winning_apple_pairs:
-            for green_apple, red_apple in apple_pair.items():
-                green_apple_vector = green_apple.get_adjective_vector()
-                red_apple_vector = red_apple.get_noun_vector()
+        # Check that the green vector is not None
+        if green_vector is None:
+            logging.error(f"Green apple vector is None.")
+            raise ValueError("Green apple vector is None.")
 
-                # Check that the green and red vectors are None
-                if green_apple_vector is None:
-                    logging.error(f"Green apple vector is None.")
-                    raise ValueError("Green apple vector is None.")
-                if red_apple_vector is None:
+        # Check that the red vector is not None
+        if winning_red_vector is None:
+            logging.error(f"Red apple vector is None.")
+            raise ValueError("Red apple vector is None.")
+
+        # Calculate the x vector (product of green and red vectors)
+        x_vector: np.ndarray = np.multiply(green_vector, winning_red_vector)
+        logging.debug(f"New winning apple pair vector: {x_vector}")
+
+        # Append the x vector to the list of winning apple pair vectors
+        self._winning_apple_vectors = np.vstack([self._winning_apple_vectors, x_vector])
+
+        # Train on the extra vectors, if applicable
+        if train_on_extra_vectors:
+            # Get the extra vectors
+            green_vector_extra: np.ndarray | None = green_apple.get_synonyms_vector()
+            winning_red_vector_extra: np.ndarray | None = winning_red_apple.get_description_vector()
+
+            # Check that the green extra vector is not None
+            if green_vector_extra is None:
+                logging.error(f"Green apple vector is None.")
+                raise ValueError("Green apple vector is None.")
+
+            # Check that the red extra vector is not None
+            if winning_red_vector_extra is None:
+                logging.error(f"Red apple vector is None.")
+                raise ValueError("Red apple vector is None.")
+
+            # Calculate the extra x vector (product of green and red extra vectors)
+            x_vector_extra: np.ndarray = np.multiply(green_vector_extra, winning_red_vector_extra)
+            logging.debug(f"New winning apple pair extra vector: {x_vector_extra}")
+
+            # Append the extra x vector to the list of winning apple pair vectors
+            self._winning_apple_vectors = np.vstack([self._winning_apple_vectors, x_vector_extra])
+
+
+    def _calculate_and_append_losing_x_vectors(self, green_apple: GreenApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool) -> None:
+        """
+        Calculate and append the new losing x vectors, which are a multiplication of green and red apple vectors.
+        """
+        # Get the green apple vector
+        green_vector: np.ndarray | None = green_apple.get_adjective_vector()
+
+        # Check that the green and red vectors are not None
+        if green_vector is None:
+            logging.error(f"Green apple vector is None.")
+            raise ValueError("Green apple vector is None.")
+
+        # Get the green apple extra vector, if applicable
+        if train_on_extra_vectors:
+            green_vector_extra: np.ndarray | None = green_apple.get_synonyms_vector()
+
+            # Check that the green extra vector is not None
+            if green_vector_extra is None:
+                logging.error(f"Green apple vector is None.")
+                raise ValueError("Green apple vector is None.")
+
+        # Calculate the losing apple pair vectors
+        for red_apple in losing_red_apples:
+            # Get the red apple vector
+            red_vector: np.ndarray | None = red_apple.get_noun_vector()
+
+            # Check that the red vector is not None
+            if red_vector is None:
+                logging.error(f"Red apple vector is None.")
+                raise ValueError("Red apple vector is None.")
+
+            # Calculate the x vector (product of green and red vectors)
+            x_vector: np.ndarray = np.multiply(green_vector, red_vector)
+            logging.debug(f"New losing apple pair vector: {x_vector}")
+
+            # Append the x vector to the list of losing apple pair vectors
+            self._losing_apple_vectors = np.vstack([self._losing_apple_vectors, x_vector])
+
+            # Get the red apple extra vector, if applicable
+            if train_on_extra_vectors:
+                # Get the red apple extra vector
+                red_vector_extra: np.ndarray | None = red_apple.get_description_vector()
+
+                # Check that the red extra vector is not None
+                if red_vector_extra is None:
                     logging.error(f"Red apple vector is None.")
                     raise ValueError("Red apple vector is None.")
 
-                # Append the green and red apple vectors to the list
-                apple_pair_vectors: dict[str, np.ndarray] = {
-                    "green_apple_vector": green_apple_vector,
-                    "red_apple_vector": red_apple_vector,
-                }
-                winning_list.append(apple_pair_vectors)
+                # Calculate the extra x vector (product of green and red extra vectors)
+                x_vector_extra: np.ndarray = np.multiply(green_vector_extra, red_vector_extra)
+                logging.debug(f"New losing apple pair extra vector: {x_vector_extra}")
 
-        return winning_list
+                # Append the extra x vector to the list of losing apple pair vectors
+                self._losing_apple_vectors = np.vstack([self._losing_apple_vectors, x_vector_extra])
 
-    def _get_losing_apple_pairs_vectors(self) -> list[dict[str, np.ndarray]]:
+    def _calculate_and_append_all_x_vectors(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
-        Get the losing green and red apple pairs vectors.
+        Helper function for train_model(). Calculate and append methods for the x vectors for all winning and losing green and red apple pairs.
         """
-        # Initialize the list of vectors
-        losing_list: list[dict[str, np.ndarray]] = []
+        # Append the new winning and losing apple pairs
+        self._append_new_winning_losing_apples(green_apple, winning_red_apple, losing_red_apples)
 
-        # Process the losing apple pairs
-        for apple_pair in self._losing_apple_pairs:
-            for green_apple, red_apple in apple_pair.items():
-                green_apple_vector = green_apple.get_adjective_vector()
-                red_apple_vector = red_apple.get_noun_vector()
+        # Calculate and append the new winning x vectors
+        self._calculate_and_append_winning_x_vectors(green_apple, winning_red_apple, train_on_extra_vectors)
 
-                # Check that the green and red vectors are not None
-                if green_apple_vector is None:
-                    logging.error(f"Green apple vector is None.")
-                    raise ValueError("Green apple vector is None.")
-                if red_apple_vector is None:
-                    logging.error(f"Red apple vector is None.")
-                    raise ValueError("Red apple vector is None.")
-
-                # Append the green and red apple vectors to the list
-                apple_pair_vectors: dict[str, np.ndarray] = {
-                    "green_apple": green_apple_vector,
-                    "red_apple": red_apple_vector,
-                }
-                losing_list.append(apple_pair_vectors)
-
-        return losing_list
-
-    def _calculate_score(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> float:
-        """
-        Produces the score of the model for a combination of red and green cards.
-        """
-        x = np.multiply(green_apple_vector, red_apple_vector)
-        result_vector = np.multiply(self._slope_vector, x) + self._bias_vector
-        return float(np.sum(result_vector))
+        # Calculate and append the new losing x vectors, if applicable
+        if train_on_losing_red_apples:
+            self._calculate_and_append_losing_x_vectors(green_apple, losing_red_apples, train_on_extra_vectors)
 
     def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
@@ -281,54 +333,25 @@ class Model():
         """
         raise NotImplementedError("Subclass must implement the 'train_model' method")
 
-    # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
-    #     """
-    #     Choose a red card from the agent's hand to play (when the agent is a regular player).
-    #     """
-    #     raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
+    def _calculate_score(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> float:
+        """
+        Helper function for choose_red_apple(). Produces the score of the model for a combination of red and green cards.
+        """
+        x = np.multiply(green_apple_vector, red_apple_vector)
+        result_vector = np.multiply(self._slope_vector, x) + self._bias_vector
+        return float(np.sum(result_vector))
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
-        This method applies the private linear regression methods to predict the best red apple.
         """
-        # Get the green apple vector
-        green_apple_vector = green_apple.get_adjective_vector()
-
-        # Initialize the best score and best red apple
-        best_red_apple: RedApple | None = None
-        best_score: float = -np.inf
-
-        # Get the red apple vectors and calculate the score
-        for red_apple in red_apples:
-            red_apple_vector = red_apple.get_noun_vector()
-
-            # Check that the green and red vectors are not None
-            if green_apple_vector is None:
-                raise ValueError("Green apple vector is None.")
-            if red_apple_vector is None:
-                raise ValueError("Red apple vector is None.")
-
-            # Calculate the score
-            score = self._calculate_score(green_apple_vector, red_apple_vector)
-
-            # Update the best score and red apple
-            if score > best_score:
-                best_red_apple = red_apple
-                best_score = score
-
-        # Check if the best red apple was chosen
-        if best_red_apple is None:
-            raise ValueError("No red apple was chosen.")
-
-        return best_red_apple
+        raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
         """
         raise NotImplementedError("Subclass must implement the 'choose_winning_red_apple' method")
-
 
 
 class LRModel(Model):
@@ -343,6 +366,18 @@ class LRModel(Model):
 
     def __repr__(self) -> str:
         return super().__repr__()
+
+    def __linear_regression(self, train_on_losing_red_apples: bool) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Linear regression algorithm for the AI agent.
+        \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
+        """
+        # Initialize the y target vectors
+        y_target_winning = np.full(self._vector_size, 1)
+        if train_on_losing_red_apples:
+            y_target_losing = np.full(self._vector_size, -1)
+
+
 
     def __linear_regression(self, x_vectors: np.ndarray, y_vectors: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -397,119 +432,59 @@ class LRModel(Model):
         logging.debug(f"-----------------SUPER TESTING - LINEAR REGRESSION-----------------")
         return ms, bs
 
-    # def __update_parameters(self, green_apple_vectors, red_apple_vectors):
-    #     """
-    #     Update the slope and bias vectors based on the error.
-    #     """
-    #     print(self) #for testing purposes, of
-
-    #     # Calculate the error
-    #     y_pred = self.__linear_regression(green_apple_vectors, red_apple_vectors)
-    #     error = self._y_target - y_pred
-
-    #     # Update slope and bias vectors
-    #     x = np.multiply(green_apple_vectors, red_apple_vectors)
-    #     self._slope_vector += self._learning_rate * np.dot(error, x) # TODO - Change self._slope_vector to a vector, right now it's a scalar
-    #     self._bias_vector += self._learning_rate * error
-
-    #     # Update the target score based on the error
-    #     self._y_target = self._y_target - error
-
-    #     print(self)
-
     def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the model using winning green and red apple pairs and losing green and red apple pairs if applicable.
         """
-        # Append the winning and losing apple pairs
-        self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, losing_red_apples)
+        # Calculate and append all the new winning and losing apples and their vectors
+        self._calculate_and_append_all_x_vectors(
+            green_apple, winning_red_apple, losing_red_apples,
+            train_on_extra_vectors, train_on_losing_red_apples
+            )
 
-        logging.debug(f"-----------------SUPER TESTING - TRAIN MODEL-----------------")
-        # Get the winning green and red apple pairs vectors
-        winning_apple_pairs_vectors = self._get_winning_apple_pairs_vectors()
-        logging.debug(f"Winning apple pairs: {winning_apple_pairs_vectors}")
-
-        # Get the losing green and red apple vectors, if applicable
-        if train_on_losing_red_apples:
-            losing_apple_pairs_vectors = self._get_losing_apple_pairs_vectors()
-            logging.debug(f"Losing apple pairs: {losing_apple_pairs_vectors}")
-
-        # Initialize the x and y arrays
-        xs = []
-        ys = []
-
-        # Assign the x and y data for winning apple pairs
-        for pair in winning_apple_pairs_vectors:
-            g_vec = pair["green_apple_vector"]
-            r_vec = pair["red_apple_vector"]
-            x_vec = np.multiply(g_vec, r_vec)
-            y_vec = np.full(self._vector_size, 1)
-            xs.append(x_vec)
-            ys.append(y_vec)
-
-        nxs = np.array(xs)
-        nys = np.array(ys)
-
-        # Assign the x and y data for losing apple pairs, if applicable
-        if train_on_losing_red_apples:
-            for pair in losing_apple_pairs_vectors:
-                g_vec = pair["green_apple"]
-                r_vec = pair["red_apple"]
-                x_vec = np.multiply(g_vec, r_vec)
-                y_vec = np.full(self._vector_size, -1)
-                xs.append(x_vec)
-                ys.append(y_vec)
-
-            np.append(nxs, np.array(xs))
-            np.append(nys, np.array(ys))
-
-        logging.debug(f"nxs: {nxs}")
-        logging.debug(f"nys: {nys}")
-
+        # Run the linear regression algorithm
         logging.debug(f"Old slope vector: {self._slope_vector}")
         logging.debug(f"Old bias vector: {self._bias_vector}")
-        self._slope_vector, self._bias_vector = self.__linear_regression(nxs, nys)
+        self._slope_vector, self._bias_vector = self.__linear_regression(train_on_losing_red_apples)
 
-        # Save the updated slope and bias vectors
+        # Save the updated slope and bias vectors to .npy files
         logging.debug(f"Updated slope vector: {self._slope_vector}")
         logging.debug(f"Updated bias vector: {self._bias_vector}")
-
-        logging.debug(f"-----------------SUPER TESTING - TRAIN MODEL-----------------")
         self._save_vectors()
 
-    # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
-    #     """
-    #     Choose a red card from the agent's hand to play (when the agent is a regular player).
-    #     This method applies the private linear regression methods to predict the best red apple.
-    #     """
-    #     # Get the green apple vector
-    #     green_apple_vector = green_apple.get_adjective_vector()
+    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        This method applies the private linear regression methods to predict the best red apple.
+        """
+        # Get the green apple vector
+        green_apple_vector = green_apple.get_adjective_vector()
 
-    #     # Initialize the best score and best red apple
-    #     best_red_apple: RedApple | None = None
-    #     best_score: float = -np.inf
+        # Initialize the best score and best red apple
+        best_red_apple: RedApple | None = None
+        best_score: float = -np.inf
 
-    #     # Get the red apple vectors and calculate the score
-    #     for red_apple in red_apples:
-    #         red_apple_vector = red_apple.get_noun_vector()
+        # Get the red apple vectors and calculate the score
+        for red_apple in red_apples:
+            red_apple_vector = red_apple.get_noun_vector()
 
-    #         # Check that the green and red vectors are not None
-    #         if green_apple_vector is None:
-    #             raise ValueError("Green apple vector is None.")
-    #         if red_apple_vector is None:
-    #             raise ValueError("Red apple vector is None.")
+            # Check that the green and red vectors are not None
+            if green_apple_vector is None:
+                raise ValueError("Green apple vector is None.")
+            if red_apple_vector is None:
+                raise ValueError("Red apple vector is None.")
 
-    #         score = self._calculate_score(green_apple_vector, red_apple_vector)
+            score = self._calculate_score(green_apple_vector, red_apple_vector)
 
-    #         if score > best_score:
-    #             best_red_apple = red_apple
-    #             best_score = score
+            if score > best_score:
+                best_red_apple = red_apple
+                best_score = score
 
-    #     # Check if the best red apple was chosen
-    #     if best_red_apple is None:
-    #         raise ValueError("No red apple was chosen.")
+        # Check if the best red apple was chosen
+        if best_red_apple is None:
+            raise ValueError("No red apple was chosen.")
 
-    #     return best_red_apple
+        return best_red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
@@ -608,15 +583,11 @@ class NNModel(Model):
         """
         Train the model using pairs of green and red apple vectors.
         """
-        # Append the winning and losing apple pairs
-        self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, losing_red_apples)
-
-        # Get the winning green and red apple pairs vectors
-        winning_apple_pairs_vectors = self._get_winning_apple_pairs_vectors()
-
-        # Get the losing green and red apple vectors, if applicable
-        if train_on_losing_red_apples:
-            losing_green_apple_vectors = self._get_losing_apple_pairs_vectors()
+        # Calculate and append all the new winning and losing apples and their vectors
+        self._calculate_and_append_all_x_vectors(
+            green_apple, winning_red_apple, losing_red_apples,
+            train_on_extra_vectors, train_on_losing_red_apples
+            )
 
         # Log the old slope and bias vectors
         logging.debug(f"Old slope vector: {self._slope_vector}")
@@ -632,39 +603,39 @@ class NNModel(Model):
         logging.debug(f"Updated bias vector: {self._bias_vector}")
         self._save_vectors()
 
-    # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
-    #     """
-    #     Choose a red card from the agent's hand to play (when the agent is a regular player).
-    #     This method applies the private neural network methods to predict the best red apple.
-    #     """
-    #     # Get the green vector
-    #     green_apple_vector = green_apple.get_adjective_vector()
+    def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+        """
+        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        This method applies the private neural network methods to predict the best red apple.
+        """
+        # Get the green vector
+        green_apple_vector = green_apple.get_adjective_vector()
 
-    #     # Initialize the best score and best red apple
-    #     best_red_apple: RedApple | None = None
-    #     best_score: float = -np.inf
+        # Initialize the best score and best red apple
+        best_red_apple: RedApple | None = None
+        best_score: float = -np.inf
 
-    #     # Iterate through the red apples to find the best one
-    #     for red_apple in red_apples:
-    #         red_apple_vector = red_apple.get_noun_vector()
+        # Iterate through the red apples to find the best one
+        for red_apple in red_apples:
+            red_apple_vector = red_apple.get_noun_vector()
 
-    #         # Check that the green and red vectors are not None
-    #         if green_apple_vector is None:
-    #             raise ValueError("Green apple vector is None.")
-    #         if red_apple_vector is None:
-    #             raise ValueError("Red apple vector is None.")
+            # Check that the green and red vectors are not None
+            if green_apple_vector is None:
+                raise ValueError("Green apple vector is None.")
+            if red_apple_vector is None:
+                raise ValueError("Red apple vector is None.")
 
-    #         score = self._calculate_score(green_apple_vector, red_apple_vector)
+            score = self._calculate_score(green_apple_vector, red_apple_vector)
 
-    #         if score > best_score:
-    #             best_red_apple = red_apple
-    #             best_score = score
+            if score > best_score:
+                best_red_apple = red_apple
+                best_score = score
 
-    #     # Check if the best red apple is None
-    #     if best_red_apple is None:
-    #         raise ValueError("No red apple was chosen.")
+        # Check if the best red apple is None
+        if best_red_apple is None:
+            raise ValueError("No red apple was chosen.")
 
-    #     return best_red_apple
+        return best_red_apple
 
     def choose_winning_red_apple(self, green_apple: GreenApple, red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
