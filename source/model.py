@@ -7,7 +7,6 @@ from dataclasses import dataclass
 import numpy as np
 
 # Third-party Libraries
-from gensim.models import KeyedVectors
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3' # Suppress TensorFlow logging
 import keras.api._v2.keras as keras
 from keras.models import Sequential
@@ -19,6 +18,7 @@ from keras.callbacks import EarlyStopping
 # Local Modules
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
+from source.data_classes import GameResults
 
 
 @dataclass
@@ -50,7 +50,7 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, pretrain: bool) -> None:
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agents/"
         self._vector_size = vector_size
@@ -59,7 +59,7 @@ class Model():
         self._winning_apple_pairs: list[dict[GreenApple, RedApple]] = []
         self._losing_apple_pairs: list[dict[GreenApple, RedApple]] = []
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
-        self._pretrain: bool = pretrain
+        self._training_mode: bool = training_mode
 
         # Initialize slope and bias vectors
         self._slope_vector, self._bias_vector = self.__load_vectors(vector_size)
@@ -136,8 +136,8 @@ class Model():
             logging.error(f"Error creating tmp directory: {e}")
 
         try:
-            # If pretrain is True, save the vectors to the pretrained model files
-            if self._pretrain:
+            # If training_mode is True, save the vectors to the pretrained model files
+            if self._training_mode:
                 slope_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_slope.npy"
                 bias_file: str = f"{self._vector_base_directory}{self._pretrained_archetype}_bias.npy"
                 np.save(slope_file, self._slope_vector)
@@ -183,7 +183,7 @@ class Model():
     #     """
     #     return np.sum(self.__result_vector(green_apple_vector, red_apple_vector))
 
-    def _append_winning_losing_apple_pairs(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple]) -> None:
+    def _append_winning_losing_apple_pairs(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple]) -> None:
         """
         Collect the winning and losing green and red apple pairs for training the model.
         """
@@ -192,7 +192,7 @@ class Model():
         self._winning_apple_pairs.append(winning_apple_pair)
 
         # Append the losing apple pairs
-        for red_apple in loosing_red_apples:
+        for red_apple in losing_red_apples:
             losing_apple_pair: dict[GreenApple, RedApple] = {green_apple: red_apple}
             self._winning_apple_pairs.append(losing_apple_pair)
 
@@ -264,13 +264,13 @@ class Model():
         result_vector = np.multiply(self._slope_vector, x) + self._bias_vector
         return float(np.sum(result_vector))
 
-    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
         raise NotImplementedError("Subclass must implement the 'train_model' method")
 
-    # def choose_red_apple(self, keyed_vectors: KeyedVectors, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
+    # def choose_red_apple(self, green_apple: GreenApple, red_apples: list[RedApple]) -> RedApple:
     #     """
     #     Choose a red card from the agent's hand to play (when the agent is a regular player).
     #     """
@@ -391,12 +391,12 @@ class LRModel(Model):
 
     #     print(self)
 
-    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the model using winning green and red apple pairs and losing green and red apple pairs if applicable.
         """
         # Append the winning and losing apple pairs
-        self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, loosing_red_apples)
+        self._append_winning_losing_apple_pairs(green_apple, winning_red_apple, losing_red_apples)
 
         # Get the winning green and red apple pairs vectors
         winning_apple_pairs_vectors = self._get_winning_apple_pairs_vectors()
@@ -578,7 +578,7 @@ class NNModel(Model):
         x = np.multiply(green_apple_vector, red_apple_vector)
         self.model.train_on_batch(np.array([x]), np.array([self._y_target]))
 
-    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], extra_vectors: bool) -> None:
+    def train_model(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the model using pairs of green and red apple vectors.
         """
