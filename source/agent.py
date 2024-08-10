@@ -251,18 +251,18 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, pretrain: bool) -> None:
+    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, training_mode: bool) -> None:
         super().__init__(name)
         self.__ml_model_type: LRModel | NNModel = ml_model_type
         self.__pretrained_archetype: str = pretrained_archetype
-        self.__pretrain: bool = pretrain
+        self.__training_mode: bool = training_mode
 
-    def get_opponent_model(self, key: Agent) -> Model | None:
+    def get_opponent_model(self, agent_as_key: Agent) -> Model | None:
         if self.__opponent_ml_models is None:
             logging.error("Opponent ML Models have not been initialized.")
             raise ValueError("Opponent ML Models have not been initialized.")
         else:
-            return self.__opponent_ml_models.get(key)
+            return self.__opponent_ml_models.get(agent_as_key)
 
     def initialize_models(self, keyed_vectors: KeyedVectors, all_players: list[Agent]) -> None:
         """
@@ -274,28 +274,27 @@ class AIAgent(Agent):
 
         # Determine and initialize the opponents
         self.__opponents: list[Agent] = [agent for agent in all_players if agent != self]
-        logging.debug(f"opponents: {[agent.get_name() for agent in self.__opponents]}")
+        logging.debug(f"Opponents: {[agent.get_name() for agent in self.__opponents]}")
 
         # Initialize the self and opponent ml models
         if self.__ml_model_type is LRModel:
-            self.__self_ml_model: Model = LRModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain) for agent in self.__opponents}
-            logging.debug(f"LRModel - opponent_ml_models: {self.__opponent_ml_models}")
+            self.__self_ml_model: Model = LRModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode) for agent in self.__opponents}
         elif self.__ml_model_type is NNModel:
-            self.__self_ml_model: Model = NNModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__pretrain) for agent in self.__opponents}
-            logging.debug(f"NNModel - opponent_ml_models: {self.__opponent_ml_models}")
+            self.__self_ml_model: Model = NNModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode) for agent in self.__opponents}
+        logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
+        logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def train_opponent_models(self, current_judge: Agent | None, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+    def train_opponent_judge_model(self, opponent_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
         """
         Train the AI opponent model for the current judge, given the new green and red apples.
         """
         # Train the AI models with the new green card, red apple, and judge
         for agent in self.__opponents:
-            if current_judge == agent:
-                agent_model: Model = self.__opponent_ml_models[agent]
-                agent_model.train_model(green_apple, winning_red_apple, loosing_red_apples, train_on_extra_vectors, train_on_losing_red_apples)
-                logging.debug(f"Trained {agent.get_name()}'s model with the new green card, red apple, and judge.")
+            if agent is opponent_judge:
+                self.__opponent_ml_models[agent].train_model(green_apple, winning_red_apple, losing_red_apples, train_on_extra_vectors, train_on_losing_red_apples)
+                logging.debug(f"Trained {self.get_name()}'s opponent model '{agent.get_name()}' with the new green card, red apple, and judge.")
 
     def reset_opponent_models(self) -> None:
         """
