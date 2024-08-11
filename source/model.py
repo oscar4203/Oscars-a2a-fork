@@ -3,7 +3,6 @@
 # Standard Libraries
 import os
 import logging
-from dataclasses import dataclass
 import numpy as np
 
 # Third-party Libraries
@@ -28,16 +27,16 @@ class Model():
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agents/"
-        self._vector_size = vector_size
         self._judge: Agent = judge # The judge to be modeled
+        self._vector_size = vector_size
+        self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
+        self._training_mode: bool = training_mode
         self._winning_apples: list[dict[GreenApple, RedApple]] = []
         self._losing_apples: list[dict[GreenApple, RedApple]] = []
         self._winning_apple_vectors: np.ndarray = np.empty((0, self._vector_size))
         self._losing_apple_vectors: np.ndarray = np.empty((0, self._vector_size))
-        self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
-        self._training_mode: bool = training_mode
 
-        # Initialize slope and bias vectors
+        # Initialize slope and bias vectors (these will remained unchanged for a self model)
         self._slope_vector, self._bias_vector = self._get_pretrained_slope_and_bias_vectors()
 
         # Learning attributes
@@ -45,7 +44,7 @@ class Model():
         self._learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(judge={self._judge}"
+        return f"{self.__class__.__name__}(judge={self._judge.get_name()}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(judge={self._judge}, "\
@@ -321,18 +320,24 @@ class Model():
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def _calculate_preference_output(self, slope_vector: np.ndarray, x_vector: np.ndarray, bias_vector: np.ndarray) -> np.ndarray:
+    def _calculate_y_output(self, slope_vector: np.ndarray, x_vector: np.ndarray, bias_vector: np.ndarray) -> np.ndarray:
         """
         Caculates the y_vector preference output given a slope vector, x vector, and bias vector.
         """
         return np.multiply(slope_vector, x_vector) + bias_vector
 
-    def _calculate_score(self, y_predict: np.ndarray, y_target: np.ndarray) -> float:
+    def _calculate_score(self, slope_predict: np.ndarray, bias_predict: np.ndarray) -> float:
         """
-        Calculates the Euclidean distance given the predicted preference output and the target preference output.
+        Calculates the score using Mean Squared Error (MSE) given the predicted slope and bias vectors.
+        The output is always non-negative.
         """
-        euclidean_distance = np.linalg.norm(y_predict - y_target)
-        return float(euclidean_distance)
+        # Calculate the MSE for slope and bias
+        mse_slope = np.mean((slope_predict - self._slope_vector) ** 2)
+        mse_bias = np.mean((bias_predict - self._bias_vector) ** 2)
+
+        # Combine the MSE for slope and bias
+        mse_total = mse_slope + mse_bias
+        return float(mse_total)
 
     def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
         """
@@ -476,7 +481,7 @@ class LRModel(Model):
     def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]], train_on_extra_vectors: bool = False) -> dict[Agent, RedApple]:
         """
         Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
-        This method applies the private linear regression methods to predict the winning red apple.
+        This method is only used by the self model and applies the private linear regression methods to predict the winning red apple.
         """
         # Initialize variables to track the best choice
         winning_red_apple: dict[Agent, RedApple] | None = None
@@ -489,19 +494,17 @@ class LRModel(Model):
                 x_vector = self._calculate_x_vector(green_apple, red_apple, train_on_extra_vectors)
                 logging.debug(f"x_vector: {x_vector}")
 
-                # Load the slope and bias vectors from the trained archetype
-                slope_pretrain, bias_pretrain = self._get_pretrained_slope_and_bias_vectors()
-                logging.debug(f"slope_pretrain: {slope_pretrain}, bias_pretrain: {bias_pretrain}")
+                # Initialize the y_predict vector (the submitted red apple is assumed to be a winning apple)
+                y_predict = self._initialize_y_vectors(np.array([x_vector]), winning_apple=True)
 
-                # Calculate the target preference output
-                y_target = self._calculate_preference_output(slope_pretrain, x_vector, bias_pretrain)
-                logging.debug(f"y_target: {y_target}")
+                # Use linear regression to predict the preference output
+                slope_vector, bias_vector = self.__linear_regression(x_vector, y_predict)
 
-                # Evaluate the score using Euclidean distances
-                score = self._calculate_score(y_target, y_target)
+                # Evaluate the score
+                score = self._calculate_score(slope_vector, bias_vector)
                 logging.debug(f"Score: {score}")
 
-                # Update the best score and red apple
+                # Update the best score and accompanying red apple
                 if score < best_score:
                     best_score = score
                     winning_red_apple = red_apple_dict

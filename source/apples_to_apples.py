@@ -14,7 +14,6 @@ from source.model import Model, model_type_mapping
 from source.game_logger import print_and_log, format_naming_scheme, \
                             log_vectors, log_gameplay, log_winner, log_training, \
                             LOGGING_BASE_DIRECTORY
-# from source.data_classes import GameState, GameResults
 from source.data_classes import GameState
 
 

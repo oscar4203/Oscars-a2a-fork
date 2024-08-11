@@ -270,7 +270,7 @@ class AIAgent(Agent):
         """
         # Initialize the keyed vectors
         self.__keyed_vectors: KeyedVectors = keyed_vectors
-        # self.__vectors = None # Vectors loaded via custom loader
+        # self.__vectors = None # Vectors loaded via custom loader # TODO - Implement custom loader
 
         # Determine and initialize the opponents
         self.__opponents: list[Agent] = [agent for agent in all_players if agent != self]
