@@ -444,8 +444,7 @@ class ApplesToApples:
                                 logging.error("The opponent judge model is None.")
                                 raise ValueError("The opponent judge model is None.")
 
-                            current_slope = opponent_judge_model.get_slope_vector()
-                            current_bias = opponent_judge_model.get_bias_vector()
+                            current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
                             log_vectors(game_state, player, current_slope, current_bias, True)
                 else:
                     # In non-training mode, train only if the player is not the current judge
@@ -467,8 +466,7 @@ class ApplesToApples:
                             logging.error("The opponent judge model is None.")
                             raise ValueError("The opponent judge model is None.")
 
-                        current_slope = opponent_judge_model.get_slope_vector()
-                        current_bias = opponent_judge_model.get_bias_vector()
+                        current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
                         log_vectors(game_state, player, current_slope, current_bias, True)
 
     def __reset_opponent_models(self) -> None:
