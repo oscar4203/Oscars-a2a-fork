@@ -9,6 +9,7 @@ from gensim.models import KeyedVectors
 
 # Local Modules
 from source.config import configure_logging
+from source.embeddings import Embedding
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent, model_type_mapping
 # from source.model import Model, LRModel, NNModel
@@ -32,7 +33,7 @@ class ApplesToApples:
         self.red_apples_in_play: list[dict[str, RedApple]] = []
         self.discarded_green_apples: list[GreenApple] = []
         self.discarded_red_apples: list[RedApple] = []
-        self.nlp_model: KeyedVectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+        self.nlp_model: Embedding = Embedding("./apples/GoogleNews-vectors-negative300.bin")
         # self.vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # embeddings.load()
 
@@ -290,13 +291,16 @@ class ApplesToApples:
             if self.red_apples_in_play is None:
                 logging.error("The red apples in play is None.")
                 raise ValueError("The red apples in play is None.")
-            else:
-                red_apples_list = []
-                for red_apple in self.red_apples_in_play:
-                    red_apples_list.append(list(red_apple.values())[0])
+
+            red_apples_list = []
+            for red_apple in self.red_apples_in_play:
+                red_apples_list.append(list(red_apple.values())[0])
 
             # Extract the winning red card
             winning_red_card: RedApple = list(winning_red_card_dict.values())[0]
+            losing_red_cards: list[RedApple] = red_apples_list.copy()
+            losing_red_cards.remove(winning_red_card)
+            
 
             # Log the results
             results = GameResults(self.players, self.points_to_win, self.round, self.green_apples_in_play[self.current_judge],
@@ -306,7 +310,7 @@ class ApplesToApples:
             # Train all AI agents (if applicable)
             for player in self.players:
                 if isinstance(player, AIAgent):
-                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, self.current_judge)
+                    player.train_models(self.nlp_model, self.green_apples_in_play[self.current_judge], winning_red_card, losing_red_cards, self.current_judge)
 
             # Discard the green cards
             self.discarded_green_apples.append(self.green_apples_in_play[self.current_judge])
