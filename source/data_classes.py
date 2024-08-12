@@ -37,6 +37,7 @@ class ApplesInPlay:
     def get_red_apples(self) -> list[RedApple]:
         return list(self.red_apples[0].values())
 
+
 @dataclass
 class ChosenApples:
     green_apple: dict[Agent, GreenApple] | None
@@ -74,11 +75,12 @@ class ChosenApples:
             raise ValueError("Winning red apple has not been picked yet.")
         return list(self.winning_red_apple.keys())[0]
 
+
 @dataclass
 class ChosenAppleVectors:
     green_apple_vector: np.ndarray
     winning_red_apple_vector: np.ndarray
-    losing_red_apples_vectors: np.ndarray
+    losing_red_apple_vectors: np.ndarray
 
     def __post_init__(self) -> None:
         logging.debug(f"Created ChosenAppleVectors object: {self}")
@@ -86,7 +88,7 @@ class ChosenAppleVectors:
     def __str__(self) -> str:
         return f"ChosenAppleVectors(green_apple_vector={self.green_apple_vector}, "\
                f"winning_red_apple_vector={self.winning_red_apple_vector}, "\
-               f"losing_red_apples_vectors={self.losing_red_apples_vectors})"
+               f"losing_red_apple_vectors={self.losing_red_apple_vectors})"
 
 
 @dataclass
