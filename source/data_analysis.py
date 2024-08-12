@@ -1,4 +1,4 @@
-# Description: Small script to count the number of times each unique player has won a game
+# Description: Script to count the number of times each unique player has won a game
 
 # Standard Libraries
 import os
@@ -14,6 +14,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.patches as mpatches
 
 # Local Modules
+
 
 def count_winners(filename: str) -> dict[str, int]:
     # Initialize the winners dictionary

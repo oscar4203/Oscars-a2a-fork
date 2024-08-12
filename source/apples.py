@@ -11,7 +11,6 @@ from gensim.models import KeyedVectors
 
 # Local Modules
 
-
 class Apple:
     def __init__(self, set: str) -> None:
         self._set: str = set

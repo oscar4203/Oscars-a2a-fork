@@ -12,8 +12,11 @@ from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import Model, model_type_mapping
 from source.game_logger import print_and_log, format_naming_scheme, \
-                            log_vectors, log_gameplay, log_winner, log_training, \
+                            log_gameplay, log_winner, log_training, \
                             LOGGING_BASE_DIRECTORY
+# from source.game_logger import print_and_log, format_naming_scheme, \
+#                             log_vectors, log_gameplay, log_winner, log_training, \
+#                             LOGGING_BASE_DIRECTORY
 from source.data_classes import GameState, ApplesInPlay, ChosenApples
 
 
@@ -380,7 +383,9 @@ class ApplesToApples:
             red_apple = player.choose_red_apple(
                 self.__game_state.current_judge,
                 self.__game_state.apples_in_play.get_green_apple(),
-                self.__use_losing_red_apples)
+                self.__use_extra_vectors,
+                self.__use_losing_red_apples
+            )
             self.__game_state.apples_in_play.red_apples.append({player: red_apple})
             logging.info(f"Chosen red apple: {red_apple}")
 
@@ -407,11 +412,8 @@ class ApplesToApples:
                 if self.__training_mode:
                     for agent in self.__game_state.players:
                         if isinstance(agent, HumanAgent):
-                            player.train_opponent_judge_model(
-                                agent,
-                                self.__game_state.chosen_apples.get_green_apple(),
-                                self.__game_state.chosen_apples.get_winning_red_apple(),
-                                self.__game_state.chosen_apples.get_losing_red_apples(),
+                            player.train_self_judge_model(
+                                self.__game_state.chosen_apples,
                                 self.__use_extra_vectors,
                                 self.__use_losing_red_apples
                             )
@@ -432,9 +434,7 @@ class ApplesToApples:
                     if player != self.__game_state.current_judge:
                         player.train_opponent_judge_model(
                             self.__game_state.current_judge,
-                            self.__game_state.chosen_apples.get_green_apple(),
-                            self.__game_state.chosen_apples.get_winning_red_apple(),
-                            self.__game_state.chosen_apples.get_losing_red_apples(),
+                            self.__game_state.chosen_apples,
                             self.__use_extra_vectors,
                             self.__use_losing_red_apples
                         )
