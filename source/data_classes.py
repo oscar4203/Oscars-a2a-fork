@@ -49,7 +49,6 @@ class ChosenApples:
     def __str__(self) -> str:
         return f"ChosenApples(green_apple={self.green_apple}, winning_red_apple={self.winning_red_apple}, losing_red_apples={self.losing_red_apples})"
 
-
     def to_dict(self) -> dict[str, dict[str, str] | list[dict[str, str]] | None]:
         return {
             "Green Apple": {agent.get_name(): green_apple.get_adjective() for agent, green_apple in self.green_apple.items()} if self.green_apple is not None else None,
@@ -89,9 +88,6 @@ class ChosenAppleVectors:
                f"winning_red_apple_vector={self.winning_red_apple_vector}, "\
                f"losing_red_apples_vectors={self.losing_red_apples_vectors})"
 
-    def __repr__(self) -> str:
-        return self.__str__()
-
 
 @dataclass
 class GameState:
@@ -126,9 +122,6 @@ class GameState:
                 f"current_judge={self.current_judge.get_name() if self.current_judge is not None else None}, "\
                 f"round_winner={self.round_winner.get_name() if self.round_winner is not None else None}, "\
                 f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
 
     def to_dict(self) -> dict[str, list[str] | str | int | ApplesInPlay | ChosenApples | None]:
         return {
@@ -197,9 +190,6 @@ class PreferenceUpdates:
         return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, datetime={self.datetime}, "\
                f"green apple={self.green_apple.get_adjective()}, winning red apple={self.winning_red_apple.get_noun()}, "\
                f"slope={self.slope}), bias={self.bias}"
-
-    def __repr__(self) -> str:
-         return self.__str__()
 
     def to_dict(self) -> dict:
         return {

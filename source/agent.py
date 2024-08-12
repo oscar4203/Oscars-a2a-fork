@@ -35,9 +35,6 @@ class Agent:
         return f"Agent(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
             f"green_apple={green_apple}, red_apples={red_apples})"
 
-    def __repr__(self) -> str:
-        return self.__str__()
-
     def get_name(self) -> str:
         return self._name
 
