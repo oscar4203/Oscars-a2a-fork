@@ -1,18 +1,18 @@
 # Description: Module to log game results and player preferences
 
 # Standard Libraries
+from typing import TYPE_CHECKING # Type hinting to avoid circular imports
 import os
 import csv
 import logging
-from dataclasses import dataclass
-import numpy as np
 from datetime import datetime
 
 # Third-party Libraries
 
 # Local Modules
-from source.apples import GreenApple, RedApple
+# if TYPE_CHECKING:
 from source.agent import Agent, AIAgent, HumanAgent, RandomAgent
+from source.data_classes import GameState, PreferenceUpdates
 
 
 # Logging configuration
@@ -47,81 +47,11 @@ def configure_logging(debug_mode: bool) -> None:
     )
 
 
-# Game Results Datatype
-@dataclass
-class GameResults:
-    agents: list[Agent]
-    points_to_win: int
-    total_games: int
-    current_game: int
-    round: int
-    green_apple: GreenApple
-    red_apples: list[RedApple]
-    winning_red_apple: RedApple
-    losing_red_apples: list[RedApple]
-    current_judge: Agent
-    round_winner: Agent | None = None
-    game_winner: Agent | None = None
-
-    def __post_init__(self) -> None:
-        logging.debug(f"Created GameResults object: {self}")
-
-    def __str__(self) -> str:
-        return f"GameResults(agents={[player.get_name() for player in self.agents]}, "\
-               f"points_to_win={self.points_to_win}, total_games={self.total_games}, "\
-               f"current_game={self.current_game}, round={self.round}, "\
-               f"green_apple={self.green_apple.get_adjective()}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
-               f"winning_red_apple={self.winning_red_apple.get_noun()}, "\
-               f"losing_red_apples={[apple.get_noun() for apple in self.losing_red_apples]}, "\
-               f"current_judge={self.current_judge.get_name()}, "\
-               f"round_winner={self.round_winner.get_name() if self.round_winner is not None else None}, "\
-               f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    def to_dict(self) -> dict[str, list[str] | str | int | None]:
-        return {
-            "agents": [player.get_name() for player in self.agents],
-            "points_to_win": self.points_to_win,
-            "total_games": self.total_games,
-            "current_game": self.current_game,
-            "round": self.round,
-            "green_apple": self.green_apple.get_adjective(),
-            "red_apples": [apple.get_noun() for apple in self.red_apples],
-            "winning_red_apple": self.winning_red_apple.get_noun(),
-            "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
-            "current_judge": self.current_judge.get_name(),
-            "round_winner": self.round_winner.get_name() if self.round_winner is not None else None,
-            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
-        }
-
-
-@dataclass
-class PreferenceUpdates:
-    agent: Agent
-    round: int
-    time: str
-    winning_red_apple: RedApple
-    green_apple: GreenApple
-    bias: np.ndarray
-    slope: np.ndarray
-
-    def __str__(self) -> str:
-        return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.get_noun()}, green apple={self.green_apple.get_adjective()}, bias={self.bias}, slope={self.slope})"
-    def __repr__(self) -> str:
-         return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, time={self.time}, winning red apple={self.winning_red_apple.get_noun()}, green apple={self.green_apple.get_adjective()}, bias={self.bias}, slope={self.slope})"
-
-    def to_dict(self) -> dict:
-        return {
-            "Agent": self.agent.get_name(),
-            "round": self.round,
-            "time": self.time,
-            "green_apple": self.green_apple.get_adjective(),
-            "winning_red_apple": self.winning_red_apple.get_noun(),
-            "Bias": f"{self.bias}\n",
-            "Slope": f"{self.slope}\n"
-        }
+def print_and_log(message: str) -> None:
+    print(message)
+    # Remove any leading newline characters
+    message = message.lstrip("\n")
+    logging.info(message)
 
 
 def format_players_string(players: list[Agent]) -> str:
@@ -178,7 +108,7 @@ def format_naming_scheme(players: list[Agent], total_games: int | None = None, p
     return string
 
 
-def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool) -> None:
+def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool = True) -> None:
     # Ensure the directory exists
     os.makedirs(directory, exist_ok=True)
     file_path = os.path.join(directory, filename)
@@ -196,36 +126,39 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
         writer.writerow(data)
 
 
-def log_vectors(game_results: GameResults, preference_updates: PreferenceUpdates) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
-    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"vectors-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header=True)
+# def log_vectors(game_state: GameState, player: Agent, current_slope, current_bias, header: bool) -> None:
+#     date_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
+#     naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
+#     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
+#     filename = f"vectors-{naming_scheme}.csv"
+#     # Check that the green and red apples and current judge are not None
+#     if game_state.green_apple is None or game_state.winning_red_apple is None or game_state.current_judge is None:
+#         raise ValueError("Green apple or winning red apple or current judge is None.")
+#     preference_updates = PreferenceUpdates(player, game_state.current_round, date_time,
+#                                            game_state.green_apple[game_state.current_judge], game_state.winning_red_apple,
+#                                            current_slope, current_bias)
+#     log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
 
 
-def log_gameplay(game_results: GameResults,header: bool) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
+def log_gameplay(game_state: GameState, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"gameplay-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
+    log_to_csv(directory, filename, list(game_state.gameplay_to_dict().keys()), game_state.gameplay_to_dict(), header)
 
 
-def log_winner(game_results: GameResults, header: bool) -> None:
-    naming_scheme = format_naming_scheme(game_results.agents, game_results.total_games, game_results.points_to_win)
+def log_winner(game_state: GameState, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"winners-{naming_scheme}.csv"
-    log_to_csv(directory, filename, ["Game Winner"],
-               {"Game Winner": game_results.game_winner.get_name()} \
-               if game_results.game_winner is not None else {"Game Winner": None}, header)
+    log_to_csv(directory, filename, list(game_state.winner_to_dict().keys()), game_state.winner_to_dict(), header)
 
 
-def log_training(game_results: GameResults, header: bool) -> None:
-    agents: list[Agent] = game_results.agents
-    ai_agent: list[Agent] = [agent for agent in agents if isinstance(agent, AIAgent)]
-    naming_scheme = format_naming_scheme(ai_agent)
+def log_training(game_state: GameState, header: bool) -> None:
+    naming_scheme = format_naming_scheme(game_state.players, game_state.total_games, game_state.points_to_win)
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"training-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(game_results.to_dict().keys()), game_results.to_dict(), header)
+    log_to_csv(directory, filename, list(game_state.training_to_dict().keys()), game_state.training_to_dict(), header)
 
 
 if __name__ == "__main__":

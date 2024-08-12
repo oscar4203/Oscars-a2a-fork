@@ -11,7 +11,6 @@ from gensim.models import KeyedVectors
 
 # Local Modules
 
-
 class Apple:
     def __init__(self, set: str) -> None:
         self._set: str = set
@@ -62,7 +61,8 @@ class Apple:
                     # Add the vector of the word to the average vector
                     avg_vector += keyed_vectors[word.lower()]
                 except KeyError:
-                    print(f"The word '{word}' was not found in the keyed_vectors.")
+                    from source.game_logger import logging
+                    logging.info(f"The word '{word}' was not found in the keyed_vectors.")
 
         # Divide the average vector by the number of words
         avg_vector /= len(words)
@@ -83,11 +83,6 @@ class GreenApple(Apple):
     def __str__(self) -> str:
         synonyms_str = ', '.join(self.__synonyms) if self.__synonyms is not None else None
         return f"{self.__adjective} | Synonyms: {synonyms_str}"
-
-    def __repr__(self) -> str:
-        # return f"GreenApple(set={self._set}, adjective={self.__adjective}, synonyms={self.__synonyms}), " \
-        #         f"adjective_vector={self.__adjective_vector}, synonyms_vector={self.__synonyms_vector}"
-        return self.__str__()
 
     def get_adjective(self) -> str:
         return self.__adjective
@@ -134,11 +129,6 @@ class RedApple(Apple):
     def __str__(self) -> str:
         return f"{self.__noun} | Description: {self.__description}"
 
-    def __repr__(self) -> str:
-        # return f"RedApple(set={self._set}, noun={self.__noun}, description={self.__description}), " \
-        #         f"noun_vector={self.__noun_vector}, description_vector={self.__description_vector}"
-        return self.__str__()
-
     def get_noun(self) -> str:
         return self.__noun
 
@@ -182,9 +172,6 @@ class Deck:
 
     def __str__(self) -> str:
         return f"Deck(apples={self.__apples})"
-
-    def __repr__(self) -> str:
-        return self.__str__()
 
     def get_apples(self) -> list[GreenApple | RedApple]:
         return self.__apples

@@ -1,7 +1,9 @@
+# Description: Load word2vec vectors from a binary file using a custom loader.
+
+# Standard Libraries
 import ctypes
 import os
 import numpy as np
-
 import time
 
 class HashEntry(ctypes.Structure):
