@@ -8,6 +8,7 @@ import random
 from gensim.models import KeyedVectors
 
 # Local Modules
+from source.embeddings import Embedding
 from source.apples import GreenApple, RedApple, Deck
 
 
@@ -214,14 +215,13 @@ class AIAgent(Agent):
     """
     def __init__(self, name: str, type: LRModel | NNModel) -> None:
         super().__init__(name)
-        # self.nlp_model: KeyedVectors | None = None
         self.vectors = None
         self.model_type: LRModel | NNModel = type
         self.self_model: Model | None = None
         self.opponents: list[Agent] = []
         self.opponent_models: dict[Agent, LRModel | NNModel] | None = None
 
-    def initialize_models(self, nlp_model: KeyedVectors, all_players: list[Agent]) -> None:
+    def initialize_models(self, nlp_model: Embedding, all_players: list[Agent]) -> None:
     # def initialize_models(self, vectors, all_players: list[Agent]) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
@@ -258,7 +258,7 @@ class AIAgent(Agent):
         #     self.self_model = NNModel(self, self.vectors.vector_size)
         #     self.opponent_models = {agent: NNModel(agent, self.vectors.vector_size) for agent in self.opponents}
 
-    def train_models(self, nlp_model: KeyedVectors, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], judge: Agent) -> None:
+    def train_models(self, nlp_model: Embedding, green_apple: GreenApple, winning_red_apple: RedApple, loosing_red_apples: list[RedApple], judge: Agent) -> None:
         """
         Train the AI model with the new green card, red card, and judge.
         """
