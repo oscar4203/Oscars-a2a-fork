@@ -31,7 +31,7 @@ class GameDriver:
                         max_cards_in_hand,
                         points_to_win,
                         total_games, 0, 0,
-                        None, [], None, [],
+                        None, None, [],
                         None, None, None)
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion

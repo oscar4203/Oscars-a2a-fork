@@ -13,6 +13,87 @@ from source.agent import Agent
 
 
 @dataclass
+class ApplesInPlay:
+    green_apple: dict[Agent, GreenApple] | None
+    red_apples: list[dict[Agent, RedApple]]
+
+    def __post_init__(self) -> None:
+        logging.debug(f"Created ApplesInPlay object: {self}")
+
+    def __str__(self) -> str:
+        return f"ApplesInPlay(green_apple={self.green_apple}, red_apples={self.red_apples})"
+
+    def to_dict(self) -> dict[str, dict[str, str] | list[dict[str, str]] | None]:
+        return {
+            "Green Apple": {agent.get_name(): green_apple.get_adjective() for agent, green_apple in self.green_apple.items()} if self.green_apple is not None else None,
+            "Red Apples": [{agent.get_name(): red_apple.get_noun() for agent, red_apple in red_apple_dict.items()} for red_apple_dict in self.red_apples]
+        }
+
+    def get_green_apple(self) -> GreenApple:
+        if self.green_apple is None:
+            raise ValueError("Green apple is not in play.")
+        return list(self.green_apple.values())[0]
+
+    def get_red_apples(self) -> list[RedApple]:
+        return list(self.red_apples[0].values())
+
+@dataclass
+class ChosenApples:
+    green_apple: dict[Agent, GreenApple] | None
+    winning_red_apple: dict[Agent, RedApple] | None
+    losing_red_apples: list[dict[Agent, RedApple]]
+
+    def __post_init__(self) -> None:
+        logging.debug(f"Created ChosenApples object: {self}")
+
+    def __str__(self) -> str:
+        return f"ChosenApples(green_apple={self.green_apple}, winning_red_apple={self.winning_red_apple}, losing_red_apples={self.losing_red_apples})"
+
+
+    def to_dict(self) -> dict[str, dict[str, str] | list[dict[str, str]] | None]:
+        return {
+            "Green Apple": {agent.get_name(): green_apple.get_adjective() for agent, green_apple in self.green_apple.items()} if self.green_apple is not None else None,
+            "Winning Red Apple": {agent.get_name(): red_apple.get_noun() for agent, red_apple in self.winning_red_apple.items()} if self.winning_red_apple is not None else None,
+            "Losing Red Apples": [{agent.get_name(): red_apple.get_noun() for agent, red_apple in red_apple_dict.items()} for red_apple_dict in self.losing_red_apples]
+        }
+
+    def get_green_apple(self) -> GreenApple:
+        if self.green_apple is None:
+            raise ValueError("Green apple has not been drawn yet.")
+        return list(self.green_apple.values())[0]
+
+    def get_winning_red_apple(self) -> RedApple:
+        if self.winning_red_apple is None:
+            raise ValueError("Winning red apple has not been picked yet.")
+        return list(self.winning_red_apple.values())[0]
+
+    def get_losing_red_apples(self) -> list[RedApple]:
+        return list(self.losing_red_apples[0].values())
+
+    def get_red_apple_winner(self) -> Agent:
+        if self.winning_red_apple is None:
+            raise ValueError("Winning red apple has not been picked yet.")
+        return list(self.winning_red_apple.keys())[0]
+
+@dataclass
+class ChosenAppleVectors:
+    green_apple_vector: np.ndarray
+    winning_red_apple_vector: np.ndarray
+    losing_red_apples_vectors: np.ndarray
+
+    def __post_init__(self) -> None:
+        logging.debug(f"Created ChosenAppleVectors object: {self}")
+
+    def __str__(self) -> str:
+        return f"ChosenAppleVectors(green_apple_vector={self.green_apple_vector}, "\
+               f"winning_red_apple_vector={self.winning_red_apple_vector}, "\
+               f"losing_red_apples_vectors={self.losing_red_apples_vectors})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+@dataclass
 class GameState:
     number_of_players: int
     players: list[Agent]
@@ -21,10 +102,9 @@ class GameState:
     total_games: int
     current_game: int
     current_round: int
-    green_apple: dict[Agent, GreenApple] | None
-    red_apples: list[dict[Agent, RedApple]]
-    winning_red_apple: RedApple | None
-    losing_red_apples: list[RedApple]
+    apples_in_play: ApplesInPlay | None
+    chosen_apples: ChosenApples | None
+    discard_pile: list[ChosenApples]
     current_judge: Agent | None
     round_winner: Agent | None
     game_winner: Agent | None
@@ -41,10 +121,8 @@ class GameState:
                 f"total_games={self.total_games}, "\
                 f"current_game={self.current_game}, "\
                 f"current_round={self.current_round}, "\
-                f"green_apple={self.green_apple[self.current_judge].get_adjective() if self.green_apple is not None and self.current_judge is not None else None}, "\
-                f"red_apples={[{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()]}, "\
-                f"winning_red_apple={self.winning_red_apple.get_noun() if self.winning_red_apple is not None else None}, "\
-                f"losing_red_apples={[apple.get_noun() for apple in self.losing_red_apples]}, "\
+                f"apples_in_play={self.apples_in_play}, "\
+                f"chosen_apples={self.chosen_apples}, "\
                 f"current_judge={self.current_judge.get_name() if self.current_judge is not None else None}, "\
                 f"round_winner={self.round_winner.get_name() if self.round_winner is not None else None}, "\
                 f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None})"
@@ -52,7 +130,7 @@ class GameState:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def to_dict(self) -> dict[str, list[str] | str | int | list[dict[str, str]] | None]:
+    def to_dict(self) -> dict[str, list[str] | str | int | ApplesInPlay | ChosenApples | None]:
         return {
             "number_of_players": self.number_of_players,
             "players": [player.get_name() for player in self.players],
@@ -61,16 +139,14 @@ class GameState:
             "total_games": self.total_games,
             "current_game": self.current_game,
             "current_round": self.current_round,
-            "green_apple": self.green_apple[self.current_judge].get_adjective() if self.green_apple is not None and self.current_judge is not None else None,
-            "red_apples": [{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()],
-            "winning_red_apple": self.winning_red_apple.get_noun() if self.winning_red_apple is not None else None,
-            "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
+            "apples_in_play": self.apples_in_play if self.apples_in_play is not None else None,
+            "chosen_apples": self.chosen_apples if self.chosen_apples is not None else None,
             "current_judge": self.current_judge.get_name() if self.current_judge is not None else None,
             "round_winner": self.round_winner.get_name() if self.round_winner is not None else None,
             "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
         }
 
-    def gameplay_to_dict(self) -> dict[str, list[str] | str | int | list[dict[str, str]] | None]:
+    def gameplay_to_dict(self) -> dict[str, list[str] | str | int | ApplesInPlay | ChosenApples | None]:
         return {
             "number_of_players": self.number_of_players,
             "players": [player.get_name() for player in self.players],
@@ -79,10 +155,8 @@ class GameState:
             "total_games": self.total_games,
             "current_game": self.current_game,
             "current_round": self.current_round,
-            "green_apple": self.green_apple[self.current_judge].get_adjective() if self.green_apple is not None and self.current_judge is not None else None,
-            "red_apples": [{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()],
-            "winning_red_apple": self.winning_red_apple.get_noun() if self.winning_red_apple is not None else None,
-            "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
+            "apples_in_play": self.apples_in_play if self.apples_in_play is not None else None,
+            "chosen_apples": self.chosen_apples if self.chosen_apples is not None else None,
             "current_judge": self.current_judge.get_name() if self.current_judge is not None else None,
             "round_winner": self.round_winner.get_name() if self.round_winner is not None else None
         }
@@ -92,7 +166,7 @@ class GameState:
             "Game Winner": self.game_winner.get_name() if self.game_winner is not None else None
         }
 
-    def training_to_dict(self) -> dict[str, list[str] | str | int | list[dict[str, str]] | None]:
+    def training_to_dict(self) -> dict[str, list[str] | str | int | ApplesInPlay | ChosenApples | None]:
         return {
             "number_of_players": self.number_of_players,
             "players": [player.get_name() for player in self.players],
@@ -101,38 +175,11 @@ class GameState:
             "total_games": self.total_games,
             "current_game": self.current_game,
             "current_round": self.current_round,
-            "green_apple": self.green_apple[self.current_judge].get_adjective() if self.green_apple is not None and self.current_judge is not None else None,
-            "red_apples": [{player.get_name(): apple.get_noun()} for entry in self.red_apples for player, apple in entry.items()],
-            "winning_red_apple": self.winning_red_apple.get_noun() if self.winning_red_apple is not None else None,
-            "losing_red_apples": [apple.get_noun() for apple in self.losing_red_apples],
+            "apples_in_play": self.apples_in_play if self.apples_in_play is not None else None,
+            "chosen_apples": self.chosen_apples if self.chosen_apples is not None else None,
             "current_judge": self.current_judge.get_name() if self.current_judge is not None else None,
             "round_winner": self.round_winner.get_name() if self.round_winner is not None else None,
             "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
-        }
-
-
-@dataclass
-class ModelData:
-    green_apples: list[GreenApple]
-    red_apples: list[RedApple]
-    winning_red_apples: list[RedApple]
-
-    def __post_init__(self) -> None:
-        logging.debug(f"Created ModelData object: {self}")
-
-    def __str__(self) -> str:
-        return f"ModelData(green_apples={[apple.__adjective for apple in self.green_apples]}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
-               f"winning_red_apples={[apple.get_noun() for apple in self.red_apples]})"
-
-    def __repr__(self) -> str:
-        return f"ModelData(green_apples={[apple.__adjective for apple in self.green_apples]}, red_apples={[apple.get_noun() for apple in self.red_apples]}, " \
-               f"winning_red_apples={[apple.get_noun() for apple in self.red_apples]})"
-
-    def to_dict(self) -> dict:
-        return {
-            "green_apples": [apple.__adjective for apple in self.green_apples],
-            "red_apples": [apple.get_noun() for apple in self.red_apples],
-            "winning_red_apples": [apple.get_noun() for apple in self.winning_red_apples]
         }
 
 
