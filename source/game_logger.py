@@ -16,7 +16,7 @@ from source.data_classes import GameState, PreferenceUpdates
 
 
 # Logging configuration
-LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s - %(message)s"
+LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s.%(funcName)s:%(lineno)d - %(message)s"
 LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 LOGGING_BASE_DIRECTORY = "./logs/"
 LOGGING_FILENAME = "apples_to_apples.log"
