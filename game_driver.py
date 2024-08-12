@@ -156,8 +156,8 @@ def main() -> None:
     logging.info(f"Change players between games: {change_players_between_games == 'y'}")
     logging.info(f"Cycle starting judges: {cycle_starting_judges == 'y'}")
     logging.info(f"Reset models between games: {reset_models_between_games == 'y'}")
-    logging.info(f"Train on extra vectors: {use_extra_vectors == 'y'}")
-    logging.info(f"Train on losing red apples: {use_losing_red_apples == 'y'}")
+    logging.info(f"Use extra vectors: {use_extra_vectors == 'y'}")
+    logging.info(f"Use losing red apples: {use_losing_red_apples == 'y'}")
 
     # Start the game, prompt the user for options
     while game.get_game_state().current_game < game.get_game_state().total_games:
