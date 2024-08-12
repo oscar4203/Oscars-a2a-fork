@@ -9,6 +9,7 @@ from gensim.models import KeyedVectors
 
 # Local Modules
 from source.apples import GreenApple, RedApple, Deck
+from source.data_classes import ApplesInPlay
 
 
 class Agent:
@@ -124,13 +125,13 @@ class Agent:
         else:
             print_and_log(f"{self._name} cannot pick up any more red apples. Agent already has enough red apples")
 
-    def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple, train_on_losing_red_apples: bool) -> RedApple: # Define the type of current_judge as a string
+    def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple, use_losing_red_apples: bool) -> RedApple: # Define the type of current_judge as a string
         """
         Choose a red apple from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict["Agent", RedApple]]) -> dict["Agent", RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red apples submitted by the other agents (when the agent is the judge).
         """
@@ -144,7 +145,7 @@ class HumanAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, train_on_losing_red_apples: bool) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, use_losing_red_apples: bool) -> RedApple:
         # Check if the agent is a judge
         if self._judge_status:
             logging.error(f"{self._name} is the judge.")
@@ -179,7 +180,7 @@ class HumanAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> dict[Agent, RedApple]:
         # Check if the agent is a judge
         if not self._judge_status:
             logging.error(f"{self._name} is not the judge.")
@@ -187,11 +188,11 @@ class HumanAgent(Agent):
 
         # Display the red apples submitted by the other agents
         print("Red cards submitted by the other agents:")
-        for i, red_apple in enumerate(opponent_red_apples):
+        for i, red_apple in enumerate(apples_in_play.red_apples):
             print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]]}")
 
         # Prompt the agent to choose a red apple
-        red_apple_len = len(opponent_red_apples)
+        red_apple_len = len(apples_in_play.red_apples)
         red_apple_index = input(f"Choose a winning red apple (1 - {red_apple_len}): ")
 
         # Validate the input
@@ -203,7 +204,8 @@ class HumanAgent(Agent):
         red_apple_index = int(red_apple_index) - 1
 
         # Remove the red apple from the agent's hand
-        winning_red_apple = opponent_red_apples.pop(red_apple_index)
+        # TODO - verify that the pop is doing what it is supposed to do
+        winning_red_apple = apples_in_play.red_apples.pop(red_apple_index)
 
         return winning_red_apple
 
@@ -215,7 +217,7 @@ class RandomAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, train_on_losing_red_apples: bool) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, use_losing_red_apples: bool) -> RedApple:
         # Check if the agent is a judge
         if self._judge_status:
             logging.error(f"{self._name} is the judge.")
@@ -230,14 +232,14 @@ class RandomAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> dict[Agent, RedApple]:
         # Check if the agent is a judge
         if not self._judge_status:
             logging.error(f"{self._name} is not the judge.")
             raise ValueError(f"{self._name} is not the judge.")
 
         # Choose a random winning red apple
-        winning_red_apple = random.choice(opponent_red_apples)
+        winning_red_apple = random.choice(apples_in_play.red_apples)
 
         return winning_red_apple
 
@@ -283,14 +285,14 @@ class AIAgent(Agent):
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def train_opponent_judge_model(self, current_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], train_on_extra_vectors: bool, train_on_losing_red_apples: bool) -> None:
+    def train_opponent_judge_model(self, current_judge: Agent, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple], use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
         """
         Train the AI opponent model for the current judge, given the new green and red apples.
         """
         # Train the AI models with the new green card, red apple, and judge
         for agent in self.__opponents:
             if agent is current_judge:
-                self.__opponent_ml_models[agent].train_model(green_apple, winning_red_apple, losing_red_apples, train_on_extra_vectors, train_on_losing_red_apples)
+                self.__opponent_ml_models[agent].train_model(green_apple, winning_red_apple, losing_red_apples, use_extra_vectors, use_losing_red_apples)
                 logging.debug(f"Trained {self.get_name()}'s opponent model '{agent.get_name()}' with the new green card, red apple, and judge.")
 
     def reset_opponent_models(self) -> None:
@@ -305,14 +307,14 @@ class AIAgent(Agent):
             print_and_log(f"Reset {opponent.get_name()}'s model.")
             logging.debug(f"Reset {opponent.get_name()}'s model.")
 
-    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, train_on_losing_red_apples: bool) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, use_losing_red_apples: bool) -> RedApple:
         # Check if the agent is a judge
         if self._judge_status:
             logging.error(f"{self._name} is the judge.")
             raise ValueError(f"{self._name} is the judge.")
 
         # Run the AI model to choose a red apple based on current judge
-        red_apple: RedApple = self.__opponent_ml_models[current_judge].choose_red_apple(green_apple, self._red_apples, train_on_losing_red_apples)
+        red_apple: RedApple = self.__opponent_ml_models[current_judge].choose_red_apple(green_apple, self._red_apples, use_losing_red_apples)
         self._red_apples.remove(red_apple)
 
         # Display the red apple chosen
@@ -321,9 +323,9 @@ class AIAgent(Agent):
 
         return red_apple
 
-    def choose_winning_red_apple(self, green_apple: GreenApple, opponent_red_apples: list[dict[Agent, RedApple]]) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> dict[Agent, RedApple]:
         # Choose a winning red apple
-        winning_red_apple_dict: dict[Agent, RedApple] = self.__self_ml_model.choose_winning_red_apple(green_apple, opponent_red_apples)
+        winning_red_apple_dict: dict[Agent, RedApple] = self.__self_ml_model.choose_winning_red_apple(apples_in_play, use_extra_vectors, use_losing_red_apples)
 
         return winning_red_apple_dict
 

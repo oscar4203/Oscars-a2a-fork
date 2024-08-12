@@ -123,8 +123,8 @@ def main() -> None:
     change_players_between_games = "n"
     cycle_starting_judges = "n"
     reset_models_between_games = "n"
-    train_on_extra_vectors = "n"
-    train_on_losing_red_apples = "n"
+    use_extra_vectors = "n"
+    use_losing_red_apples = "n"
 
     # Prompt the user on whether they want to change players between games
     if not args.training_mode:
@@ -137,27 +137,27 @@ def main() -> None:
     # Prompt the user on whether they want to reset the opponent model vectors between games
     reset_models_between_games = get_user_input_y_or_n("Do you want to reset the opponent models between games? (y/n): ")
 
-    # Prompt the user on whether they want to include the synonym and description vectors as part of the model
-    train_on_extra_vectors = get_user_input_y_or_n("Do you want to include the synonym and description vectors as part of the model training? (y/n): ")
+    # Prompt the user on whether they want to include the synonym and description vectors inthe model
+    use_extra_vectors = get_user_input_y_or_n("Do you want to include the synonym and description vectors in the model training? (y/n): ")
 
-    # Prompt the user on whether they want to include the losing red apples as part of the model training
-    train_on_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples as part of the model training? (y/n): ")
+    # Prompt the user on whether they want to include the losing red apples in the model training
+    use_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples in the model training? (y/n): ")
 
     # Set the game options
     game.set_game_options(
         change_players_between_games == 'y',
         cycle_starting_judges == 'y',
         reset_models_between_games == 'y',
-        train_on_extra_vectors == 'y',
-        train_on_losing_red_apples == 'y'
+        use_extra_vectors == 'y',
+        use_losing_red_apples == 'y'
     )
 
     # Log the game options
     logging.info(f"Change players between games: {change_players_between_games == 'y'}")
     logging.info(f"Cycle starting judges: {cycle_starting_judges == 'y'}")
     logging.info(f"Reset models between games: {reset_models_between_games == 'y'}")
-    logging.info(f"Train on extra vectors: {train_on_extra_vectors == 'y'}")
-    logging.info(f"Train on losing red apples: {train_on_losing_red_apples == 'y'}")
+    logging.info(f"Train on extra vectors: {use_extra_vectors == 'y'}")
+    logging.info(f"Train on losing red apples: {use_losing_red_apples == 'y'}")
 
     # Start the game, prompt the user for options
     while game.get_game_state().current_game < game.get_game_state().total_games:
