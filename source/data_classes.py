@@ -1,6 +1,7 @@
 # Description: Data classes for the game state and preference updates.
 
 # Standard Libraries
+from typing import TYPE_CHECKING # Type hinting to avoid circular imports
 import logging
 import numpy as np
 from dataclasses import dataclass
@@ -8,14 +9,15 @@ from dataclasses import dataclass
 # Third-party Libraries
 
 # Local Modules
-from source.apples import GreenApple, RedApple
-from source.agent import Agent
+if TYPE_CHECKING:
+    from source.apples import GreenApple, RedApple
+    from source.agent import Agent
 
 
 @dataclass
 class ApplesInPlay:
-    green_apple: dict[Agent, GreenApple] | None
-    red_apples: list[dict[Agent, RedApple]]
+    green_apple: dict["Agent", "GreenApple"] | None
+    red_apples: list[dict["Agent", "RedApple"]]
 
     def __post_init__(self) -> None:
         logging.debug(f"Created ApplesInPlay object: {self}")
@@ -29,20 +31,20 @@ class ApplesInPlay:
             "Red Apples": [{agent.get_name(): red_apple.get_noun() for agent, red_apple in red_apple_dict.items()} for red_apple_dict in self.red_apples]
         }
 
-    def get_green_apple(self) -> GreenApple:
+    def get_green_apple(self) -> "GreenApple":
         if self.green_apple is None:
             raise ValueError("Green apple is not in play.")
         return list(self.green_apple.values())[0]
 
-    def get_red_apples(self) -> list[RedApple]:
+    def get_red_apples(self) -> list["RedApple"]:
         return list(self.red_apples[0].values())
 
 
 @dataclass
 class ChosenApples:
-    green_apple: dict[Agent, GreenApple] | None
-    winning_red_apple: dict[Agent, RedApple] | None
-    losing_red_apples: list[dict[Agent, RedApple]]
+    green_apple: dict["Agent", "GreenApple"] | None
+    winning_red_apple: dict["Agent", "RedApple"] | None
+    losing_red_apples: list[dict["Agent", "RedApple"]]
 
     def __post_init__(self) -> None:
         logging.debug(f"Created ChosenApples object: {self}")
@@ -57,20 +59,20 @@ class ChosenApples:
             "Losing Red Apples": [{agent.get_name(): red_apple.get_noun() for agent, red_apple in red_apple_dict.items()} for red_apple_dict in self.losing_red_apples]
         }
 
-    def get_green_apple(self) -> GreenApple:
+    def get_green_apple(self) -> "GreenApple":
         if self.green_apple is None:
             raise ValueError("Green apple has not been drawn yet.")
         return list(self.green_apple.values())[0]
 
-    def get_winning_red_apple(self) -> RedApple:
+    def get_winning_red_apple(self) -> "RedApple":
         if self.winning_red_apple is None:
             raise ValueError("Winning red apple has not been picked yet.")
         return list(self.winning_red_apple.values())[0]
 
-    def get_losing_red_apples(self) -> list[RedApple]:
+    def get_losing_red_apples(self) -> list["RedApple"]:
         return list(self.losing_red_apples[0].values())
 
-    def get_red_apple_winner(self) -> Agent:
+    def get_red_apple_winner(self) -> "Agent":
         if self.winning_red_apple is None:
             raise ValueError("Winning red apple has not been picked yet.")
         return list(self.winning_red_apple.keys())[0]
@@ -114,7 +116,7 @@ class ChosenAppleVectorsExtra:
 @dataclass
 class GameState:
     number_of_players: int
-    players: list[Agent]
+    players: list["Agent"]
     max_cards_in_hand: int
     points_to_win: int
     total_games: int
@@ -123,9 +125,9 @@ class GameState:
     apples_in_play: ApplesInPlay | None
     chosen_apples: ChosenApples | None
     discard_pile: list[ChosenApples]
-    current_judge: Agent | None
-    round_winner: Agent | None
-    game_winner: Agent | None
+    current_judge: "Agent | None"
+    round_winner: "Agent | None"
+    game_winner: "Agent | None"
 
     def __post_init__(self) -> None:
         logging.debug(f"Created GameState object: {self}")
@@ -200,11 +202,11 @@ class GameState:
 
 @dataclass
 class PreferenceUpdates:
-    agent: Agent
+    agent: "Agent"
     round: int
     datetime: str
-    green_apple: GreenApple
-    winning_red_apple: RedApple
+    green_apple: "GreenApple"
+    winning_red_apple: "RedApple"
     slope: np.ndarray
     bias: np.ndarray
 
