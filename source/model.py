@@ -276,15 +276,16 @@ class Model():
         else:
             y_value = -1
 
-        # Get the number of vectors
-        num_of_vectors = len(x_vectors)
-
         # Create an ndarray filled with y values
-        y_vectors = np.full((num_of_vectors, self._vector_size), y_value)
+        y_vectors = np.full(x_vectors.shape, y_value)
 
-        # Ensure the x and y target arrays have the same number of vectors with the same dimensions
-        assert num_of_vectors == len(y_vectors), "Number of vectors do not match"
-        assert all(x.shape == y.shape for x, y in zip(x_vectors, y_vectors)), "Vector dimensions do not match"
+        logging.debug(f"x_vectors shape: {x_vectors.shape}")
+        logging.debug(f"y_vectors shape: {y_vectors.shape}")
+        logging.debug(f"x_vectors: {x_vectors}")
+        logging.debug(f"y_vectors: {y_vectors}")
+
+        # Ensure the x and y target arrays have the same dimensions
+        assert x_vectors.shape == y_vectors.shape, "Vector dimensions do not match"
 
         return y_vectors
 
@@ -393,6 +394,14 @@ class LRModel(Model):
         Linear regression algorithm for the AI agent.
         \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
         """
+        logging.debug(f"x_vector_array shape: {x_vector_array.shape}")
+        logging.debug(f"y_vector_array shape: {y_vector_array.shape}")
+        # Ensure the x and y target arrays have the same dimensions
+        assert x_vector_array.shape == y_vector_array.shape, "Vector dimensions do not match"
+
+        # Determine the number of vectors
+        n: int = x_vector_array.shape[0]
+
         # Initalize the sum variables
         sumx: np.ndarray = np.zeros(self._vector_size)
         sumx2: np.ndarray = np.zeros(self._vector_size)
@@ -409,11 +418,6 @@ class LRModel(Model):
             sumy2 = np.add(sumy2, np.multiply(y, y))
 
         logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
-
-        # Determine the number of vectors
-        n: int = len(x_vector_array)
-        ny: int = len(y_vector_array)
-        assert n == ny, "Number of x and y vectors do not match"
 
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
@@ -544,7 +548,7 @@ class LRModel(Model):
             logging.debug(f"x_vector: {x_predict}")
 
             # Initialize the winning y_predict vector
-            y_predict = self._initialize_y_vectors(np.array([x_predict]), winning_apple=True)
+            y_predict = self._initialize_y_vectors(np.array(x_predict), winning_apple=True)
             logging.debug(f"y_vector: {y_predict}")
 
             # Use linear regression to predict the preference output
