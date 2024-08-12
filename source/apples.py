@@ -47,7 +47,7 @@ class Apple:
 
     def _calculate_average_vector(self, words: list[str], keyed_vectors: KeyedVectors) -> np.ndarray:
         # Initialize the average vector
-        avg_vector = np.zeros(keyed_vectors.vector_size)
+        avg_vector: np.ndarray = np.empty(keyed_vectors.vector_size)
 
         # Iterate through the words
         for word in words:
