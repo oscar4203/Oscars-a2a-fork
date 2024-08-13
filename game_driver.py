@@ -38,7 +38,9 @@ class GameDriver:
 
     def load_keyed_vectors(self, use_custom_loader: bool) -> None:
         # if use_custom_loader:
-        #     print_and_log("Loading keyed vectors using custom loader...")
+        #     message = "Loading keyed vectors using custom loader..."
+        #     print(message)
+        #     logging.info(message)
         #     self.keyed_vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # else:
             message = "Loading keyed vectors..."

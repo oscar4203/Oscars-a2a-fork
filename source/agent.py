@@ -88,8 +88,9 @@ class Agent:
             raise ValueError(f"{self._name} is the judge.")
 
         # Display the green card drawn
-        from source.game_logger import print_and_log
-        print_and_log(f"{self._name} drew the green card '{self._green_apple}'.")
+        message = f"{self._name} drew the green card '{self._green_apple}'."
+        print(message)
+        logging.info(message)
 
         return self._green_apple
 
@@ -98,7 +99,6 @@ class Agent:
         Draw red apples from the deck, ensuring the agent has enough red apples.
         The vectors are set as soon as the new red apples are drawn.
         """
-        from source.game_logger import print_and_log
         # Calculate the number of red apples to pick up
         diff = cards_in_hand - len(self._red_apples)
         if diff > 0:
@@ -118,11 +118,17 @@ class Agent:
                 # Append the red apple to the agent's hand
                 self._red_apples.append(new_red_apple)
             if diff == 1:
-                print_and_log(f"{self._name} picked up 1 red apple.")
+                message = f"{self._name} picked up 1 red apple."
+                print(message)
+                logging.info(message)
             else:
-                print_and_log(f"{self._name} picked up {diff} red apples.")
+                message = f"{self._name} picked up {diff} red apples."
+                print(message)
+                logging.info(message)
         else:
-            print_and_log(f"{self._name} cannot pick up any more red apples. Agent already has enough red apples")
+            message = f"{self._name} cannot pick up any more red apples. Agent already has enough red apples."
+            print(message)
+            logging.info(message)
 
     def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
         """
@@ -306,13 +312,13 @@ class AIAgent(Agent):
         """
         Reset the opponent models to the default archetype.
         """
-        from source.game_logger import print_and_log
         # Reset the opponent models
         for opponent in self.__opponents:
             agent_model: Model = self.__opponent_ml_models[opponent]
             agent_model.reset_model()
-            print_and_log(f"Reset {opponent.get_name()}'s model.")
-            logging.debug(f"Reset {opponent.get_name()}'s model.")
+            message = f"Reset {opponent.get_name()}'s model."
+            print(message)
+            logging.info(message)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
         # Check if the agent is a judge
