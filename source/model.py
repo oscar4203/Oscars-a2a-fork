@@ -204,26 +204,29 @@ class Model():
         self._pretrained_vectors = self._load_pretrained_vectors()
         logging.debug(f"Reset the model data and vectors.")
 
-    # def _append_new_winning_losing_apples(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple]) -> None:
-    #     """
-    #     Append the new winning and losing green and red apple pairs.
-    #     """
-    #     # Append the winning apple pair
-    #     winning_apple_pair: dict[GreenApple, RedApple] = {green_apple: winning_red_apple}
-    #     self._winning_apples.append(winning_apple_pair)
-
-    #     # Append the losing apple pairs
-    #     for red_apple in losing_red_apples:
-    #         losing_apple_pair: dict[GreenApple, RedApple] = {green_apple: red_apple}
-    #         self._losing_apples.append(losing_apple_pair)
+    def _normalize_vector(self, vector: np.ndarray) -> np.ndarray:
+        """
+        Normalize the input vector.
+        """
+        norm = np.linalg.norm(vector)
+        if norm != 0:
+            vector = vector / norm
+        return vector
 
     def _calculate_x_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
         """
         Calculate and return x vector, which is the product of the green and red apple vectors.
         """
+        logging.debug(f"green_apple_vector: {green_apple_vector}")
+        logging.debug(f"red_apple_vector: {red_apple_vector}")
         # Calculate the x vector (product of green and red vectors)
         x_vector: np.ndarray = np.multiply(green_apple_vector, red_apple_vector)
         logging.debug(f"x_vector: {x_vector}")
+
+        # Normalize the x vector
+        x_vector = self._normalize_vector(x_vector)
+        logging.debug(f"Normalized x_vector: {x_vector}")
+
         return x_vector
 
     def _calculate_x_vector_from_apples(self, green_apple: GreenApple, red_apple: RedApple, use_extra_vectors: bool) -> np.ndarray:
@@ -231,28 +234,27 @@ class Model():
         Calculate and return the new x vector, which is the product of the green and red apple vectors.
         """
         # Get the green and red apple vectors
-        green_vector: np.ndarray | None = green_apple.get_adjective_vector()
-        red_vector: np.ndarray | None = red_apple.get_noun_vector()
+        green_apple_vector: np.ndarray | None = green_apple.get_adjective_vector()
+        red_apple_vector: np.ndarray | None = red_apple.get_noun_vector()
 
         # Check that the green vector is not None
-        if green_vector is None:
+        if green_apple_vector is None:
             logging.error(f"Green apple vector is None.")
             raise ValueError("Green apple vector is None.")
 
         # Check that the red vector is not None
-        if red_vector is None:
+        if red_apple_vector is None:
             logging.error(f"Red apple vector is None.")
             raise ValueError("Red apple vector is None.")
 
         # Calculate the x vector (product of green and red vectors)
-        x_vector: np.ndarray = np.multiply(green_vector, red_vector)
-        logging.debug(f"x_vector: {x_vector}")
+        x_vector: np.ndarray = self._calculate_x_vector(green_apple_vector, red_apple_vector)
 
         # Include the extra vectors, if applicable
         if use_extra_vectors:
             # Get the extra vectors
             green_vector_extra: np.ndarray | None = green_apple.get_synonyms_vector()
-            winning_red_vector_extra: np.ndarray | None = red_apple.get_description_vector()
+            red_vector_extra: np.ndarray | None = red_apple.get_description_vector()
 
             # Check that the green extra vector is not None
             if green_vector_extra is None:
@@ -260,16 +262,19 @@ class Model():
                 raise ValueError("Green apple vector is None.")
 
             # Check that the red extra vector is not None
-            if winning_red_vector_extra is None:
+            if red_vector_extra is None:
                 logging.error(f"Red apple vector is None.")
                 raise ValueError("Red apple vector is None.")
 
             # Calculate the extra x vector (product of green and red extra vectors)
-            x_vector_extra: np.ndarray = np.multiply(green_vector_extra, winning_red_vector_extra)
-            logging.debug(f"x_vector_extra: {x_vector_extra}")
+            x_vector_extra: np.ndarray = self._calculate_x_vector(green_vector_extra, red_vector_extra)
 
             # Calculate the average of the x and extra x vectors
             x_vector = np.add(x_vector, x_vector_extra) / 2
+
+        # Normalize the x vector
+        x_vector = self._normalize_vector(x_vector)
+        logging.debug(f"Normalized x_vector: {x_vector}")
 
         return x_vector
 
@@ -314,11 +319,6 @@ class Model():
         # Initialize the winning y_target vectors
         y_target = self._initialize_y_vectors(x_target, winning_apple=True)
 
-
-        logging.debug(f"DEBUG x_target shape: {x_target.shape}")
-        logging.debug(f"DEBUG y_target shape: {y_target.shape}")
-        logging.debug(f"DEBUG x_target: {x_target}")
-        logging.debug(f"DEBUG y_predict: {y_target}")
         # Process the losing apple pairs, if applicable
         if use_losing_red_apples and len(self._pretrained_vectors) > 0:
             for pretrained_apples in self._pretrained_vectors:
@@ -389,21 +389,42 @@ class Model():
         Returns:
         float: The calculated score.
         """
+        logging.debug(f"slope_predict: {slope_predict}")
+        logging.debug(f"bias_predict: {bias_predict}")
+        logging.debug(f"slope_target: {slope_target}")
+        logging.debug(f"bias_target: {bias_target}")
+
+        # Check for NaN values in the vectors
+        if np.isnan(slope_predict).any() or np.isnan(slope_target).any() or \
+        np.isnan(bias_predict).any() or np.isnan(bias_target).any():
+            logging.error("NaN values found in input vectors.")
+            return float('nan')
+
         if use_euclidean:
             # Calculate the Euclidean distance for slope and bias
             euclidean_slope = np.linalg.norm(slope_predict - slope_target)
             euclidean_bias = np.linalg.norm(bias_predict - bias_target)
 
+            logging.debug(f"euclidean_slope: {euclidean_slope}")
+            logging.debug(f"euclidean_bias: {euclidean_bias}")
+
             # Combine the Euclidean distances for slope and bias
             total_distance = euclidean_slope + euclidean_bias
+            logging.debug(f"total_distance: {total_distance}")
+
             return float(total_distance)
         else:
             # Calculate the MSE for slope and bias
             mse_slope = np.mean((slope_predict - slope_target) ** 2)
             mse_bias = np.mean((bias_predict - bias_target) ** 2)
 
+            logging.debug(f"mse_slope: {mse_slope}")
+            logging.debug(f"mse_bias: {mse_bias}")
+
             # Combine the MSE for slope and bias
             mse_total = mse_slope + mse_bias
+            logging.debug(f"mse_total: {mse_total}")
+
             return float(mse_total)
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay, use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> dict[Agent, RedApple]:
@@ -431,42 +452,78 @@ class LRModel(Model):
         Linear regression algorithm for the AI agent.
         \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
         """
-        logging.debug(f"x_vector_array shape: {x_vector_array.shape}")
-        logging.debug(f"y_vector_array shape: {y_vector_array.shape}")
+        # Check for NaN and infinite values in the arrays
+        assert not np.any(np.isnan(x_vector_array)), "x_vector_array contains NaNs"
+        assert not np.any(np.isnan(y_vector_array)), "y_vector_array contains NaNs"
+        assert not np.any(np.isinf(x_vector_array)), "x_vector_array contains infinite values"
+        assert not np.any(np.isinf(y_vector_array)), "y_vector_array contains infinite values"
+
         # Ensure the x and y target arrays have the same dimensions
         assert x_vector_array.shape == y_vector_array.shape, "Vector dimensions do not match"
 
+        # Reshape 1D arrays to 2D arrays
+        if x_vector_array.ndim == 1 and y_vector_array.ndim == 1:
+            logging.debug(f"Reshaping 1D arrays to 2D arrays.")
+            x_vector_array = x_vector_array.reshape(1, -1)
+            y_vector_array = y_vector_array.reshape(1, -1)
+            logging.debug(f"x_vector_array shape: {x_vector_array.shape}")
+            logging.debug(f"y_vector_array shape: {y_vector_array.shape}")
+        elif x_vector_array.ndim == 2 and y_vector_array.ndim == 2:
+            logging.debug(f"Arrays are already 2D.")
+            logging.debug(f"x_vector_array shape: {x_vector_array.shape}")
+            logging.debug(f"y_vector_array shape: {y_vector_array.shape}")
+        else:
+            error_message = f"Invalid dimensions for x and y vectors. x_vector_array.ndim: "\
+                f"{x_vector_array.ndim}, y_vector_array.ndim: {y_vector_array.ndim}. "\
+                f"Only 1D or 2D arrays are supported."
+            logging.error(error_message)
+            raise ValueError(error_message)
+
+        # Initalize the sum variables to zero
+        sumx: np.ndarray = np.zeros(self._vector_size)
+        sumx2: np.ndarray = np.zeros(self._vector_size)
+        sumxy: np.ndarray = np.zeros(self._vector_size)
+        sumy: np.ndarray = np.zeros(self._vector_size)
+        sumy2: np.ndarray = np.zeros(self._vector_size)
+
         # Determine the number of vectors
         n: int = x_vector_array.shape[0]
+        logging.debug(f"n: {n}")
 
-        # Initalize the sum variables
-        sumx: np.ndarray = np.empty(self._vector_size)
-        sumx2: np.ndarray = np.empty(self._vector_size)
-        sumxy: np.ndarray = np.empty(self._vector_size)
-        sumy: np.ndarray = np.empty(self._vector_size)
-        sumy2: np.ndarray = np.empty(self._vector_size)
-
-        # Calculate the sums for the x and y vectors
-        for x, y in zip(x_vector_array, y_vector_array):
-            sumx = np.add(sumx, x)
-            sumx2 = np.add(sumx2, np.multiply(x, x))
-            sumxy = np.add(sumxy, np.multiply(x, y))
-            sumy = np.add(sumy, y)
-            sumy2 = np.add(sumy2, np.multiply(y, y))
+        # Iterate over each vector and sum the values
+        for x_vector, y_vector in zip(x_vector_array, y_vector_array):
+            sumx = np.add(sumx, x_vector)
+            sumx2 = np.add(sumx2, np.multiply(x_vector, x_vector))
+            sumxy = np.add(sumxy, np.multiply(x_vector, y_vector))
+            sumy = np.add(sumy, y_vector)
+            sumy2 = np.add(sumy2, np.multiply(y_vector, y_vector))
 
         logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
+
+        # Check for NaN and infinite values in the sums
+        assert not np.any(np.isnan(sumx)), "sumx contains NaNs"
+        assert not np.any(np.isnan(sumx2)), "sumx2 contains NaNs"
+        assert not np.any(np.isnan(sumxy)), "sumxy contains NaNs"
+        assert not np.any(np.isnan(sumy)), "sumy contains NaNs"
+        assert not np.any(np.isnan(sumy2)), "sumy2 contains NaNs"
+        assert not np.any(np.isinf(sumx)), "sumx contains infinite values"
+        assert not np.any(np.isinf(sumx2)), "sumx2 contains infinite values"
+        assert not np.any(np.isinf(sumxy)), "sumxy contains infinite values"
+        assert not np.any(np.isinf(sumy)), "sumy contains infinite values"
+        assert not np.any(np.isinf(sumy2)), "sumy2 contains infinite values"
 
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
         logging.debug(f"denoms: {denoms}")
 
-        # Initialize the slope and intercept elements to zero
-        m: np.ndarray = np.empty(self._vector_size)
-        b: np.ndarray = np.empty(self._vector_size)
+        # Check for NaN and infinite values in the demons
+        assert not np.any(np.isnan(denoms)), "denoms contains NaNs"
+        assert not np.any(np.isinf(denoms)), "denoms contains infinite values"
 
-        logging.debug(f"Initial slope: {m}")
-        logging.debug(f"Initial intercept: {b}")
+        # Initialize the slope and intercept elements to zero
+        m: np.ndarray = np.zeros(self._vector_size)
+        b: np.ndarray = np.zeros(self._vector_size)
 
         # Calculate the slopes and intercepts
         for i, denom in enumerate(denoms):
@@ -476,8 +533,8 @@ class LRModel(Model):
             m[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
             b[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
 
-        logging.debug(f"Final slope: {m}")
-        logging.debug(f"Final intercept: {b}")
+        logging.debug(f"slope: {m}")
+        logging.debug(f"intercept: {b}")
 
         return m, b
 
