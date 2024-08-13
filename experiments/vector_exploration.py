@@ -88,7 +88,7 @@ class Tone:
                     raise ValueError("Not all vectors have the same shape")
 
         # Initialize the average vector
-        self.avg_vector = np.zeros(first_vector.shape)
+        self.avg_vector = np.empty(first_vector.shape)
 
         # Calculate the average vector for all the words in the tone
         for word in self.words:
