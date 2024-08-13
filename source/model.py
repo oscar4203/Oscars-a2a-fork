@@ -426,7 +426,6 @@ class LRModel(Model):
 
         # Determine the number of vectors
         n: int = x_vector_array.shape[0]
-        logging.debug(f"x_vector_array.shape: {x_vector_array.shape}")
 
         # Initalize the sum variables
         sumx: np.ndarray = np.empty(self._vector_size)
@@ -448,7 +447,7 @@ class LRModel(Model):
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
-        logging.debug(f"Denominators: {denoms}")
+        logging.debug(f"denoms: {denoms}")
 
         # Initialize the slope and intercept elements to zero
         m: np.ndarray = np.empty(self._vector_size)
