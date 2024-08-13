@@ -215,12 +215,12 @@ class Model():
         """
         # Calculate the x vector (product of green and red vectors)
         x_vector: np.ndarray = np.multiply(green_apple_vector, red_apple_vector)
-        logging.debug(f"New winning apple pair vector: {x_vector}")
+        logging.debug(f"x_vector: {x_vector}")
         return x_vector
 
     def _calculate_x_vector_from_apples(self, green_apple: GreenApple, red_apple: RedApple, use_extra_vectors: bool) -> np.ndarray:
         """
-        Calculate and return the new winning x vector, which is the product of the green and red apple vectors.
+        Calculate and return the new x vector, which is the product of the green and red apple vectors.
         """
         # Get the green and red apple vectors
         green_vector: np.ndarray | None = green_apple.get_adjective_vector()
@@ -238,7 +238,7 @@ class Model():
 
         # Calculate the x vector (product of green and red vectors)
         x_vector: np.ndarray = np.multiply(green_vector, red_vector)
-        logging.debug(f"New winning apple pair vector: {x_vector}")
+        logging.debug(f"x_vector: {x_vector}")
 
         # Include the extra vectors, if applicable
         if use_extra_vectors:
@@ -258,7 +258,7 @@ class Model():
 
             # Calculate the extra x vector (product of green and red extra vectors)
             x_vector_extra: np.ndarray = np.multiply(green_vector_extra, winning_red_vector_extra)
-            logging.debug(f"New winning apple pair extra vector: {x_vector_extra}")
+            logging.debug(f"x_vector_extra: {x_vector_extra}")
 
             # Calculate the average of the x and extra x vectors
             x_vector = np.add(x_vector, x_vector_extra) / 2

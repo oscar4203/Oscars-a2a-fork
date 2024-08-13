@@ -11,7 +11,7 @@ from gensim.models import KeyedVectors
 # Local Modules
 from source.w2vloader import VectorsW2V
 from source.apples_to_apples import ApplesToApples
-from source.game_logger import configure_logging, print_and_log
+from source.game_logger import configure_logging
 from source.data_analysis import main as data_analysis_main
 from source.data_classes import GameState
 
@@ -41,7 +41,9 @@ class GameDriver:
         #     print_and_log("Loading keyed vectors using custom loader...")
         #     self.keyed_vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
         # else:
-            print_and_log("Loading keyed vectors...")
+            message = "Loading keyed vectors..."
+            print(message)
+            logging.info(message)
             self.keyed_vectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
 
 

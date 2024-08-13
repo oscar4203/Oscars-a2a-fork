@@ -47,13 +47,6 @@ def configure_logging(debug_mode: bool) -> None:
     )
 
 
-def print_and_log(message: str) -> None:
-    print(message)
-    # Remove any leading newline characters
-    message = message.lstrip("\n")
-    logging.info(message)
-
-
 def format_players_string(players: list[Agent]) -> str:
     # Initialize the abbreviations lists
     ai_abbrev_list = []
