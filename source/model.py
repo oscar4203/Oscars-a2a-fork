@@ -8,7 +8,8 @@ from typing import Callable
 
 # Third-party Libraries
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3' # Suppress TensorFlow logging
-import keras.api._v2.keras as keras
+from tensorflow import keras
+#import keras.api._v2.keras as keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, LeakyReLU, ELU
 from keras.layers import Dropout, BatchNormalization
@@ -310,7 +311,7 @@ class Model():
         y_target = self._initialize_y_vectors(x_target, winning_apple=True)
 
         # Process the losing apple pairs, if applicable
-        if use_losing_red_apples:
+        if use_losing_red_apples and len(self._pretrained_vectors) > 0:
             for pretrained_apples in self._pretrained_vectors:
                 for losing_red_apple in pretrained_apples.losing_red_apple_vectors:
                     # Calculate the x vectors for the losing apple pairs
@@ -402,6 +403,8 @@ class LRModel(Model):
         logging.debug(f"x_vector_array shape: {x_vector_array.shape}")
         logging.debug(f"y_vector_array shape: {y_vector_array.shape}")
         # Ensure the x and y target arrays have the same dimensions
+        print(f"x_vector_array shape: {x_vector_array.shape}")
+        print(f"y_vector_array shape: {y_vector_array.shape}")
         assert x_vector_array.shape == y_vector_array.shape, "Vector dimensions do not match"
 
         # Determine the number of vectors
