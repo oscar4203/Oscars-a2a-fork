@@ -1,6 +1,7 @@
 # Description: Green and Red 'Apple' cards.
 
 # Standard Libraries
+import logging
 import random
 import csv
 import numpy as np
@@ -45,9 +46,22 @@ class Apple:
     def _split_text(self, text: str) -> list[str]:
         return text.split("_")
 
+    def _normalize_vector(self, vector: np.ndarray) -> np.ndarray:
+        """
+        Normalize the input vector.
+        """
+        norm = np.linalg.norm(vector)
+        if norm != 0:
+            vector = vector / norm
+        return vector
+
     def _calculate_average_vector(self, words: list[str], keyed_vectors: KeyedVectors) -> np.ndarray:
-        # Initialize the average vector
-        avg_vector: np.ndarray = np.empty(keyed_vectors.vector_size)
+        """
+        Calculate the average vector for the input list of words
+        """
+        logging.debug(f"words: {words}")
+        # Initialize the average vector to zeros
+        avg_vector: np.ndarray = np.zeros(keyed_vectors.vector_size)
 
         # Iterate through the words
         for word in words:
@@ -61,11 +75,16 @@ class Apple:
                     # Add the vector of the word to the average vector
                     avg_vector += keyed_vectors[word.lower()]
                 except KeyError:
-                    from source.game_logger import logging
                     logging.info(f"The word '{word}' was not found in the keyed_vectors.")
 
         # Divide the average vector by the number of words
-        avg_vector /= len(words)
+        if len(words) > 0:
+            avg_vector /= len(words)
+        logging.debug(f"avg_vector: {avg_vector}")
+
+        # Normalize the average vector
+        avg_vector = self._normalize_vector(avg_vector)
+        logging.debug(f"Normalized avg_vector: {avg_vector}")
 
         return avg_vector
 
