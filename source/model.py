@@ -204,26 +204,16 @@ class Model():
         self._pretrained_vectors = self._load_pretrained_vectors()
         logging.debug(f"Reset the model data and vectors.")
 
-    # def _append_new_winning_losing_apples(self, green_apple: GreenApple, winning_red_apple: RedApple, losing_red_apples: list[RedApple]) -> None:
-    #     """
-    #     Append the new winning and losing green and red apple pairs.
-    #     """
-    #     # Append the winning apple pair
-    #     winning_apple_pair: dict[GreenApple, RedApple] = {green_apple: winning_red_apple}
-    #     self._winning_apples.append(winning_apple_pair)
-
-    #     # Append the losing apple pairs
-    #     for red_apple in losing_red_apples:
-    #         losing_apple_pair: dict[GreenApple, RedApple] = {green_apple: red_apple}
-    #         self._losing_apples.append(losing_apple_pair)
-
     def _calculate_x_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
         """
         Calculate and return x vector, which is the product of the green and red apple vectors.
         """
+        logging.debug(f"green_apple_vector: {green_apple_vector}")
+        logging.debug(f"red_apple_vector: {red_apple_vector}")
         # Calculate the x vector (product of green and red vectors)
         x_vector: np.ndarray = np.multiply(green_apple_vector, red_apple_vector)
         logging.debug(f"x_vector: {x_vector}")
+
         return x_vector
 
     def _calculate_x_vector_from_apples(self, green_apple: GreenApple, red_apple: RedApple, use_extra_vectors: bool) -> np.ndarray:
@@ -231,28 +221,27 @@ class Model():
         Calculate and return the new x vector, which is the product of the green and red apple vectors.
         """
         # Get the green and red apple vectors
-        green_vector: np.ndarray | None = green_apple.get_adjective_vector()
-        red_vector: np.ndarray | None = red_apple.get_noun_vector()
+        green_apple_vector: np.ndarray | None = green_apple.get_adjective_vector()
+        red_apple_vector: np.ndarray | None = red_apple.get_noun_vector()
 
         # Check that the green vector is not None
-        if green_vector is None:
+        if green_apple_vector is None:
             logging.error(f"Green apple vector is None.")
             raise ValueError("Green apple vector is None.")
 
         # Check that the red vector is not None
-        if red_vector is None:
+        if red_apple_vector is None:
             logging.error(f"Red apple vector is None.")
             raise ValueError("Red apple vector is None.")
 
         # Calculate the x vector (product of green and red vectors)
-        x_vector: np.ndarray = np.multiply(green_vector, red_vector)
-        logging.debug(f"x_vector: {x_vector}")
+        x_vector: np.ndarray = self._calculate_x_vector(green_apple_vector, red_apple_vector)
 
         # Include the extra vectors, if applicable
         if use_extra_vectors:
             # Get the extra vectors
             green_vector_extra: np.ndarray | None = green_apple.get_synonyms_vector()
-            winning_red_vector_extra: np.ndarray | None = red_apple.get_description_vector()
+            red_vector_extra: np.ndarray | None = red_apple.get_description_vector()
 
             # Check that the green extra vector is not None
             if green_vector_extra is None:
@@ -260,13 +249,12 @@ class Model():
                 raise ValueError("Green apple vector is None.")
 
             # Check that the red extra vector is not None
-            if winning_red_vector_extra is None:
+            if red_vector_extra is None:
                 logging.error(f"Red apple vector is None.")
                 raise ValueError("Red apple vector is None.")
 
             # Calculate the extra x vector (product of green and red extra vectors)
-            x_vector_extra: np.ndarray = np.multiply(green_vector_extra, winning_red_vector_extra)
-            logging.debug(f"x_vector_extra: {x_vector_extra}")
+            x_vector_extra: np.ndarray = self._calculate_x_vector(green_vector_extra, red_vector_extra)
 
             # Calculate the average of the x and extra x vectors
             x_vector = np.add(x_vector, x_vector_extra) / 2
@@ -314,11 +302,6 @@ class Model():
         # Initialize the winning y_target vectors
         y_target = self._initialize_y_vectors(x_target, winning_apple=True)
 
-
-        logging.debug(f"DEBUG x_target shape: {x_target.shape}")
-        logging.debug(f"DEBUG y_target shape: {y_target.shape}")
-        logging.debug(f"DEBUG x_target: {x_target}")
-        logging.debug(f"DEBUG y_predict: {y_target}")
         # Process the losing apple pairs, if applicable
         if use_losing_red_apples and len(self._pretrained_vectors) > 0:
             for pretrained_apples in self._pretrained_vectors:
@@ -436,8 +419,10 @@ class LRModel(Model):
         # Ensure the x and y target arrays have the same dimensions
         assert x_vector_array.shape == y_vector_array.shape, "Vector dimensions do not match"
 
-        # Determine the number of vectors
-        n: int = x_vector_array.shape[0]
+        logging.debug(f"x_vector_array.ndim: {x_vector_array.ndim}")
+        logging.debug(f"y_vector_array.ndim: {y_vector_array.ndim}")
+        # Ensure the x and y target arrays have the same dimensions
+        assert x_vector_array.ndim == y_vector_array.ndim, "Vector dimensions do not match"
 
         # Initalize the sum variables
         sumx: np.ndarray = np.empty(self._vector_size)
@@ -446,14 +431,32 @@ class LRModel(Model):
         sumy: np.ndarray = np.empty(self._vector_size)
         sumy2: np.ndarray = np.empty(self._vector_size)
 
-        # Calculate the sums for the x and y vectors
-        for x, y in zip(x_vector_array, y_vector_array):
-            sumx = np.add(sumx, x)
-            sumx2 = np.add(sumx2, np.multiply(x, x))
-            sumxy = np.add(sumxy, np.multiply(x, y))
-            sumy = np.add(sumy, y)
-            sumy2 = np.add(sumy2, np.multiply(y, y))
+        # Check if the arrays are 1-dimensional or 2-dimensional
+        if x_vector_array.ndim == 1 and y_vector_array.ndim == 1:
+            # Determine the number of vectors
+            n: int = x_vector_array.ndim
+            # Assign the final values directly
+            sumx = x_vector_array
+            sumx2 = np.multiply(x_vector_array, x_vector_array)
+            sumxy = np.multiply(x_vector_array, y_vector_array)
+            sumy = y_vector_array
+            sumy2 = np.multiply(y_vector_array, y_vector_array)
+        elif x_vector_array.ndim == 2 and y_vector_array.ndim == 2:
+            # Determine the number of vectors
+            n: int = x_vector_array.shape[0]
+            # Iterate over each vector and sum the values
+            for x_vector, y_vector in zip(x_vector_array, y_vector_array):
+                sumx = np.add(sumx, x_vector)
+                sumx2 = np.add(sumx2, np.multiply(x_vector, x_vector))
+                sumxy = np.add(sumxy, np.multiply(x_vector, y_vector))
+                sumy = np.add(sumy, y_vector)
+                sumy2 = np.add(sumy2, np.multiply(y_vector, y_vector))
+        else:
+            error_message = f"Invalid dimensions for x and y vectors. x_vector_array.ndim: {x_vector_array.ndim}, y_vector_array.ndim: {y_vector_array.ndim}. Only 1D or 2D arrays are supported."
+            logging.error(error_message)
+            raise ValueError(error_message)
 
+        logging.debug(f"n: {n}")
         logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
 
         # Calculate the denominators
