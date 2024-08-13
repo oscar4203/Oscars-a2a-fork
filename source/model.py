@@ -304,7 +304,6 @@ class Model():
         # Extract the target winning apple vectors
         green_apple_target: np.ndarray = np.empty(self._vector_size)
         red_apple_target: np.ndarray = np.empty(self._vector_size)
-        logging.debug(f"self._pretrained_vectors: {self._pretrained_vectors}")
         for pretrained_apples in self._pretrained_vectors:
             green_apple_target = np.vstack([green_apple_target, pretrained_apples.green_apple_vector])
             red_apple_target = np.vstack([red_apple_target, pretrained_apples.winning_red_apple_vector])
@@ -315,13 +314,17 @@ class Model():
         # Initialize the winning y_target vectors
         y_target = self._initialize_y_vectors(x_target, winning_apple=True)
 
+
+        logging.debug(f"DEBUG x_target shape: {x_target.shape}")
+        logging.debug(f"DEBUG y_target shape: {y_target.shape}")
+        logging.debug(f"DEBUG x_target: {x_target}")
+        logging.debug(f"DEBUG y_predict: {y_target}")
         # Process the losing apple pairs, if applicable
-        if use_losing_red_apples:
+        if use_losing_red_apples and len(self._pretrained_vectors) > 0:
             for pretrained_apples in self._pretrained_vectors:
                 for losing_red_apple in pretrained_apples.losing_red_apple_vectors:
                     # Calculate the x vectors for the losing apple pairs
                     x_target = np.vstack([x_target, self._calculate_x_vector(pretrained_apples.green_apple_vector, losing_red_apple)])
-            # Initialize the losing y_target vectors
             y_target = np.vstack([y_target, self._initialize_y_vectors(x_target, winning_apple=False)])
 
         # Use linear regression or neural network function to calculate the target slope and bias vectors
@@ -579,11 +582,11 @@ class LRModel(Model):
         for red_apple in red_apples_in_hand:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple, use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Use linear regression to predict the preference output
             self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
@@ -653,11 +656,11 @@ class LRModel(Model):
         for red_apple in apples_in_play.red_apples:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), list(red_apple.values())[0], use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
@@ -861,11 +864,11 @@ class NNModel(Model):
         for red_apple in red_apples_in_hand:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple, use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Use forward propogation to predict the preference output
             self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
@@ -924,11 +927,11 @@ class NNModel(Model):
         for red_apple in apples_in_play.red_apples:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), list(red_apple.values())[0], use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
