@@ -37,6 +37,10 @@ class Model():
         self._pretrained_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = self._load_pretrained_vectors()
         logging.debug(f"self._pretrained_vectors: {self._pretrained_vectors}")
 
+         # Initialize predicted slope vector and bias vectors
+        self._slope_predict: np.ndarray = np.empty(self._vector_size)
+        self._bias_predict: np.ndarray = np.empty(self._vector_size)
+
         # Learning attributes
         self._y_target: np.ndarray = np.empty(self._vector_size) # Target score for the model
         self._learning_rate = 0.01  # Learning rate for updates
@@ -349,6 +353,11 @@ class Model():
         """
         raise NotImplementedError("Subclass must implement the 'train_model' method")
 
+    def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Get the current slope and bias vectors.
+        """
+        return self._slope_predict, self._bias_predict
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
         """
@@ -577,16 +586,16 @@ class LRModel(Model):
             logging.debug(f"y_vector: {y_predict}")
 
             # Use linear regression to predict the preference output
-            slope_predict, bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -662,16 +671,16 @@ class LRModel(Model):
                 y_predict = np.vstack([y_predict, self._initialize_y_vectors(x_predict, winning_apple=False)])
 
             # Use linear regression to predict the preference output
-            slope_predict, bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -859,16 +868,16 @@ class NNModel(Model):
             logging.debug(f"y_vector: {y_predict}")
 
             # Use forward propogation to predict the preference output
-            slope_predict, bias_predict = self.__forward_propagation(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -932,16 +941,16 @@ class NNModel(Model):
                 y_predict = np.vstack([y_predict, self._initialize_y_vectors(x_predict, winning_apple=False)])
 
             # Use linear regression to predict the preference output
-            slope_predict, bias_predict = self.__forward_propagation(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use

@@ -11,12 +11,8 @@ from source.w2vloader import VectorsW2V
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import Model, model_type_mapping
-from source.game_logger import format_naming_scheme, \
-                            log_gameplay, log_winner, log_training, \
-                            LOGGING_BASE_DIRECTORY
-# from source.game_logger import format_naming_scheme, \
-#                             log_vectors, log_gameplay, log_winner, log_training, \
-#                             LOGGING_BASE_DIRECTORY
+from source.game_logger import format_naming_scheme, LOGGING_BASE_DIRECTORY, \
+                            log_vectors, log_gameplay, log_winner, log_training
 from source.data_classes import GameState, ApplesInPlay, ChosenApples
 
 
@@ -455,9 +451,8 @@ class ApplesToApples:
                                 logging.error("The opponent judge model is None.")
                                 raise ValueError("The opponent judge model is None.")
 
-                            # TODO - refactor the log_vectors data and function???
-                            # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
-                            # log_vectors(self.__game_state, player, current_slope, current_bias, True)
+                            current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
+                            log_vectors(self.__game_state, player, current_slope, current_bias, True)
                 else:
                     # In non-training mode, train only if the player is not the current judge
                     if player != self.__game_state.current_judge:
@@ -476,9 +471,8 @@ class ApplesToApples:
                             logging.error("The opponent judge model is None.")
                             raise ValueError("The opponent judge model is None.")
 
-                        # TODO - refactor the log_vectors data and function???
-                        # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
-                        # log_vectors(self.__game_state, player, current_slope, current_bias, True)
+                        current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
+                        log_vectors(self.__game_state, player, current_slope, current_bias, True)
 
     def __reset_opponent_models(self) -> None:
         # TODO - check if need to skip for training mode
