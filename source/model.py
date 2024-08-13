@@ -26,7 +26,7 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool = False) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agents/"
         self._judge: Agent = judge # The judge to be modeled
@@ -63,91 +63,38 @@ class Model():
 
         return filepath
 
-    def _save_chosen_apple_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool = False) -> None:
+    def _ensure_directory_exists(self, directory: str) -> None:
         """
-        Load the pretrained vectors from the .npz file.
-        The vectors include: green apple vectors, winning red apple vectors, and losing red apple vectors.
+        Ensure the directory exists, create it if it doesn't.
         """
-        # Ensure the base directory exists
         try:
-            if not os.path.exists(self._vector_base_directory):
-                os.makedirs(self._vector_base_directory, exist_ok=True)
-                logging.info(f"Created vector directory: {self._vector_base_directory}")
+            if not os.path.exists(directory):
+                os.makedirs(directory, exist_ok=True)
+                logging.info(f"Created directory: {directory}")
             else:
-                logging.info(f"Directory already exists: {self._vector_base_directory}")
+                logging.info(f"Directory already exists: {directory}")
         except OSError as e:
-            logging.error(f"Error creating vector directory: {e}")
+            logging.error(f"Error creating directory: {e}")
 
-        # Ensure the tmp directory exists, if not in training mode
-        if not self._training_mode:
-            tmp_directory = self._vector_base_directory + "tmp/"
-            try:
-                if not os.path.exists(tmp_directory):
-                    os.makedirs(tmp_directory, exist_ok=True)
-                    logging.info(f"Created tmp directory: {tmp_directory}")
-                else:
-                    logging.info(f"Tmp directory already exists: {tmp_directory}")
-            except OSError as e:
-                logging.error(f"Error creating tmp directory: {e}")
-
-        # Define the file path for the pretrained vectors
-        filepath = self._format_vector_filepath(use_extra_vectors)
-
-        # Load the vectors from the pretrained model
-        try:
-            # If the file exists, load the previous pretrained vectors
-            if os.path.exists(filepath):
-                existing_pretrained_vectors = self._load_pretrained_vectors()
-                existing_pretrained_vectors.extend(chosen_apple_vectors) # Keep the order between the existing and new vectors
-                chosen_apple_vectors = existing_pretrained_vectors
-
-            # Create a dictionary to store each ChosenAppleVectors object
-            data_dict: dict[str, np.ndarray] = {}
-            if use_extra_vectors:
-                for i, item in enumerate(chosen_apple_vectors):
-                    # Verify the item is a ChosenAppleVectorsExtra object
-                    if not isinstance(item, ChosenAppleVectorsExtra):
-                        logging.error(f"Item is not a ChosenAppleVectorsExtra object.")
-                        raise ValueError("Item is not a ChosenAppleVectorsExtra object.")
-                    data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
-                    data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
-                    data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
-                    data_dict[f'green_apple_vector_extra_{i}'] = item.green_apple_vector_extra
-                    data_dict[f'winning_red_apple_vector_extra_{i}'] = item.winning_red_apple_vector_extra
-                    data_dict[f'losing_red_apple_vectors_extra_{i}'] = item.losing_red_apple_vectors_extra
-            else:
-                for i, item in enumerate(chosen_apple_vectors):
-                    # Verify the item is a ChosenAppleVectors object
-                    if not isinstance(item, ChosenAppleVectors):
-                        logging.error(f"Item is not a ChosenAppleVectors object.")
-                        raise ValueError("Item is not a ChosenAppleVectors object.")
-                    data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
-                    data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
-                    data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
-
-            # Save to .npz file
-            np.savez(filepath, **data_dict)
-            logging.info(f"Saved vectors to {filepath}")
-        # Handle any errors that occur
-        except OSError as e:
-            logging.error(f"Error saving vectors: {e}")
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
+    def _file_exists(self, filepath: str) -> bool:
+        """
+        Check if a file exists.
+        """
+        if os.path.isfile(filepath):
+            logging.info(f"File exists: {filepath}")
+            return True
+        else:
+            logging.warning(f"File does not exist: {filepath}")
+            return False
 
     def _load_pretrained_vectors(self, use_extra_vectors: bool = False) -> list[ChosenAppleVectors | ChosenAppleVectorsExtra]:
         # Ensure the base directory exists
-        try:
-            if not os.path.exists(self._vector_base_directory):
-                os.makedirs(self._vector_base_directory, exist_ok=True)
-                logging.info(f"Created vector directory: {self._vector_base_directory}")
-            else:
-                logging.info(f"Directory already exists: {self._vector_base_directory}")
-        except OSError as e:
-            logging.error(f"Error creating vector directory: {e}")
+        self._ensure_directory_exists(self._vector_base_directory)
 
         # Define the file path for the pretrained vectors
         filepath = self._format_vector_filepath(use_extra_vectors)
 
+        # Load the pretrained vectors from the .npz file
         try:
             loaded_data = np.load(filepath)
             data = []
@@ -187,6 +134,62 @@ class Model():
             data = []
 
         return data
+
+    def _save_chosen_apple_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool = False) -> None:
+        """
+        Load the pretrained vectors from the .npz file.
+        The vectors include: green apple vectors, winning red apple vectors, and losing red apple vectors.
+        """
+        # Ensure the base directory exists
+        self._ensure_directory_exists(self._vector_base_directory)
+
+        # Ensure the tmp directory exists, if not in training mode
+        if not self._training_mode:
+            self._ensure_directory_exists(self._vector_base_directory + "tmp/")
+
+        # Define the file path for the pretrained vectors
+        filepath = self._format_vector_filepath(use_extra_vectors)
+
+        # Load the vectors from the pretrained model
+        try:
+            # If the file exists, load the previous pretrained vectors
+            if self._file_exists(filepath):
+                existing_pretrained_vectors = self._load_pretrained_vectors()
+                existing_pretrained_vectors.extend(chosen_apple_vectors) # Keep the order between the existing and new vectors
+                chosen_apple_vectors = existing_pretrained_vectors
+
+            # Create a dictionary to store each ChosenAppleVectors object
+            data_dict: dict[str, np.ndarray] = {}
+            if use_extra_vectors:
+                for i, item in enumerate(chosen_apple_vectors):
+                    # Verify the item is a ChosenAppleVectorsExtra object
+                    if not isinstance(item, ChosenAppleVectorsExtra):
+                        logging.error(f"Item is not a ChosenAppleVectorsExtra object.")
+                        raise ValueError("Item is not a ChosenAppleVectorsExtra object.")
+                    data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
+                    data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
+                    data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
+                    data_dict[f'green_apple_vector_extra_{i}'] = item.green_apple_vector_extra
+                    data_dict[f'winning_red_apple_vector_extra_{i}'] = item.winning_red_apple_vector_extra
+                    data_dict[f'losing_red_apple_vectors_extra_{i}'] = item.losing_red_apple_vectors_extra
+            else:
+                for i, item in enumerate(chosen_apple_vectors):
+                    # Verify the item is a ChosenAppleVectors object
+                    if not isinstance(item, ChosenAppleVectors):
+                        logging.error(f"Item is not a ChosenAppleVectors object.")
+                        raise ValueError("Item is not a ChosenAppleVectors object.")
+                    data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
+                    data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
+                    data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
+
+            # Save to .npz file
+            np.savez(filepath, **data_dict)
+            logging.info(f"Saved vectors to {filepath}")
+        # Handle any errors that occur
+        except OSError as e:
+            logging.error(f"Error saving vectors: {e}")
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
 
     def reset_model(self) -> None:
         """
