@@ -3,6 +3,7 @@
 # Standard Libraries
 import logging
 import random
+import numpy as np
 
 # Third-party Libraries
 from gensim.models import KeyedVectors
@@ -307,6 +308,12 @@ class AIAgent(Agent):
             if agent is current_judge:
                 self.__opponent_ml_models[agent].train_model(chosen_apples, use_extra_vectors, use_losing_red_apples)
                 logging.debug(f"Trained {self.get_name()}'s opponent model '{agent.get_name()}' with the new green card, red apple, and judge.")
+
+    def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Get the current slope and bias vectors for the AI self model.
+        """
+        return self.__self_ml_model.get_current_slope_and_bias_vectors()
 
     def reset_opponent_models(self) -> None:
         """

@@ -29,13 +29,18 @@ class Model():
     """
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool = False) -> None:
         # Initialize the model attributes
-        self._vector_base_directory = "./agents/"
+        self._vector_base_directory = "./agent_archetypes/"
         self._judge: Agent = judge # The judge to be modeled
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._training_mode: bool = training_mode
         self._chosen_apples: list[ChosenApples] = []
         self._pretrained_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = self._load_pretrained_vectors()
+        logging.debug(f"self._pretrained_vectors: {self._pretrained_vectors}")
+
+         # Initialize predicted slope vector and bias vectors
+        self._slope_predict: np.ndarray = np.empty(self._vector_size)
+        self._bias_predict: np.ndarray = np.empty(self._vector_size)
 
         # Learning attributes
         self._y_target: np.ndarray = np.empty(self._vector_size) # Target score for the model
@@ -310,17 +315,39 @@ class Model():
         # Initialize the winning y_target vectors
         y_target = self._initialize_y_vectors(x_target, winning_apple=True)
 
+
+        logging.debug(f"DEBUG x_target shape: {x_target.shape}")
+        logging.debug(f"DEBUG y_target shape: {y_target.shape}")
+        logging.debug(f"DEBUG x_target: {x_target}")
+        logging.debug(f"DEBUG y_predict: {y_target}")
         # Process the losing apple pairs, if applicable
         if use_losing_red_apples and len(self._pretrained_vectors) > 0:
             for pretrained_apples in self._pretrained_vectors:
                 for losing_red_apple in pretrained_apples.losing_red_apple_vectors:
                     # Calculate the x vectors for the losing apple pairs
                     x_target = np.vstack([x_target, self._calculate_x_vector(pretrained_apples.green_apple_vector, losing_red_apple)])
-            # Initialize the losing y_target vectors
             y_target = np.vstack([y_target, self._initialize_y_vectors(x_target, winning_apple=False)])
 
         # Use linear regression or neural network function to calculate the target slope and bias vectors
         slope_target, bias_target = model_function(x_target, y_target)
+
+        # Check if all elements in the slope_target are NaN
+        all_nan = np.all(np.isnan(slope_target))
+
+        # If all elements in the array are NaN, initialize the target slope to zero
+        if all_nan:
+            logging.debug("All elements in the slope_target are NaN.")
+            slope_target = np.zeros(self._vector_size)
+            logging.debug("Initialized the target slope and bias vectors to zero.")
+
+        # Check if all elements in the bias_target are NaN
+        all_nan = np.all(np.isnan(bias_target))
+
+        # If all elements in the array are NaN, initialize the target bias to zero
+        if all_nan:
+            logging.debug("All elements in the bias_target are NaN.")
+            bias_target = np.zeros(self._vector_size)
+            logging.debug("Initialized the target slope and bias vectors to zero.")
 
         return slope_target, bias_target
 
@@ -330,6 +357,11 @@ class Model():
         """
         raise NotImplementedError("Subclass must implement the 'train_model' method")
 
+    def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Get the current slope and bias vectors.
+        """
+        return self._slope_predict, self._bias_predict
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
         """
@@ -430,7 +462,7 @@ class LRModel(Model):
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
-        logging.debug(f"Denominators: {denoms}")
+        logging.debug(f"denoms: {denoms}")
 
         # Initialize the slope and intercept elements to zero
         m: np.ndarray = np.empty(self._vector_size)
@@ -553,23 +585,23 @@ class LRModel(Model):
         for red_apple in red_apples_in_hand:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple, use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Use linear regression to predict the preference output
-            slope_predict, bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -627,11 +659,11 @@ class LRModel(Model):
         for red_apple in apples_in_play.red_apples:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), list(red_apple.values())[0], use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
@@ -645,16 +677,16 @@ class LRModel(Model):
                 y_predict = np.vstack([y_predict, self._initialize_y_vectors(x_predict, winning_apple=False)])
 
             # Use linear regression to predict the preference output
-            slope_predict, bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -835,23 +867,23 @@ class NNModel(Model):
         for red_apple in red_apples_in_hand:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple, use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Use forward propogation to predict the preference output
-            slope_predict, bias_predict = self.__forward_propagation(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -898,11 +930,11 @@ class NNModel(Model):
         for red_apple in apples_in_play.red_apples:
             # Calculate the winning x_predict vector
             x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), list(red_apple.values())[0], use_extra_vectors)
-            logging.debug(f"x_vector: {x_predict}")
+            logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
             y_predict = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_vector: {y_predict}")
+            logging.debug(f"y_predict: {y_predict}")
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
@@ -915,16 +947,16 @@ class NNModel(Model):
                 y_predict = np.vstack([y_predict, self._initialize_y_vectors(x_predict, winning_apple=False)])
 
             # Use linear regression to predict the preference output
-            slope_predict, bias_predict = self.__forward_propagation(x_predict, y_predict)
-            logging.debug(f"slope_predict: {slope_predict}")
-            logging.debug(f"bias_predict: {bias_predict}")
+            self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
+            logging.debug(f"self._slope_predict: {self._slope_predict}")
+            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(slope_predict, bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
