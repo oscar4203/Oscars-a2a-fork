@@ -28,13 +28,14 @@ class Model():
     """
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool = False) -> None:
         # Initialize the model attributes
-        self._vector_base_directory = "./agents/"
+        self._vector_base_directory = "./agent_archetypes/"
         self._judge: Agent = judge # The judge to be modeled
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._training_mode: bool = training_mode
         self._chosen_apples: list[ChosenApples] = []
         self._pretrained_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = self._load_pretrained_vectors()
+        logging.debug(f"self._pretrained_vectors: {self._pretrained_vectors}")
 
         # Learning attributes
         self._y_target: np.ndarray = np.empty(self._vector_size) # Target score for the model
@@ -299,6 +300,7 @@ class Model():
         # Extract the target winning apple vectors
         green_apple_target: np.ndarray = np.empty(self._vector_size)
         red_apple_target: np.ndarray = np.empty(self._vector_size)
+        logging.debug(f"self._pretrained_vectors: {self._pretrained_vectors}")
         for pretrained_apples in self._pretrained_vectors:
             green_apple_target = np.vstack([green_apple_target, pretrained_apples.green_apple_vector])
             red_apple_target = np.vstack([red_apple_target, pretrained_apples.winning_red_apple_vector])
@@ -320,6 +322,24 @@ class Model():
 
         # Use linear regression or neural network function to calculate the target slope and bias vectors
         slope_target, bias_target = model_function(x_target, y_target)
+
+        # Check if all elements in the slope_target are NaN
+        all_nan = np.all(np.isnan(slope_target))
+
+        # If all elements in the array are NaN, initialize the target slope to zero
+        if all_nan:
+            logging.debug("All elements in the slope_target are NaN.")
+            slope_target = np.zeros(self._vector_size)
+            logging.debug("Initialized the target slope and bias vectors to zero.")
+
+        # Check if all elements in the bias_target are NaN
+        all_nan = np.all(np.isnan(bias_target))
+
+        # If all elements in the array are NaN, initialize the target bias to zero
+        if all_nan:
+            logging.debug("All elements in the bias_target are NaN.")
+            bias_target = np.zeros(self._vector_size)
+            logging.debug("Initialized the target slope and bias vectors to zero.")
 
         return slope_target, bias_target
 
@@ -406,6 +426,7 @@ class LRModel(Model):
 
         # Determine the number of vectors
         n: int = x_vector_array.shape[0]
+        logging.debug(f"x_vector_array.shape: {x_vector_array.shape}")
 
         # Initalize the sum variables
         sumx: np.ndarray = np.empty(self._vector_size)

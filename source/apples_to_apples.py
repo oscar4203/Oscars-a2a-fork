@@ -504,6 +504,8 @@ class ApplesToApples:
             message = f"\n{self.__game_state.current_judge.get_name()}, please select the winning red apple."
             print(message)
             logging.info(message)
+
+            # Determine the winning red apple
             self.__game_state.chosen_apples.winning_red_apple = self.__game_state.current_judge.choose_winning_red_apple(
                 self.__game_state.apples_in_play, self.__use_extra_vectors, self.__use_losing_red_apples)
 
