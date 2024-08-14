@@ -303,17 +303,38 @@ class AIAgent(Agent):
         """
         # Train the AI models with the new green card, red apple, and judge
         self.__self_ml_model.train_model(chosen_apples, use_extra_vectors, use_losing_red_apples)
-        logging.debug(f"Trained {self.get_name()}'s self model with the new green card, red apple, and judge.")
+
+        # Extract the apples for logging
+        green_apple: GreenApple = chosen_apples.get_green_apple()
+        winning_red_apple: RedApple = chosen_apples.get_winning_red_apple()
+        losing_red_apples: list[RedApple] = chosen_apples.get_losing_red_apples()
+
+        # Configure the logging message
+        message = f"Trained {self.get_name()}'s self model. Green apple '{green_apple}'. Winning red apple '{winning_red_apple}'."
+        if losing_red_apples:
+            message += f" Losing red apples: {losing_red_apples}."
+        logging.debug(message)
 
     def train_opponent_judge_model(self, current_judge: Agent, chosen_apples: ChosenApples, use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
         """
         Train the AI opponent model for the current judge, given the new green and red apples.
         """
-        # Train the AI models with the new green card, red apple, and judge
+        # Check if the agent is a judge
         for agent in self.__opponents:
             if agent is current_judge:
+                # Train the AI models with the new green card, red apple, and judge
                 self.__opponent_ml_models[agent].train_model(chosen_apples, use_extra_vectors, use_losing_red_apples)
-                logging.debug(f"Trained {self.get_name()}'s opponent model '{agent.get_name()}' with the new green card, red apple, and judge.")
+
+                # Extract the apples for logging
+                green_apple: GreenApple = chosen_apples.get_green_apple()
+                winning_red_apple: RedApple = chosen_apples.get_winning_red_apple()
+                losing_red_apples: list[RedApple] = chosen_apples.get_losing_red_apples()
+
+                # Configure the logging message
+                message = f"Trained {self.get_name()}'s opponent model '{agent.get_name()}'. Green apple '{green_apple}'. Winning red apple '{winning_red_apple}'."
+                if losing_red_apples:
+                    message += f" Losing red apples: {losing_red_apples}."
+                logging.debug(message)
 
     def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
         """

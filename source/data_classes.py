@@ -70,7 +70,11 @@ class ChosenApples:
         return list(self.winning_red_apple.values())[0]
 
     def get_losing_red_apples(self) -> list["RedApple"]:
-        return list(self.losing_red_apples[0].values())
+        red_apple_list: list["RedApple"] = []
+        for losing_red_apple_dict in self.losing_red_apples:
+            for red_apple in losing_red_apple_dict.values():
+                red_apple_list.append(red_apple)
+        return red_apple_list
 
     def get_red_apple_winner(self) -> "Agent":
         if self.winning_red_apple is None:

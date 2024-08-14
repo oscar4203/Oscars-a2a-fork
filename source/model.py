@@ -704,23 +704,22 @@ class LRModel(Model):
         # Collect the new chosen apple vectors
         chosen_apple_vectors: ChosenAppleVectors | ChosenAppleVectorsExtra = self._collect_chosen_apple_vectors(chosen_apples, use_extra_vectors)
 
-        # Append the chosen apple vectors to the list
+        # Append and save the chosen apple vectors, then calculate the slope and bias vectors
         if self._training_mode:
+            # Append the chosen apple vectors to the list
             self._pretrained_vectors.append(chosen_apple_vectors)
-        else:
-            self._model_vectors.append(chosen_apple_vectors)
-
-        # Save the chosen apple vectors to .npz file
-        if self._training_mode:
+            # Save the chosen apple vectors to .npz file
             self._save_chosen_apple_vectors(self._pretrained_vectors, use_extra_vectors)
-        else:
-            self._save_chosen_apple_vectors(self._model_vectors, use_extra_vectors)
-
-        # Extract and update the slope and bias vectors, either target or predict
-        if self._training_mode:
+            # Extract and update the slope and bias vectors
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression, use_losing_red_apples)
         else:
+            # Append the chosen apple vectors to the list
+            self._model_vectors.append(chosen_apple_vectors)
+            # Save the chosen apple vectors to .npz file
+            self._save_chosen_apple_vectors(self._model_vectors, use_extra_vectors)
+            # Extract and update the slope and bias vectors
             self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._model_vectors, self.__linear_regression, use_losing_red_apples)
+
         logging.info(f"Trained the model using the chosen apple vectors.")
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
@@ -927,23 +926,22 @@ class NNModel(Model):
         # Collect the new chosen apple vectors
         chosen_apple_vectors: ChosenAppleVectors | ChosenAppleVectorsExtra = self._collect_chosen_apple_vectors(chosen_apples, use_extra_vectors)
 
-        # Append the chosen apple vectors to the list
+        # Append and save the chosen apple vectors, then calculate the slope and bias vectors
         if self._training_mode:
+            # Append the chosen apple vectors to the list
             self._pretrained_vectors.append(chosen_apple_vectors)
-        else:
-            self._model_vectors.append(chosen_apple_vectors)
-
-        # Save the chosen apple vectors to .npz file
-        if self._training_mode:
+            # Save the chosen apple vectors to .npz file
             self._save_chosen_apple_vectors(self._pretrained_vectors, use_extra_vectors)
-        else:
-            self._save_chosen_apple_vectors(self._model_vectors, use_extra_vectors)
-
-        # Extract and update the slope and bias vectors, either target or predict
-        if self._training_mode:
+            # Extract and update the slope and bias vectors
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation, use_losing_red_apples)
         else:
+            # Append the chosen apple vectors to the list
+            self._model_vectors.append(chosen_apple_vectors)
+            # Save the chosen apple vectors to .npz file
+            self._save_chosen_apple_vectors(self._model_vectors, use_extra_vectors)
+            # Extract and update the slope and bias vectors
             self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._model_vectors, self.__forward_propagation, use_losing_red_apples)
+
         logging.info(f"Trained the model using the chosen apple vectors.")
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
