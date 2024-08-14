@@ -295,9 +295,6 @@ class Model():
             logging.error(f"Winning red apple vector is None.")
             raise ValueError("Winning red apple vector is None.")
 
-        # Initialize the losing red apple vectors
-        losing_red_apple_vectors: np.ndarray = np.zeros((0, self._vector_size))
-
         # Initialize the extra vectors if applicable
         if use_extra_vectors:
             # Extract the extra green apple vector
@@ -314,24 +311,30 @@ class Model():
                 logging.error(f"Winning red apple vector is None.")
                 raise ValueError("Winning red apple vector is None.")
 
-            # Initialize the extra losing red apple vector
-            losing_red_apple_vectors_extra: np.ndarray = np.zeros((0, self._vector_size))
+        # Initialize the losing red apple vectors and extra vectors
+        losing_red_apple_vectors: np.ndarray = np.zeros((0, self._vector_size))
+        losing_red_apple_vectors_extra: np.ndarray = np.zeros((0, self._vector_size))
 
         # Get the losing red apple vectors and extra vectors if applicable
         for losing_red_apple in chosen_apples.get_losing_red_apples():
-            noun: np.ndarray | None = losing_red_apple.get_noun_vector()
+            noun_vector: np.ndarray | None = losing_red_apple.get_noun_vector()
             # Check that the noun vector is not None
-            if noun is None:
+            if noun_vector is None:
                 logging.error(f"Noun vector is None.")
                 raise ValueError("Noun vector is None.")
-            losing_red_apple_vectors = np.vstack([losing_red_apple_vectors, noun])
+
+            # Append the noun vector to the losing red apple vectors
+            losing_red_apple_vectors: np.ndarray = np.vstack([losing_red_apple_vectors, noun_vector])
+
             if use_extra_vectors:
-                description: np.ndarray | None = losing_red_apple.get_description_vector()
-                # Check that the description vector is not None
-                if description is None:
+                description_vector: np.ndarray | None = losing_red_apple.get_description_vector()
+                # Check that the description_vector vector is not None
+                if description_vector is None:
                     logging.error(f"Description vector is None.")
                     raise ValueError("Description vector is None.")
-                losing_red_apple_vectors_extra = np.vstack([losing_red_apple_vectors_extra, description])
+
+                # Append the description vector to the losing red apple vectors
+                losing_red_apple_vectors_extra: np.ndarray = np.vstack([losing_red_apple_vectors_extra, description_vector])
 
         # Create the chosen apple vectors
         if use_extra_vectors:
@@ -921,84 +924,27 @@ class NNModel(Model):
         # Append the new chosen apples
         self._chosen_apples.append(chosen_apples)
 
-        # Extract the chosen green apple vector
-        green_apple_vector: np.ndarray | None = chosen_apples.get_green_apple().get_adjective_vector()
-        # Check that the green apple vector is not None
-        if green_apple_vector is None:
-            logging.error(f"Green apple vector is None.")
-            raise ValueError("Green apple vector is None.")
+        # Collect the new chosen apple vectors
+        chosen_apple_vectors: ChosenAppleVectors | ChosenAppleVectorsExtra = self._collect_chosen_apple_vectors(chosen_apples, use_extra_vectors)
 
-        # Extract the winning red apple vector
-        winning_red_apple_vector: np.ndarray | None = chosen_apples.get_winning_red_apple().get_noun_vector()
-        # Check that the winning red apple vector is not None
-        if winning_red_apple_vector is None:
-            logging.error(f"Winning red apple vector is None.")
-            raise ValueError("Winning red apple vector is None.")
-
-        # Initialize the losing red apple vectors
-        losing_red_apple_vectors: np.ndarray = np.zeros((0, self._vector_size))
-
-        # Initialize the extra vectors if applicable
-        if use_extra_vectors:
-            # Extract the extra green apple vector
-            green_apple_vector_extra: np.ndarray | None = chosen_apples.get_green_apple().get_synonyms_vector()
-            # Check that the green apple vector is not None
-            if green_apple_vector_extra is None:
-                logging.error(f"Green apple vector is None.")
-                raise ValueError("Green apple vector is None.")
-
-            # Extract the extra winning red apple vector
-            winning_red_apple_vector_extra: np.ndarray | None = chosen_apples.get_winning_red_apple().get_description_vector()
-            # Check that the winning red apple vector is not None
-            if winning_red_apple_vector_extra is None:
-                logging.error(f"Winning red apple vector is None.")
-                raise ValueError("Winning red apple vector is None.")
-
-            # Initialize the extra losing red apple vector
-            losing_red_apple_vectors_extra: np.ndarray = np.zeros((0, self._vector_size))
-
-        # Get the losing red apple vectors and extra vectors if applicable
-        for losing_red_apple in chosen_apples.get_losing_red_apples():
-            noun: np.ndarray | None = losing_red_apple.get_noun_vector()
-            # Check that the noun vector is not None
-            if noun is None:
-                logging.error(f"Noun vector is None.")
-                raise ValueError("Noun vector is None.")
-            losing_red_apple_vectors = np.vstack([losing_red_apple_vectors, noun])
-            if use_extra_vectors:
-                description: np.ndarray | None = losing_red_apple.get_description_vector()
-                # Check that the description vector is not None
-                if description is None:
-                    logging.error(f"Description vector is None.")
-                    raise ValueError("Description vector is None.")
-                losing_red_apple_vectors_extra = np.vstack([losing_red_apple_vectors_extra, description])
-
-        # Create the chosen apple vectors
-        if use_extra_vectors:
-            chosen_apple_vectors_extra: ChosenAppleVectorsExtra = ChosenAppleVectorsExtra(
-                green_apple_vector=green_apple_vector,
-                winning_red_apple_vector=winning_red_apple_vector,
-                losing_red_apple_vectors=losing_red_apple_vectors,
-                green_apple_vector_extra=green_apple_vector_extra,
-                winning_red_apple_vector_extra=winning_red_apple_vector_extra,
-                losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
-            )
+        # Append the chosen apple vectors to the list
+        if self._training_mode:
+            self._pretrained_vectors.append(chosen_apple_vectors)
         else:
-            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
-                green_apple_vector=green_apple_vector,
-                winning_red_apple_vector=winning_red_apple_vector,
-                losing_red_apple_vectors=losing_red_apple_vectors
-            )
+            self._model_vectors.append(chosen_apple_vectors)
 
         # Save the chosen apple vectors to .npz file
-        if use_extra_vectors:
-            self._save_chosen_apple_vectors([chosen_apple_vectors_extra], use_extra_vectors)
+        if self._training_mode:
+            self._save_chosen_apple_vectors(self._pretrained_vectors, use_extra_vectors)
         else:
-            self._save_chosen_apple_vectors([chosen_apple_vectors], use_extra_vectors)
-        logging.info(f"Trained the model using the chosen apple vectors.")
+            self._save_chosen_apple_vectors(self._model_vectors, use_extra_vectors)
 
-        # Extract and update the self._slope_target and self._bias_target vectors
-        self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation, use_losing_red_apples)
+        # Extract and update the slope and bias vectors, either target or predict
+        if self._training_mode:
+            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation, use_losing_red_apples)
+        else:
+            self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._model_vectors, self.__forward_propagation, use_losing_red_apples)
+        logging.info(f"Trained the model using the chosen apple vectors.")
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
         """
