@@ -262,10 +262,12 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, training_mode: bool) -> None:
+    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(name)
         self.__ml_model_type: LRModel | NNModel = ml_model_type
         self.__pretrained_archetype: str = pretrained_archetype
+        self.__use_extra_vectors: bool = use_extra_vectors
+        self.__use_losing_red_apples: bool = use_losing_red_apples
         self.__training_mode: bool = training_mode
 
     def get_opponent_model(self, agent_as_key: Agent) -> Model | None:
@@ -289,11 +291,11 @@ class AIAgent(Agent):
 
         # Initialize the self and opponent ml models
         if self.__ml_model_type is LRModel:
-            self.__self_ml_model: Model = LRModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = LRModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
         elif self.__ml_model_type is NNModel:
-            self.__self_ml_model: Model = NNModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = NNModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 

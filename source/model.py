@@ -27,13 +27,14 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, training_mode: bool = False) -> None:
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agent_archetypes/"
         self._judge: Agent = judge # The judge to be modeled
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._use_extra_vectors: bool = use_extra_vectors
+        self._use_losing_red_apples: bool = use_losing_red_apples
         self._training_mode: bool = training_mode
         self._chosen_apples: list[ChosenApples] = []
 
@@ -130,8 +131,6 @@ class Model():
 
             # Determine the number of ChosenAppleVectors objects
             num_objects = len([key for key in loaded_data.keys() if pattern.match(key)])
-            if use_extra_vectors:
-                num_objects //= 2 # Divide by 2 to account for the extra vectors
             logging.debug(f"num_objects: {num_objects}")
 
             # Load the vectors from the .npz file
@@ -554,8 +553,8 @@ class LRModel(Model):
     """
     Linear Regression model for the AI agent.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
-        super().__init__(judge, vector_size, pretrained_archetype, training_mode)
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
+        super().__init__(judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
         # Initialize the target and predict slope and bias vectors
         self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression, use_losing_red_apples=False)
 
@@ -824,8 +823,8 @@ class NNModel(Model):
     """
     Neural Network model for the AI agent.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
-        super().__init__(judge, vector_size, pretrained_archetype, training_mode)
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
+        super().__init__(judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
         # Initialize the target and predict slope and bias vectors
         self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation, use_losing_red_apples=False)
 

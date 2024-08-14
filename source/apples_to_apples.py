@@ -232,7 +232,7 @@ class ApplesToApples:
 
             # Create a new AI agent
             new_agent_name = f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}"
-            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, True)
+            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, self.__use_extra_vectors, self.__use_losing_red_apples, True)
 
             # Create the human agent
             human_agent = HumanAgent("Human Agent")
@@ -302,7 +302,7 @@ class ApplesToApples:
 
                     # Create the AI agent
                     new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
-                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, False)
+                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors, self.__use_losing_red_apples, False)
 
                 # Append the player object
                 self.__game_state.players.append(new_agent)
