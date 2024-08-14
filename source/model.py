@@ -26,16 +26,20 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool = False) -> None:
+    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, training_mode: bool = False) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agent_archetypes/"
         self._judge: Agent = judge # The judge to be modeled
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
+        self._use_extra_vectors: bool = use_extra_vectors
         self._training_mode: bool = training_mode
         self._chosen_apples: list[ChosenApples] = []
-        self._pretrained_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = self._load_pretrained_vectors()
-        logging.debug(f"self._pretrained_vectors: {self._pretrained_vectors}")
+
+        # Load the pretrained vectors and initialize the model vectors
+        self._pretrained_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = \
+            self._load_vectors(self._format_vector_filepath(self._use_extra_vectors, tmp_vectors=False), self._use_extra_vectors)
+        self._model_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = []
 
          # Initialize predicted slope vector and bias vectors
         self._slope_predict: np.ndarray = np.empty(self._vector_size)
@@ -47,26 +51,6 @@ class Model():
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(judge={self._judge.get_name()}"
-
-    def _format_vector_filepath(self, use_extra_vectors: bool = False) -> str:
-        """
-        Format the vector file path.
-        """
-        # Define the file path for the pretrained vectors
-        filepath = f"{self._vector_base_directory}{self._pretrained_archetype}_vectors"
-
-        # Add the extra vectors to the file path, if applicable
-        if use_extra_vectors:
-            filepath += "-extra"
-
-        # If no in training_mode, save the vectors to the tmp directory
-        if not self._training_mode:
-            filepath += "-tmp"
-
-        # Add the file extension
-        filepath += ".npz"
-
-        return filepath
 
     def _ensure_directory_exists(self, directory: str) -> None:
         """
@@ -81,6 +65,39 @@ class Model():
         except OSError as e:
             logging.error(f"Error creating directory: {e}")
 
+    def _format_vector_filepath(self, use_extra_vectors: bool = False, tmp_vectors: bool = False) -> str:
+        """
+        Format the vector file path.
+        """
+        # Configure the directory, either for pretrained vectors or tmp vectors
+        directory = self._vector_base_directory
+        if tmp_vectors:
+            tmp_directory = "tmp/"
+            directory += tmp_directory
+
+        # Ensure the formatted directory exists
+        self._ensure_directory_exists(directory)
+
+        # Define the filename for the vectors
+        filename = f"{self._pretrained_archetype}_vectors"
+
+        # Add the extra vectors to the filename, if applicable
+        if use_extra_vectors:
+            filename += "-extra"
+
+        # If loading and saving tmp vectors, add "-tmp" to the filename
+        if tmp_vectors:
+            filename += "-tmp"
+
+        # Add the file extension
+        filename += ".npz"
+
+        # Combine the directory and filename
+        filepath = os.path.join(directory, filename)
+        logging.debug(f"formatted filepath: {filepath}")
+
+        return filepath
+
     def _file_exists(self, filepath: str) -> bool:
         """
         Check if a file exists.
@@ -92,21 +109,25 @@ class Model():
             logging.warning(f"File does not exist: {filepath}")
             return False
 
-    def _load_pretrained_vectors(self, use_extra_vectors: bool = False) -> list[ChosenAppleVectors | ChosenAppleVectorsExtra]:
-        # Ensure the base directory exists
-        self._ensure_directory_exists(self._vector_base_directory)
+    def _load_vectors(self, filepath: str, use_extra_vectors: bool = False) -> list[ChosenAppleVectors | ChosenAppleVectorsExtra]:
+        """
+        Load the vectors from the .npz file.
+        """
+        # Check if the vectors file exists
+        if not self._file_exists(filepath):
+            logging.info(f"Vector file does not exist: {filepath}")
+            return []
 
-        # Define the file path for the pretrained vectors
-        filepath = self._format_vector_filepath(use_extra_vectors)
-
-        # Load the pretrained vectors from the .npz file
+        # Load the vectors from the .npz file
         try:
             loaded_data = np.load(filepath)
+            logging.debug(f"Loaded data keys: {list(loaded_data.keys())}")
             data = []
 
             # Determine the number of ChosenAppleVectors objects
             num_objects = len([key for key in loaded_data.keys() if key.startswith('green_apple_vector_')])
 
+            # Load the vectors from the .npz file
             if use_extra_vectors:
                 for i in range(num_objects):
                     green_apple_vector = loaded_data[f'green_apple_vector_{i}']
@@ -134,62 +155,69 @@ class Model():
                         losing_red_apple_vectors=losing_red_apple_vectors
                     ))
             logging.info(f"Loaded vectors from {filepath}")
+            logging.debug(f"Loaded 'data'. len(data): {len(data)}")
+            logging.debug(f"'data': {data}")
         except OSError as e:
             logging.error(f"Error loading vectors: {e}")
-            data = []
+            data = [] # Return an empty list if an error occurs
 
         return data
 
-    def _save_chosen_apple_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool = False) -> None:
+    def _prepare_data_dict(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool) -> dict[str, np.ndarray]:
         """
-        Load the pretrained vectors from the .npz file.
+        Prepare the data dictionary for saving the chosen apple vectors to a .npz file.
+        """
+        # Create a dictionary to store each ChosenAppleVectors object
+        data_dict: dict[str, np.ndarray] = {}
+        if use_extra_vectors:
+            for i, item in enumerate(chosen_apple_vectors, start=1):
+                # Verify the item is a ChosenAppleVectorsExtra object
+                if not isinstance(item, ChosenAppleVectorsExtra):
+                    logging.error(f"Item is not a ChosenAppleVectorsExtra object.")
+                    raise ValueError("Item is not a ChosenAppleVectorsExtra object.")
+                data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
+                data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
+                data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
+                data_dict[f'green_apple_vector_extra_{i}'] = item.green_apple_vector_extra
+                data_dict[f'winning_red_apple_vector_extra_{i}'] = item.winning_red_apple_vector_extra
+                data_dict[f'losing_red_apple_vectors_extra_{i}'] = item.losing_red_apple_vectors_extra
+        else:
+            for i, item in enumerate(chosen_apple_vectors, start=1):
+                # Verify the item is a ChosenAppleVectors object
+                if not isinstance(item, ChosenAppleVectors):
+                    logging.error(f"Item is not a ChosenAppleVectors object.")
+                    raise ValueError("Item is not a ChosenAppleVectors object.")
+                data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
+                data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
+                data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
+
+        return data_dict
+
+    def _save_chosen_apple_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool = False, training_mode: bool = False) -> None:
+        """
+        Save the chosen apple vectors to a .npz file.
         The vectors include: green apple vectors, winning red apple vectors, and losing red apple vectors.
         """
-        # Ensure the base directory exists
-        self._ensure_directory_exists(self._vector_base_directory)
+        # Define the filepath for the vectors
+        filepath = self._format_vector_filepath(use_extra_vectors, training_mode)
 
-        # Ensure the tmp directory exists, if not in training mode
-        if not self._training_mode:
-            self._ensure_directory_exists(self._vector_base_directory + "tmp/")
-
-        # Define the file path for the pretrained vectors
-        filepath = self._format_vector_filepath(use_extra_vectors)
-
-        # Load the vectors from the pretrained model
         try:
-            # If the file exists, load the previous pretrained vectors
-            if self._file_exists(filepath):
-                existing_pretrained_vectors = self._load_pretrained_vectors()
-                existing_pretrained_vectors.extend(chosen_apple_vectors) # Keep the order between the existing and new vectors
-                chosen_apple_vectors = existing_pretrained_vectors
+            logging.debug(f"existing self._model_vectors: {self._model_vectors}")
+            self._model_vectors.extend(chosen_apple_vectors)
+            logging.debug(f"extended self._model_vectors: {self._model_vectors}")
+        except OSError as e:
+            logging.error(f"Error loading existing vectors: {e}")
 
+        # Save the chosen apple vectors to a .npz file
+        try:
             # Create a dictionary to store each ChosenAppleVectors object
-            data_dict: dict[str, np.ndarray] = {}
-            if use_extra_vectors:
-                for i, item in enumerate(chosen_apple_vectors):
-                    # Verify the item is a ChosenAppleVectorsExtra object
-                    if not isinstance(item, ChosenAppleVectorsExtra):
-                        logging.error(f"Item is not a ChosenAppleVectorsExtra object.")
-                        raise ValueError("Item is not a ChosenAppleVectorsExtra object.")
-                    data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
-                    data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
-                    data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
-                    data_dict[f'green_apple_vector_extra_{i}'] = item.green_apple_vector_extra
-                    data_dict[f'winning_red_apple_vector_extra_{i}'] = item.winning_red_apple_vector_extra
-                    data_dict[f'losing_red_apple_vectors_extra_{i}'] = item.losing_red_apple_vectors_extra
-            else:
-                for i, item in enumerate(chosen_apple_vectors):
-                    # Verify the item is a ChosenAppleVectors object
-                    if not isinstance(item, ChosenAppleVectors):
-                        logging.error(f"Item is not a ChosenAppleVectors object.")
-                        raise ValueError("Item is not a ChosenAppleVectors object.")
-                    data_dict[f'green_apple_vector_{i}'] = item.green_apple_vector
-                    data_dict[f'winning_red_apple_vector_{i}'] = item.winning_red_apple_vector
-                    data_dict[f'losing_red_apple_vectors_{i}'] = item.losing_red_apple_vectors
+            data_dict: dict[str, np.ndarray] = self._prepare_data_dict(chosen_apple_vectors, use_extra_vectors)
 
             # Save to .npz file
             np.savez(filepath, **data_dict)
             logging.info(f"Saved vectors to {filepath}")
+            logging.debug(f"Saved 'data_dict'. len(data_dict): {len(data_dict)}")
+            logging.debug(f"'data_dict': {data_dict}")
         # Handle any errors that occur
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
@@ -198,15 +226,18 @@ class Model():
 
     def reset_model(self) -> None:
         """
-        Reset the model data and vectors.
+        Reload the pretrained vectors and reset the model vectors.
         """
-        # TODO - revisit this, might have to rewrite, perhaps reset with random values?
-        self._pretrained_vectors = self._load_pretrained_vectors()
-        logging.debug(f"Reset the model data and vectors.")
+        # Reload the pretrained vectors
+        self._pretrained_vectors = self._load_vectors(self._format_vector_filepath(self._use_extra_vectors, tmp_vectors=False), self._use_extra_vectors)
+
+        # Reset the model vectors
+        self._model_vectors = []
+        logging.info(f"Reset the pretrained vectors and model vectors..")
 
     def _normalize_vector(self, vector: np.ndarray) -> np.ndarray:
         """
-        Normalize the input vector.
+        Normalize the input vector using L2 (Euclidean Norm).
         """
         norm = np.linalg.norm(vector)
         if norm != 0:
@@ -215,7 +246,8 @@ class Model():
 
     def _calculate_x_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
         """
-        Calculate and return x vector, which is the product of the green and red apple vectors.
+        Calculate the x vector, which is the product of the green and red apple vectors.
+        This method normalizes the x vector before returning it.
         """
         logging.debug(f"green_apple_vector: {green_apple_vector}")
         logging.debug(f"red_apple_vector: {red_apple_vector}")
@@ -309,7 +341,7 @@ class Model():
         # Extract the target winning apple vectors
         green_apple_target: np.ndarray = np.empty(self._vector_size)
         red_apple_target: np.ndarray = np.empty(self._vector_size)
-        for pretrained_apples in self._pretrained_vectors:
+        for pretrained_apples in self._model_vectors:
             green_apple_target = np.vstack([green_apple_target, pretrained_apples.green_apple_vector])
             red_apple_target = np.vstack([red_apple_target, pretrained_apples.winning_red_apple_vector])
 
@@ -320,8 +352,8 @@ class Model():
         y_target = self._initialize_y_vectors(x_target, winning_apple=True)
 
         # Process the losing apple pairs, if applicable
-        if use_losing_red_apples and len(self._pretrained_vectors) > 0:
-            for pretrained_apples in self._pretrained_vectors:
+        if use_losing_red_apples and len(self._model_vectors) > 0:
+            for pretrained_apples in self._model_vectors:
                 for losing_red_apple in pretrained_apples.losing_red_apple_vectors:
                     # Calculate the x vectors for the losing apple pairs
                     x_target = np.vstack([x_target, self._calculate_x_vector(pretrained_apples.green_apple_vector, losing_red_apple)])
@@ -721,7 +753,7 @@ class LRModel(Model):
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
-                for vector in self._pretrained_vectors:
+                for vector in self._model_vectors:
                     for losing_red_apple_vector in vector.losing_red_apple_vectors:
                         for green_apple_vector in green_apple_vectors:
                             # Calculate the x vectors for the losing apple pairs
@@ -992,7 +1024,7 @@ class NNModel(Model):
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
-                for vector in self._pretrained_vectors:
+                for vector in self._model_vectors:
                     for losing_red_apple_vector in vector.losing_red_apple_vectors:
                         # Calculate the x vectors for the losing apple pairs
                         x_predict = np.vstack([x_predict, self._calculate_x_vector(green_apple_vector, losing_red_apple_vector)])

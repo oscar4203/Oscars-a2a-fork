@@ -63,6 +63,12 @@ class Agent:
         """
         self._points = 0
 
+    def reset_red_apples(self) -> None:
+        """
+        Reset the agent's red apples to an empty list.
+        """
+        self._red_apples = []
+
     def draw_green_apple(self, keyed_vectors: KeyedVectors, green_apple_deck: Deck, extra_vectors: bool) -> GreenApple:
         """
         Draw a green card from the deck (when the agent is the judge).
