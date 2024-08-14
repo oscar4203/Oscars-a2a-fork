@@ -1,10 +1,11 @@
 # Description: AI model logic for use in the AI agents in the 'Apples to Apples' game.
 
 # Standard Libraries
-import os
 import logging
+import os
 import numpy as np
 from typing import Callable
+import re
 
 # Third-party Libraries
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3' # Suppress TensorFlow logging
@@ -41,12 +42,12 @@ class Model():
             self._load_vectors(self._format_vector_filepath(self._use_extra_vectors, tmp_vectors=False), self._use_extra_vectors)
         self._model_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = []
 
-         # Initialize predicted slope vector and bias vectors
-        self._slope_predict: np.ndarray = np.empty(self._vector_size)
-        self._bias_predict: np.ndarray = np.empty(self._vector_size)
+         # Initialize target and predict slope and bias vectors
+        self._slope_predict: np.ndarray = np.zeros((0, self._vector_size))
+        self._bias_predict: np.ndarray = np.zeros((0, self._vector_size))
 
         # Learning attributes
-        self._y_target: np.ndarray = np.empty(self._vector_size) # Target score for the model
+        self._y_target: np.ndarray = np.zeros((0, self._vector_size)) # Target score for the model
         self._learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
@@ -124,8 +125,14 @@ class Model():
             logging.debug(f"Loaded data keys: {list(loaded_data.keys())}")
             data = []
 
+            # Compile regex pattern
+            pattern = re.compile(r'green_apple_vector_\d+')
+
             # Determine the number of ChosenAppleVectors objects
-            num_objects = len([key for key in loaded_data.keys() if key.startswith('green_apple_vector_')])
+            num_objects = len([key for key in loaded_data.keys() if pattern.match(key)])
+            if use_extra_vectors:
+                num_objects //= 2 # Divide by 2 to account for the extra vectors
+            logging.debug(f"num_objects: {num_objects}")
 
             # Load the vectors from the .npz file
             if use_extra_vectors:
@@ -157,9 +164,15 @@ class Model():
             logging.info(f"Loaded vectors from {filepath}")
             logging.debug(f"Loaded 'data'. len(data): {len(data)}")
             logging.debug(f"'data': {data}")
-        except OSError as e:
-            logging.error(f"Error loading vectors: {e}")
+        except FileNotFoundError as e:
+            logging.error(f"File not found: {e}")
             data = [] # Return an empty list if an error occurs
+        except KeyError as e:
+            logging.error(f"Key not found: {e}")
+            data = [] # Return an empty list if an error occurs
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
+            data = []
 
         return data
 
@@ -170,7 +183,7 @@ class Model():
         # Create a dictionary to store each ChosenAppleVectors object
         data_dict: dict[str, np.ndarray] = {}
         if use_extra_vectors:
-            for i, item in enumerate(chosen_apple_vectors, start=1):
+            for i, item in enumerate(chosen_apple_vectors):
                 # Verify the item is a ChosenAppleVectorsExtra object
                 if not isinstance(item, ChosenAppleVectorsExtra):
                     logging.error(f"Item is not a ChosenAppleVectorsExtra object.")
@@ -182,7 +195,7 @@ class Model():
                 data_dict[f'winning_red_apple_vector_extra_{i}'] = item.winning_red_apple_vector_extra
                 data_dict[f'losing_red_apple_vectors_extra_{i}'] = item.losing_red_apple_vectors_extra
         else:
-            for i, item in enumerate(chosen_apple_vectors, start=1):
+            for i, item in enumerate(chosen_apple_vectors):
                 # Verify the item is a ChosenAppleVectors object
                 if not isinstance(item, ChosenAppleVectors):
                     logging.error(f"Item is not a ChosenAppleVectors object.")
@@ -201,23 +214,52 @@ class Model():
         # Define the filepath for the vectors
         filepath = self._format_vector_filepath(use_extra_vectors, training_mode)
 
-        try:
-            logging.debug(f"existing self._model_vectors: {self._model_vectors}")
-            self._model_vectors.extend(chosen_apple_vectors)
-            logging.debug(f"extended self._model_vectors: {self._model_vectors}")
-        except OSError as e:
-            logging.error(f"Error loading existing vectors: {e}")
+        # # Load existing data if the file exists
+        # existing_data = {}
+        # if os.path.exists(filepath):
+        #     with np.load(filepath) as data:
+        #         existing_data = dict(data)
+
+        # # Extend the existing vectors with the new vectors
+        # try:
+        #     if training_mode:
+        #         logging.debug(f"existing self._pretrained_vectors len: {len(self._pretrained_vectors)}")
+        #         self._pretrained_vectors.extend(chosen_apple_vectors)
+        #         logging.debug(f"extended self._pretrained_vectors len: {len(self._pretrained_vectors)}")
+        #         existing_vectors = self._pretrained_vectors
+        #     else:
+        #         logging.debug(f"existing self._model_vectors len: {len(self._model_vectors)}")
+        #         self._model_vectors.extend(chosen_apple_vectors)
+        #         logging.debug(f"extended self._model_vectors len: {len(self._model_vectors)}")
+        #         existing_vectors = self._model_vectors
+        # except Exception as e:
+        #     logging.error(f"Error loading existing vectors: {e}")
+
+        # # Create a dictionary to store each ChosenAppleVectors object with unique keys
+        # data_dict = existing_data.copy()
+        # for index, vector in enumerate(existing_vectors):
+        #     vector_dict = self._prepare_data_dict([vector], use_extra_vectors)
+        #     for key, value in vector_dict.items():
+        #         # Generate a unique key using the index directly
+        #         base_key = key.rsplit('_', 1)[0]
+        #         unique_key = f"{base_key}_{index}"
+        #         data_dict[unique_key] = value
+
+        # Create a dictionary to store each ChosenAppleVectors object with unique keys
+        data_dict = {}
+        for index, vector_batch in enumerate(chosen_apple_vectors):
+            vector_dict = self._prepare_data_dict([vector_batch], use_extra_vectors)
+            for key, value in vector_dict.items():
+                # Use the keys generated by _prepare_data_dict directly
+                data_dict[key] = value
 
         # Save the chosen apple vectors to a .npz file
         try:
-            # Create a dictionary to store each ChosenAppleVectors object
-            data_dict: dict[str, np.ndarray] = self._prepare_data_dict(chosen_apple_vectors, use_extra_vectors)
-
             # Save to .npz file
             np.savez(filepath, **data_dict)
             logging.info(f"Saved vectors to {filepath}")
             logging.debug(f"Saved 'data_dict'. len(data_dict): {len(data_dict)}")
-            logging.debug(f"'data_dict': {data_dict}")
+            logging.debug(f"'data_dict.keys()': {data_dict.keys()}")
         # Handle any errors that occur
         except OSError as e:
             logging.error(f"Error saving vectors: {e}")
@@ -234,6 +276,81 @@ class Model():
         # Reset the model vectors
         self._model_vectors = []
         logging.info(f"Reset the pretrained vectors and model vectors..")
+
+    def _collect_chosen_apple_vectors(self, chosen_apples: ChosenApples, use_extra_vectors: bool) -> ChosenAppleVectors | ChosenAppleVectorsExtra:
+        """
+        Collect the chosen apple vectors from the chosen apples object.
+        """
+        # Extract the chosen green apple vector
+        green_apple_vector: np.ndarray | None = chosen_apples.get_green_apple().get_adjective_vector()
+        # Check that the green apple vector is not None
+        if green_apple_vector is None:
+            logging.error(f"Green apple vector is None.")
+            raise ValueError("Green apple vector is None.")
+
+        # Extract the winning red apple vector
+        winning_red_apple_vector: np.ndarray | None = chosen_apples.get_winning_red_apple().get_noun_vector()
+        # Check that the winning red apple vector is not None
+        if winning_red_apple_vector is None:
+            logging.error(f"Winning red apple vector is None.")
+            raise ValueError("Winning red apple vector is None.")
+
+        # Initialize the losing red apple vectors
+        losing_red_apple_vectors: np.ndarray = np.zeros((0, self._vector_size))
+
+        # Initialize the extra vectors if applicable
+        if use_extra_vectors:
+            # Extract the extra green apple vector
+            green_apple_vector_extra: np.ndarray | None = chosen_apples.get_green_apple().get_synonyms_vector()
+            # Check that the green apple vector is not None
+            if green_apple_vector_extra is None:
+                logging.error(f"Green apple vector is None.")
+                raise ValueError("Green apple vector is None.")
+
+            # Extract the extra winning red apple vector
+            winning_red_apple_vector_extra: np.ndarray | None = chosen_apples.get_winning_red_apple().get_description_vector()
+            # Check that the winning red apple vector is not None
+            if winning_red_apple_vector_extra is None:
+                logging.error(f"Winning red apple vector is None.")
+                raise ValueError("Winning red apple vector is None.")
+
+            # Initialize the extra losing red apple vector
+            losing_red_apple_vectors_extra: np.ndarray = np.zeros((0, self._vector_size))
+
+        # Get the losing red apple vectors and extra vectors if applicable
+        for losing_red_apple in chosen_apples.get_losing_red_apples():
+            noun: np.ndarray | None = losing_red_apple.get_noun_vector()
+            # Check that the noun vector is not None
+            if noun is None:
+                logging.error(f"Noun vector is None.")
+                raise ValueError("Noun vector is None.")
+            losing_red_apple_vectors = np.vstack([losing_red_apple_vectors, noun])
+            if use_extra_vectors:
+                description: np.ndarray | None = losing_red_apple.get_description_vector()
+                # Check that the description vector is not None
+                if description is None:
+                    logging.error(f"Description vector is None.")
+                    raise ValueError("Description vector is None.")
+                losing_red_apple_vectors_extra = np.vstack([losing_red_apple_vectors_extra, description])
+
+        # Create the chosen apple vectors
+        if use_extra_vectors:
+            chosen_apple_vectors_extra: ChosenAppleVectorsExtra = ChosenAppleVectorsExtra(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=green_apple_vector_extra,
+                winning_red_apple_vector_extra=winning_red_apple_vector_extra,
+                losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
+            )
+        else:
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors
+            )
+
+        return chosen_apple_vectors_extra if use_extra_vectors else chosen_apple_vectors
 
     def _normalize_vector(self, vector: np.ndarray) -> np.ndarray:
         """
@@ -317,9 +434,9 @@ class Model():
         """
         # Set the y value
         if winning_apple:
-            y_value = 1
+            y_value: int = 1
         else:
-            y_value = -1
+            y_value: int = -1
 
         # Create an ndarray filled with y values
         y_vectors = np.full(x_vectors.shape, y_value)
@@ -334,53 +451,53 @@ class Model():
 
         return y_vectors
 
-    def _extract_pretrained_slope_bias(self, model_function: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]], use_losing_red_apples: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    def _calculate_slope_and_bias_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], model_function: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]], use_losing_red_apples: bool = False) -> tuple[np.ndarray, np.ndarray]:
         """
-        Helper function to extract the x, y, slope, and bias vectors from the pretrained data.
+        Calculate the slope and bias vectors from the pretrained data.
         """
-        # Extract the target winning apple vectors
-        green_apple_target: np.ndarray = np.empty(self._vector_size)
-        red_apple_target: np.ndarray = np.empty(self._vector_size)
-        for pretrained_apples in self._model_vectors:
-            green_apple_target = np.vstack([green_apple_target, pretrained_apples.green_apple_vector])
-            red_apple_target = np.vstack([red_apple_target, pretrained_apples.winning_red_apple_vector])
+        # Extract the winning apple vectors
+        green_apple: np.ndarray = np.zeros((0, self._vector_size))
+        red_apple_target: np.ndarray = np.zeros((0, self._vector_size))
+        for chosen_apple in chosen_apple_vectors:
+            green_apple = np.vstack([green_apple, chosen_apple.green_apple_vector])
+            red_apple_target = np.vstack([red_apple_target, chosen_apple.winning_red_apple_vector])
 
-        # Calculate the winning x_target vectors
-        x_target = self._calculate_x_vector(green_apple_target, red_apple_target)
+        # Calculate the winning x_vectors
+        x_vectors = self._calculate_x_vector(green_apple, red_apple_target)
 
-        # Initialize the winning y_target vectors
-        y_target = self._initialize_y_vectors(x_target, winning_apple=True)
+        # Initialize the winning y_vectors
+        y_vectors = self._initialize_y_vectors(x_vectors, winning_apple=True)
 
         # Process the losing apple pairs, if applicable
-        if use_losing_red_apples and len(self._model_vectors) > 0:
-            for pretrained_apples in self._model_vectors:
-                for losing_red_apple in pretrained_apples.losing_red_apple_vectors:
+        if use_losing_red_apples and len(chosen_apple_vectors) > 0:
+            for chosen_apple in chosen_apple_vectors:
+                for losing_red_apple in chosen_apple.losing_red_apple_vectors:
                     # Calculate the x vectors for the losing apple pairs
-                    x_target = np.vstack([x_target, self._calculate_x_vector(pretrained_apples.green_apple_vector, losing_red_apple)])
-            y_target = np.vstack([y_target, self._initialize_y_vectors(x_target, winning_apple=False)])
+                    x_vectors = np.vstack([x_vectors, self._calculate_x_vector(chosen_apple.green_apple_vector, losing_red_apple)])
+            y_vectors = np.vstack([y_vectors, self._initialize_y_vectors(x_vectors, winning_apple=False)])
 
-        # Use linear regression or neural network function to calculate the target slope and bias vectors
-        slope_target, bias_target = model_function(x_target, y_target)
+        # Use linear regression or neural network function to calculate the slope and bias vectors
+        slope, bias = model_function(x_vectors, y_vectors)
 
-        # Check if all elements in the slope_target are NaN
-        all_nan = np.all(np.isnan(slope_target))
+        # Check if all elements in the slope are NaN
+        all_nan = np.all(np.isnan(slope))
 
-        # If all elements in the array are NaN, initialize the target slope to zero
+        # If all elements in the array are NaN, initialize the slope to zero
         if all_nan:
-            logging.debug("All elements in the slope_target are NaN.")
-            slope_target = np.zeros(self._vector_size)
-            logging.debug("Initialized the target slope and bias vectors to zero.")
+            logging.debug("All elements in the slope are NaN.")
+            slope = np.zeros(self._vector_size)
+            logging.debug("Initialized the slope and bias vectors to zero.")
 
-        # Check if all elements in the bias_target are NaN
-        all_nan = np.all(np.isnan(bias_target))
+        # Check if all elements in the bias are NaN
+        all_nan = np.all(np.isnan(bias))
 
-        # If all elements in the array are NaN, initialize the target bias to zero
+        # If all elements in the array are NaN, initialize the bias to zero
         if all_nan:
-            logging.debug("All elements in the bias_target are NaN.")
-            bias_target = np.zeros(self._vector_size)
-            logging.debug("Initialized the target slope and bias vectors to zero.")
+            logging.debug("All elements in the bias are NaN.")
+            bias = np.zeros(self._vector_size)
+            logging.debug("Initialized the slope and bias vectors to zero.")
 
-        return slope_target, bias_target
+        return slope, bias
 
     def train_model(self, chosen_apples: ChosenApples, use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
         """
@@ -472,6 +589,8 @@ class LRModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
         super().__init__(judge, vector_size, pretrained_archetype, training_mode)
+        # Initialize the target and predict slope and bias vectors
+        self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression, use_losing_red_apples=False)
 
     def __str__(self) -> str:
         return super().__str__()
@@ -481,7 +600,7 @@ class LRModel(Model):
 
     def __linear_regression(self, x_vector_array: np.ndarray, y_vector_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
-        Linear regression algorithm for the AI agent.
+        Linear regression algorithm for the AI agent, which calculates the slope and bias vectors given an x_vector_array and y_vector_array.
         \nEquation: y = mx + b ===>>> where y is the predicted preference output, m is the slope vector, x is the product of green and red apple vectors, and b is the bias vector.
         """
         # Check for NaN and infinite values in the arrays
@@ -491,6 +610,8 @@ class LRModel(Model):
         assert not np.any(np.isinf(y_vector_array)), "y_vector_array contains infinite values"
 
         # Ensure the x and y target arrays have the same dimensions
+        logging.debug(f"x_vector_array shape: {x_vector_array.shape}")
+        logging.debug(f"y_vector_array shape: {y_vector_array.shape}")
         assert x_vector_array.shape == y_vector_array.shape, "Vector dimensions do not match"
 
         # Reshape 1D arrays to 2D arrays
@@ -553,22 +674,22 @@ class LRModel(Model):
         assert not np.any(np.isnan(denoms)), "denoms contains NaNs"
         assert not np.any(np.isinf(denoms)), "denoms contains infinite values"
 
-        # Initialize the slope and intercept elements to zero
-        m: np.ndarray = np.zeros(self._vector_size)
-        b: np.ndarray = np.zeros(self._vector_size)
+        # Initialize the slope and bias elements to zero
+        slope: np.ndarray = np.zeros(self._vector_size)
+        bias: np.ndarray = np.zeros(self._vector_size)
 
-        # Calculate the slopes and intercepts
+        # Calculate the slopes and biases
         for i, denom in enumerate(denoms):
             # Avoid division by zero
             if denom == 0.0:
                 continue
-            m[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
-            b[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
+            slope[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
+            bias[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
 
-        logging.debug(f"slope: {m}")
-        logging.debug(f"intercept: {b}")
+        logging.debug(f"slope: {slope}")
+        logging.debug(f"bias: {bias}")
 
-        return m, b
+        return slope, bias
 
     def train_model(self, chosen_apples: ChosenApples, use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
         """
@@ -577,80 +698,26 @@ class LRModel(Model):
         # Append the new chosen apples
         self._chosen_apples.append(chosen_apples)
 
-        # Extract the chosen green apple vector
-        green_apple_vector: np.ndarray | None = chosen_apples.get_green_apple().get_adjective_vector()
-        # Check that the green apple vector is not None
-        if green_apple_vector is None:
-            logging.error(f"Green apple vector is None.")
-            raise ValueError("Green apple vector is None.")
+        # Collect the new chosen apple vectors
+        chosen_apple_vectors: ChosenAppleVectors | ChosenAppleVectorsExtra = self._collect_chosen_apple_vectors(chosen_apples, use_extra_vectors)
 
-        # Extract the winning red apple vector
-        winning_red_apple_vector: np.ndarray | None = chosen_apples.get_winning_red_apple().get_noun_vector()
-        # Check that the winning red apple vector is not None
-        if winning_red_apple_vector is None:
-            logging.error(f"Winning red apple vector is None.")
-            raise ValueError("Winning red apple vector is None.")
-
-        # Initialize the losing red apple vectors
-        losing_red_apple_vectors: np.ndarray = np.empty(self._vector_size)
-
-        # Initialize the extra vectors if applicable
-        if use_extra_vectors:
-            # Extract the extra green apple vector
-            green_apple_vector_extra: np.ndarray | None = chosen_apples.get_green_apple().get_synonyms_vector()
-            # Check that the green apple vector is not None
-            if green_apple_vector_extra is None:
-                logging.error(f"Green apple vector is None.")
-                raise ValueError("Green apple vector is None.")
-
-            # Extract the extra winning red apple vector
-            winning_red_apple_vector_extra: np.ndarray | None = chosen_apples.get_winning_red_apple().get_description_vector()
-            # Check that the winning red apple vector is not None
-            if winning_red_apple_vector_extra is None:
-                logging.error(f"Winning red apple vector is None.")
-                raise ValueError("Winning red apple vector is None.")
-
-            # Initialize the extra losing red apple vector
-            losing_red_apple_vectors_extra: np.ndarray = np.empty(self._vector_size)
-
-        # Get the losing red apple vectors and extra vectors if applicable
-        for losing_red_apple in chosen_apples.get_losing_red_apples():
-            noun: np.ndarray | None = losing_red_apple.get_noun_vector()
-            # Check that the noun vector is not None
-            if noun is None:
-                logging.error(f"Noun vector is None.")
-                raise ValueError("Noun vector is None.")
-            losing_red_apple_vectors = np.vstack([losing_red_apple_vectors, noun])
-            if use_extra_vectors:
-                description: np.ndarray | None = losing_red_apple.get_description_vector()
-                # Check that the description vector is not None
-                if description is None:
-                    logging.error(f"Description vector is None.")
-                    raise ValueError("Description vector is None.")
-                losing_red_apple_vectors_extra = np.vstack([losing_red_apple_vectors_extra, description])
-
-        # Create the chosen apple vectors
-        if use_extra_vectors:
-            chosen_apple_vectors_extra: ChosenAppleVectorsExtra = ChosenAppleVectorsExtra(
-                green_apple_vector=green_apple_vector,
-                winning_red_apple_vector=winning_red_apple_vector,
-                losing_red_apple_vectors=losing_red_apple_vectors,
-                green_apple_vector_extra=green_apple_vector_extra,
-                winning_red_apple_vector_extra=winning_red_apple_vector_extra,
-                losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
-            )
+        # Append the chosen apple vectors to the list
+        if self._training_mode:
+            self._pretrained_vectors.append(chosen_apple_vectors)
         else:
-            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
-                green_apple_vector=green_apple_vector,
-                winning_red_apple_vector=winning_red_apple_vector,
-                losing_red_apple_vectors=losing_red_apple_vectors
-            )
+            self._model_vectors.append(chosen_apple_vectors)
 
         # Save the chosen apple vectors to .npz file
-        if use_extra_vectors:
-            self._save_chosen_apple_vectors([chosen_apple_vectors_extra], use_extra_vectors)
+        if self._training_mode:
+            self._save_chosen_apple_vectors(self._pretrained_vectors, use_extra_vectors)
         else:
-            self._save_chosen_apple_vectors([chosen_apple_vectors], use_extra_vectors)
+            self._save_chosen_apple_vectors(self._model_vectors, use_extra_vectors)
+
+        # Extract and update the slope and bias vectors, either target or predict
+        if self._training_mode:
+            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression, use_losing_red_apples)
+        else:
+            self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._model_vectors, self.__linear_regression, use_losing_red_apples)
         logging.info(f"Trained the model using the chosen apple vectors.")
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
@@ -661,11 +728,6 @@ class LRModel(Model):
         # Initialize the best score and best red apple
         best_red_apple: RedApple | None = None
         best_score: float = -np.inf
-
-        # Extract the target x, y, slope, and bias vectors
-        slope_target, bias_target = self._extract_pretrained_slope_bias(self.__linear_regression, use_losing_red_apples)
-        logging.debug(f"slope_target: {slope_target}")
-        logging.debug(f"bias_target: {bias_target}")
 
         # Iterate through the red apples to find the best one
         for red_apple in red_apples_in_hand:
@@ -683,11 +745,11 @@ class LRModel(Model):
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -716,11 +778,6 @@ class LRModel(Model):
         winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = np.inf
 
-        # Extract the target x, y, slope, and bias vectors
-        slope_target, bias_target = self._extract_pretrained_slope_bias(self.__linear_regression, use_losing_red_apples)
-        logging.debug(f"slope_target: {slope_target}")
-        logging.debug(f"bias_target: {bias_target}")
-
         # Get the green apple vector from apples in play, if applicable
         if use_losing_red_apples:
             green_apple_vectors: np.ndarray | None = apples_in_play.get_green_apple().get_adjective_vector()
@@ -742,9 +799,12 @@ class LRModel(Model):
                 green_apple_vectors = np.vstack([green_apple_vectors, green_apple_vector_extra])
 
         # Iterate through the red apples to find the best one
-        for red_apple in apples_in_play.red_apples:
+        for red_apple_dict in apples_in_play.red_apples:
+            # Extract the red apple from the dictionary
+            red_apple: RedApple = list(red_apple_dict.values())[0]
+
             # Calculate the winning x_predict vector
-            x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), list(red_apple.values())[0], use_extra_vectors)
+            x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), red_apple, use_extra_vectors)
             logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
@@ -753,7 +813,7 @@ class LRModel(Model):
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
-                for vector in self._model_vectors:
+                for vector in self._pretrained_vectors:
                     for losing_red_apple_vector in vector.losing_red_apple_vectors:
                         for green_apple_vector in green_apple_vectors:
                             # Calculate the x vectors for the losing apple pairs
@@ -768,11 +828,11 @@ class LRModel(Model):
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -782,7 +842,7 @@ class LRModel(Model):
             # Update the best score and accompanying red apple
             if score < best_score:
                 best_score = score
-                winning_red_apple = red_apple
+                winning_red_apple = red_apple_dict
                 logging.debug(f"New best score: {best_score}")
                 logging.debug(f"New best red apple: {winning_red_apple}")
 
@@ -800,6 +860,8 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, training_mode: bool) -> None:
         super().__init__(judge, vector_size, pretrained_archetype, training_mode)
+        # Initialize the target and predict slope and bias vectors
+        self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation, use_losing_red_apples=False)
 
         # Define the neural network model architecture with two hidden layers
         self.model = Sequential([
@@ -874,7 +936,7 @@ class NNModel(Model):
             raise ValueError("Winning red apple vector is None.")
 
         # Initialize the losing red apple vectors
-        losing_red_apple_vectors: np.ndarray = np.empty(self._vector_size)
+        losing_red_apple_vectors: np.ndarray = np.zeros((0, self._vector_size))
 
         # Initialize the extra vectors if applicable
         if use_extra_vectors:
@@ -893,7 +955,7 @@ class NNModel(Model):
                 raise ValueError("Winning red apple vector is None.")
 
             # Initialize the extra losing red apple vector
-            losing_red_apple_vectors_extra: np.ndarray = np.empty(self._vector_size)
+            losing_red_apple_vectors_extra: np.ndarray = np.zeros((0, self._vector_size))
 
         # Get the losing red apple vectors and extra vectors if applicable
         for losing_red_apple in chosen_apples.get_losing_red_apples():
@@ -935,6 +997,9 @@ class NNModel(Model):
             self._save_chosen_apple_vectors([chosen_apple_vectors], use_extra_vectors)
         logging.info(f"Trained the model using the chosen apple vectors.")
 
+        # Extract and update the self._slope_target and self._bias_target vectors
+        self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation, use_losing_red_apples)
+
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple], use_extra_vectors: bool = False, use_losing_red_apples: bool = False) -> RedApple:
         """
         Choose a red card from the agent's hand to play (when the agent is a regular player).
@@ -943,11 +1008,6 @@ class NNModel(Model):
         # Initialize the best score and best red apple
         best_red_apple: RedApple | None = None
         best_score: float = -np.inf
-
-        # Extract the target x, y, slope, and bias vectors
-        slope_target, bias_target = self._extract_pretrained_slope_bias(self.__forward_propagation, use_losing_red_apples)
-        logging.debug(f"slope_target: {slope_target}")
-        logging.debug(f"bias_target: {bias_target}")
 
         # Iterate through the red apples to find the best one
         for red_apple in red_apples_in_hand:
@@ -965,11 +1025,11 @@ class NNModel(Model):
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -998,11 +1058,6 @@ class NNModel(Model):
         winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = np.inf
 
-        # Extract the target x, y, slope, and bias vectors
-        slope_target, bias_target = self._extract_pretrained_slope_bias(self.__forward_propagation, use_losing_red_apples)
-        logging.debug(f"slope_target: {slope_target}")
-        logging.debug(f"bias_target: {bias_target}")
-
         # Get the green apple vector from apples in play, if applicable
         if use_losing_red_apples:
             green_apple_vector = apples_in_play.get_green_apple().get_adjective_vector()
@@ -1013,9 +1068,12 @@ class NNModel(Model):
                 raise ValueError("Green apple vector is None.")
 
         # Iterate through the red apples to find the best one
-        for red_apple in apples_in_play.red_apples:
+        for red_apple_dict in apples_in_play.red_apples:
+            # Extract the red apple from the dictionary
+            red_apple: RedApple = list(red_apple_dict.values())[0]
+
             # Calculate the winning x_predict vector
-            x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), list(red_apple.values())[0], use_extra_vectors)
+            x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), red_apple, use_extra_vectors)
             logging.debug(f"x_predict: {x_predict}")
 
             # Initialize the winning y_predict vector
@@ -1024,7 +1082,7 @@ class NNModel(Model):
 
             # Process the losing apple pairs, if applicable
             if use_losing_red_apples:
-                for vector in self._model_vectors:
+                for vector in self._pretrained_vectors:
                     for losing_red_apple_vector in vector.losing_red_apple_vectors:
                         # Calculate the x vectors for the losing apple pairs
                         x_predict = np.vstack([x_predict, self._calculate_x_vector(green_apple_vector, losing_red_apple_vector)])
@@ -1038,11 +1096,11 @@ class NNModel(Model):
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target)
+            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
             logging.debug(f"score_mse: {score_mse}")
 
             # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, slope_target, bias_target, True)
+            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
             logging.debug(f"score_euclid: {score_euclid}")
 
             # Choose which score to use
@@ -1052,7 +1110,7 @@ class NNModel(Model):
             # Update the best score and accompanying red apple
             if score < best_score:
                 best_score = score
-                winning_red_apple = red_apple
+                winning_red_apple = red_apple_dict
                 logging.debug(f"New best score: {best_score}")
                 logging.debug(f"New best red apple: {winning_red_apple}")
 

@@ -429,6 +429,7 @@ class ApplesToApples:
             self.__game_state.apples_in_play.red_apples.append({player: red_apple})
             logging.info(f"Chosen red apple: {red_apple}")
 
+            # Prompt the player to select a bad red apple, if applicable
             if self.__training_mode and self.__use_losing_red_apples:
                 message = f"\nThe green apple is '{self.__game_state.apples_in_play.get_green_apple()}'."
                 print(message)
@@ -474,20 +475,13 @@ class ApplesToApples:
 
             # Determine the winning red apple
             if self.__training_mode:
-                # Get the human agent
-                for agent in self.__game_state.players:
-                    if isinstance(agent, HumanAgent):
-                        human_agent = agent
-                self.__game_state.chosen_apples.winning_red_apple = {human_agent: self.__game_state.apples_in_play.get_red_apples()[0]}
+                self.__game_state.chosen_apples.winning_red_apple = self.__game_state.apples_in_play.red_apples[0].copy()
             else:
                 self.__game_state.chosen_apples.winning_red_apple = self.__game_state.current_judge.choose_winning_red_apple(
                     self.__game_state.apples_in_play, self.__use_extra_vectors, self.__use_losing_red_apples)
 
-            # Extract the winning red apple
-            winning_red_apple: RedApple = self.__game_state.chosen_apples.get_winning_red_apple()
-
             # Print and log the winning red apple
-            message = f"{self.__game_state.current_judge.get_name()} chose the winning red apple '{winning_red_apple}'."
+            message = f"{self.__game_state.current_judge.get_name()} chose the winning red apple '{self.__game_state.chosen_apples.get_winning_red_apple()}'."
             print(message)
             logging.info(message)
 
@@ -495,7 +489,7 @@ class ApplesToApples:
             losing_red_apples: list[dict[Agent, RedApple]] = self.__game_state.apples_in_play.red_apples.copy()
             losing_red_apples.remove(self.__game_state.chosen_apples.winning_red_apple)
             self.__game_state.chosen_apples.losing_red_apples = losing_red_apples
-            logging.info(f"Losing Red Apples: {self.__game_state.chosen_apples.losing_red_apples}")
+            logging.info(f"Losing Red Apples: {self.__game_state.chosen_apples.get_losing_red_apples()}")
 
             # Extract the round winner
             round_winner: Agent = self.__game_state.chosen_apples.get_red_apple_winner()
@@ -529,7 +523,7 @@ class ApplesToApples:
         for player in self.__game_state.players:
             # Train the AI agent
             if isinstance(player, AIAgent):
-                # In training mode, train on the human agent
+                # In training mode, train the AI "player" on the human agent
                 if self.__training_mode:
                     for agent in self.__game_state.players:
                         if isinstance(agent, HumanAgent):
@@ -550,7 +544,7 @@ class ApplesToApples:
                             current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
                             log_vectors(self.__game_state, player, current_slope, current_bias, True)
                 else:
-                    # In non-training mode, train only if the player is not the current judge
+                    # If not in training mode, train only if the player is not the current judge
                     if player != self.__game_state.current_judge:
                         player.train_opponent_judge_model(
                             self.__game_state.current_judge,

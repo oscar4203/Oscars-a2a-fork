@@ -75,7 +75,7 @@ class Tone:
             raise ValueError("No words in the tone")
 
         # Check if the vectors have been set for all the words and if they are all the same shape
-        first_vector = self.words[0].get_vector()
+        first_vector: np.ndarray | None = self.words[0].get_vector()
         if first_vector is None:
             raise ValueError("Not all words have vectors set")
 
@@ -87,8 +87,8 @@ class Tone:
                 if vector.shape != first_vector.shape:
                     raise ValueError("Not all vectors have the same shape")
 
-        # Initialize the average vector
-        self.avg_vector = np.empty(first_vector.shape)
+        # Initialize the average vector to zeros
+        self.avg_vector = np.zeros(first_vector.shape)
 
         # Calculate the average vector for all the words in the tone
         for word in self.words:
