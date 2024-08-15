@@ -420,9 +420,7 @@ class ApplesToApples:
             # Promt the player to pick a red apple
             red_apple = player.choose_red_apple(
                 self.__game_state.current_judge,
-                self.__game_state.apples_in_play.get_green_apple(),
-                self.__use_extra_vectors,
-                self.__use_losing_red_apples
+                self.__game_state.apples_in_play.get_green_apple()
             )
 
             # Append the red apple to the list of red apples in play
@@ -441,9 +439,7 @@ class ApplesToApples:
                 # Prompt the player to select a bad red apple
                 bad_red_apple = player.choose_red_apple(
                     self.__game_state.current_judge,
-                    self.__game_state.apples_in_play.get_green_apple(),
-                    self.__use_extra_vectors,
-                    self.__use_losing_red_apples
+                    self.__game_state.apples_in_play.get_green_apple()
                 )
 
                 # Append the bad red apple to the list of red apples in play
@@ -477,8 +473,7 @@ class ApplesToApples:
             if self.__training_mode:
                 self.__game_state.chosen_apples.winning_red_apple = self.__game_state.apples_in_play.red_apples[0].copy()
             else:
-                self.__game_state.chosen_apples.winning_red_apple = self.__game_state.current_judge.choose_winning_red_apple(
-                    self.__game_state.apples_in_play, self.__use_extra_vectors, self.__use_losing_red_apples)
+                self.__game_state.chosen_apples.winning_red_apple = self.__game_state.current_judge.choose_winning_red_apple(self.__game_state.apples_in_play)
 
             # Print and log the winning red apple
             message = f"{self.__game_state.current_judge.get_name()} chose the winning red apple '{self.__game_state.chosen_apples.get_winning_red_apple()}'."
@@ -528,9 +523,7 @@ class ApplesToApples:
                     for agent in self.__game_state.players:
                         if isinstance(agent, HumanAgent):
                             player.train_self_judge_model(
-                                self.__game_state.chosen_apples,
-                                self.__use_extra_vectors,
-                                self.__use_losing_red_apples
+                                self.__game_state.chosen_apples
                             )
 
                             # Get the opponent judge model
@@ -549,8 +542,6 @@ class ApplesToApples:
                         player.train_opponent_judge_model(
                             self.__game_state.current_judge,
                             self.__game_state.chosen_apples,
-                            self.__use_extra_vectors,
-                            self.__use_losing_red_apples
                         )
 
                         # Get the opponent judge model
