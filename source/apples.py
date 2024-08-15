@@ -46,15 +46,6 @@ class Apple:
     def _split_text(self, text: str) -> list[str]:
         return text.split("_")
 
-    def _normalize_vector(self, vector: np.ndarray) -> np.ndarray:
-        """
-        Normalize the input vector.
-        """
-        norm = np.linalg.norm(vector)
-        if norm != 0:
-            vector = vector / norm
-        return vector
-
     def _calculate_average_vector(self, words: list[str], keyed_vectors: KeyedVectors) -> np.ndarray:
         """
         Calculate the average vector for the input list of words
@@ -81,10 +72,6 @@ class Apple:
         if len(words) > 0:
             avg_vector /= len(words)
         logging.debug(f"avg_vector: {avg_vector}")
-
-        # Normalize the average vector
-        avg_vector = self._normalize_vector(avg_vector)
-        logging.debug(f"Normalized avg_vector: {avg_vector}")
 
         return avg_vector
 
