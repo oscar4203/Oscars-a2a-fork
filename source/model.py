@@ -40,7 +40,7 @@ class Model():
 
         # Load the pretrained vectors
         self._pretrained_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra] = \
-            self._load_vectors(self._format_vector_filepath(self._use_extra_vectors, tmp_vectors=False), self._use_extra_vectors)
+            self._load_vectors(self._format_vector_filepath(False))
 
         # Initialize the chosen apples and vectors
         self._chosen_apples: list[ChosenApples] = []
@@ -70,7 +70,7 @@ class Model():
         except OSError as e:
             logging.error(f"Error creating directory: {e}")
 
-    def _format_vector_filepath(self, use_extra_vectors: bool = False, tmp_vectors: bool = False) -> str:
+    def _format_vector_filepath(self, tmp_vectors: bool = False) -> str:
         """
         Format the vector file path.
         """
@@ -87,7 +87,7 @@ class Model():
         filename = f"{self._pretrained_archetype}_vectors"
 
         # Add the extra vectors to the filename, if applicable
-        if use_extra_vectors:
+        if self._use_extra_vectors:
             filename += "-extra"
 
         # If loading and saving tmp vectors, add "-tmp" to the filename
@@ -114,7 +114,7 @@ class Model():
             logging.warning(f"File does not exist: {filepath}")
             return False
 
-    def _load_vectors(self, filepath: str, use_extra_vectors: bool = False) -> list[ChosenAppleVectors | ChosenAppleVectorsExtra]:
+    def _load_vectors(self, filepath: str) -> list[ChosenAppleVectors | ChosenAppleVectorsExtra]:
         """
         Load the vectors from the .npz file.
         """
@@ -137,7 +137,7 @@ class Model():
             logging.debug(f"num_objects: {num_objects}")
 
             # Load the vectors from the .npz file
-            if use_extra_vectors:
+            if self._use_extra_vectors:
                 for i in range(num_objects):
                     green_apple_vector = loaded_data[f'green_apple_vector_{i}']
                     winning_red_apple_vector = loaded_data[f'winning_red_apple_vector_{i}']
@@ -178,13 +178,13 @@ class Model():
 
         return data
 
-    def _prepare_data_dict(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool) -> dict[str, np.ndarray]:
+    def _prepare_data_dict(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra]) -> dict[str, np.ndarray]:
         """
         Prepare the data dictionary for saving the chosen apple vectors to a .npz file.
         """
         # Create a dictionary to store each ChosenAppleVectors object
         data_dict: dict[str, np.ndarray] = {}
-        if use_extra_vectors:
+        if self._use_extra_vectors:
             for i, item in enumerate(chosen_apple_vectors):
                 # Verify the item is a ChosenAppleVectorsExtra object
                 if not isinstance(item, ChosenAppleVectorsExtra):
@@ -208,16 +208,16 @@ class Model():
 
         return data_dict
 
-    def _save_chosen_apple_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], use_extra_vectors: bool = False, training_mode: bool = False) -> None:
+    def _save_chosen_apple_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors | ChosenAppleVectorsExtra], training_mode: bool = False) -> None:
         """
         Save the chosen apple vectors to a .npz file.
         The vectors include: green apple vectors, winning red apple vectors, and losing red apple vectors.
         """
         # Define the filepath for the vectors
-        filepath = self._format_vector_filepath(use_extra_vectors, training_mode)
+        filepath = self._format_vector_filepath(False if training_mode else True)
 
         # Prepare the data dictionary
-        data_dict = self._prepare_data_dict(chosen_apple_vectors, use_extra_vectors)
+        data_dict = self._prepare_data_dict(chosen_apple_vectors)
 
         # Save the chosen apple vectors to a .npz file
         try:
@@ -243,7 +243,7 @@ class Model():
         Reload the pretrained vectors and reset the model vectors.
         """
         # Reload the pretrained vectors
-        self._pretrained_vectors = self._load_vectors(self._format_vector_filepath(self._use_extra_vectors, tmp_vectors=False), self._use_extra_vectors)
+        self._pretrained_vectors = self._load_vectors(self._format_vector_filepath(False))
 
         # Reset the model vectors
         self._chosen_apple_vectors = []
@@ -572,8 +572,9 @@ class LRModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
-        # Initialize the target and predict slope and bias vectors
-        self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
+        # Initialize the target slope and bias vectors, if not in training mode
+        if not self._training_mode:
+            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
 
     def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -838,6 +839,11 @@ class LRModel(Model):
         winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = np.inf
 
+        # If in training mode, choose the only red apple and return early
+        if self._training_mode:
+            winning_red_apple = apples_in_play.red_apples[0]
+            return winning_red_apple
+
         # Get the green apple vector from apples in play, if applicable
         if self._use_losing_red_apples:
             green_apple_vectors: np.ndarray | None = apples_in_play.get_green_apple().get_adjective_vector()
@@ -928,16 +934,15 @@ class LRModel(Model):
             # Append the chosen apple vectors to the list
             self._pretrained_vectors.append(chosen_apple_vectors)
             # Save the chosen apple vectors to .npz file
-            self._save_chosen_apple_vectors(self._pretrained_vectors, self._use_extra_vectors, self._training_mode)
-            # Extract and update the slope and bias vectors
-            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
+            self._save_chosen_apple_vectors(self._pretrained_vectors, self._training_mode)
         else:
             # Append the chosen apple vectors to the list
             self._chosen_apple_vectors.append(chosen_apple_vectors)
             # Save the chosen apple vectors to .npz file
-            self._save_chosen_apple_vectors(self._chosen_apple_vectors, self._use_extra_vectors, self._training_mode)
-            # Extract and update the slope and bias vectors
-            self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__linear_regression)
+            self._save_chosen_apple_vectors(self._chosen_apple_vectors, self._training_mode)
+            # Extract and update the slope and bias vectors, but only if there are at least 2 chosen apple vectors
+            if len(self._chosen_apple_vectors) >= 2:
+                self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__linear_regression)
 
         logging.info(f"Trained the model using the chosen apple vectors.")
 
@@ -948,11 +953,12 @@ class NNModel(Model):
     """
     def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
-        # Initialize the target and predict slope and bias vectors
-        self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
+        # Initialize the target slope and bias vectors, if not in training mode
+        if not self._training_mode:
+            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
 
         # Define the neural network model architecture with two hidden layers
-        self.model = Sequential([
+        self.__nn_model = Sequential([
             Dense(vector_size, input_dim=vector_size, activation="relu"), # Input layer
             # BatchNormalization(),
             # Dropout(0.5),
@@ -966,7 +972,7 @@ class NNModel(Model):
         ])
 
         # Compile the model
-        self.model.compile(optimizer=Adam(learning_rate=self._learning_rate), loss="mean_squared_error")
+        self.__nn_model.compile(optimizer=Adam(learning_rate=self._learning_rate), loss="mean_squared_error")
 
     def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -986,7 +992,7 @@ class NNModel(Model):
         x: np.ndarray = np.multiply(x_vector_array, y_vector_array)
         # y_pred = np.multiply(self._slope_vector, x) + self._bias_vector
         # return y_pred
-        prediction = self.model.predict(x)
+        prediction = self.__nn_model.predict(x)
 
         slope = prediction[:self._vector_size]
         bias = prediction[self._vector_size:]
@@ -1009,7 +1015,7 @@ class NNModel(Model):
         # # Update the target score based on the error
         # self._y_target = self._y_target - error
         x: np.ndarray = np.multiply(green_apple_vector, red_apple_vector)
-        self.model.train_on_batch(x, self._y_target)
+        self.__nn_model.train_on_batch(x, self._y_target)
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
@@ -1068,6 +1074,11 @@ class NNModel(Model):
         # Initialize variables to track the best choice
         winning_red_apple: dict[Agent, RedApple] | None = None
         best_score = np.inf
+
+        # If in training mode, choose the only red apple and return early
+        if self._training_mode:
+            winning_red_apple = apples_in_play.red_apples[0]
+            return winning_red_apple
 
         # Get the green apple vector from apples in play, if applicable
         if self._use_losing_red_apples:
@@ -1147,16 +1158,15 @@ class NNModel(Model):
             # Append the chosen apple vectors to the list
             self._pretrained_vectors.append(chosen_apple_vectors)
             # Save the chosen apple vectors to .npz file
-            self._save_chosen_apple_vectors(self._pretrained_vectors, self._use_extra_vectors, self._training_mode)
-            # Extract and update the slope and bias vectors
-            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
+            self._save_chosen_apple_vectors(self._pretrained_vectors, self._training_mode)
         else:
             # Append the chosen apple vectors to the list
             self._chosen_apple_vectors.append(chosen_apple_vectors)
             # Save the chosen apple vectors to .npz file
-            self._save_chosen_apple_vectors(self._chosen_apple_vectors, self._use_extra_vectors, self._training_mode)
-            # Extract and update the slope and bias vectors
-            self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__forward_propagation)
+            self._save_chosen_apple_vectors(self._chosen_apple_vectors, self._training_mode)
+            # Extract and update the slope and bias vectors, but only if there are at least 2 chosen apple vectors
+            if len(self._chosen_apple_vectors) >= 2:
+                self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__forward_propagation)
 
         logging.info(f"Trained the model using the chosen apple vectors.")
 
