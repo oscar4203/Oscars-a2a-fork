@@ -70,7 +70,11 @@ class ChosenApples:
         return list(self.winning_red_apple.values())[0]
 
     def get_losing_red_apples(self) -> list["RedApple"]:
-        return list(self.losing_red_apples[0].values())
+        red_apple_list: list["RedApple"] = []
+        for losing_red_apple_dict in self.losing_red_apples:
+            for red_apple in losing_red_apple_dict.values():
+                red_apple_list.append(red_apple)
+        return red_apple_list
 
     def get_red_apple_winner(self) -> "Agent":
         if self.winning_red_apple is None:
@@ -192,11 +196,8 @@ class GameState:
             "total_games": self.total_games,
             "current_game": self.current_game,
             "current_round": self.current_round,
-            "apples_in_play": self.apples_in_play if self.apples_in_play is not None else None,
             "chosen_apples": self.chosen_apples if self.chosen_apples is not None else None,
             "current_judge": self.current_judge.get_name() if self.current_judge is not None else None,
-            "round_winner": self.round_winner.get_name() if self.round_winner is not None else None,
-            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
         }
 
 
