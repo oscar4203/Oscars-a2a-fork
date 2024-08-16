@@ -1,4 +1,4 @@
-# Description: Small script to count the number of times each unique player has won a game
+# Description: Script to count the number of times each unique player has won a game
 
 # Standard Libraries
 import os
@@ -14,6 +14,7 @@ from matplotlib.gridspec import GridSpec
 import matplotlib.patches as mpatches
 
 # Local Modules
+
 
 def count_winners(filename: str) -> dict[str, int]:
     # Initialize the winners dictionary
@@ -201,8 +202,10 @@ def main(filepath: str) -> None:
 
     except csv.Error:
         print("Error reading CSV file")
+        raise csv.Error
     except Exception as e:
         print(f"An error occurred in main: {e}")
+        raise e
 
 
 if __name__ == "__main__":
@@ -211,7 +214,7 @@ if __name__ == "__main__":
 
     # Add an argument for the filename as input
     parser.add_argument(
-        "filename",
+        "filepath",
         nargs="?",
         default="./logs/winners.csv",
         help="Path to the CSV file containing winners data"
@@ -219,4 +222,4 @@ if __name__ == "__main__":
 
     # Parse the arguments and call the main function
     args = parser.parse_args()
-    main(args.filename)
+    main(args.filepath)
