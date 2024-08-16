@@ -496,7 +496,7 @@ class ApplesToApples:
 
             # Set the round winner
             self.__game_state.round_winner = round_winner
-            message = f"{self.__game_state.round_winner.get_name()} has won the round!"
+            message = f"\n***{self.__game_state.round_winner.get_name()} has won the round!***"
             print(message)
             logging.info(message)
 
