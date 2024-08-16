@@ -719,6 +719,10 @@ class LRModel(Model):
     #     assert x_vector_array.shape[0] > 1, "x_vector_array must have more than 1 row"
     #     assert y_vector_array.shape[0] > 1, "y_vector_array must have more than 1 row"
 
+    #     # Normalize the x and y vectors
+    #     x_vector_array = self._normalize_vectors(x_vector_array)
+    #     y_vector_array = self._normalize_vectors(y_vector_array)
+
     #     # Determine the number of columns in the x vector array
     #     num_columns = x_vector_array.shape[1]
     #     logging.debug(f"num_columns: {num_columns}")
@@ -783,6 +787,10 @@ class LRModel(Model):
             logging.error(error_message)
             raise ValueError(error_message)
 
+        # Normalize the x and y vectors
+        x_vector_array = self._normalize_vectors(x_vector_array)
+        y_vector_array = self._normalize_vectors(y_vector_array)
+
         # Determine the number of vectors
         n: int = x_vector_array.shape[0]
         logging.debug(f"n: {n}")
@@ -793,10 +801,6 @@ class LRModel(Model):
         sumxy: np.ndarray = np.zeros(self._vector_size)
         sumy: np.ndarray = np.zeros(self._vector_size)
         sumy2: np.ndarray = np.zeros(self._vector_size)
-
-        # Normalize the x and y vectors
-        x_vector_array = self._normalize_vectors(x_vector_array)
-        y_vector_array = self._normalize_vectors(y_vector_array)
 
         # Iterate over each vector and sum the values
         for x_vector, y_vector in zip(x_vector_array, y_vector_array):
