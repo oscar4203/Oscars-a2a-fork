@@ -872,8 +872,16 @@ class LRModel(Model):
             # Calculate the x vector
             x_predict_base = np.vstack([x_predict_base, self._calculate_x_vector(green_apple_vector, red_apple_vector)])
 
-            # Calculate the y vector
-            y_predict_base = np.vstack([y_predict_base, self._initialize_y_vectors(x_predict_base, winning_apple=True)])
+            # Include the extra vectors, if applicable
+            if self._use_extra_vectors and isinstance(self._chosen_apple_vectors[i], ChosenAppleVectorsExtra):
+                green_apple_vector_extra: np.ndarray = self._chosen_apple_vectors[i].green_apple_vector_extra
+                red_apple_vector_extra: np.ndarray = self._chosen_apple_vectors[i].winning_red_apple_vector_extra
+
+                # Calculate the x vector
+                x_predict_base = np.vstack([x_predict_base, self._calculate_x_vector(green_apple_vector_extra, red_apple_vector_extra)])
+
+        # Initialize the y vector
+        y_predict_base = np.vstack([y_predict_base, self._initialize_y_vectors(x_predict_base, winning_apple=True)])
 
         # Ensure there are at least 1 x_predict_base arrays to calculate linear regression
         if x_predict_base.shape[0] < 1:
