@@ -864,18 +864,18 @@ class LRModel(Model):
         y_predict_base: np.ndarray = np.zeros((0, self._vector_size))
 
         # Iterate through the chosen apple vectors
-        for i in range(num_arrays):
+        for i, chosen_apple_vector in enumerate(self._chosen_apple_vectors):
             # Extract the green and red apple vectors
-            green_apple_vector: np.ndarray = self._chosen_apple_vectors[i].green_apple_vector
-            red_apple_vector: np.ndarray = self._chosen_apple_vectors[i].winning_red_apple_vector
+            green_apple_vector: np.ndarray = chosen_apple_vector.green_apple_vector
+            red_apple_vector: np.ndarray = chosen_apple_vector.winning_red_apple_vector
 
             # Calculate the x vector
             x_predict_base = np.vstack([x_predict_base, self._calculate_x_vector(green_apple_vector, red_apple_vector)])
 
             # Include the extra vectors, if applicable
-            if self._use_extra_vectors and isinstance(self._chosen_apple_vectors[i], ChosenAppleVectorsExtra):
-                green_apple_vector_extra: np.ndarray = self._chosen_apple_vectors[i].green_apple_vector_extra
-                red_apple_vector_extra: np.ndarray = self._chosen_apple_vectors[i].winning_red_apple_vector_extra
+            if self._use_extra_vectors and isinstance(chosen_apple_vector, ChosenAppleVectorsExtra):
+                green_apple_vector_extra: np.ndarray = chosen_apple_vector.green_apple_vector_extra
+                red_apple_vector_extra: np.ndarray = chosen_apple_vector.winning_red_apple_vector_extra
 
                 # Calculate the x vector
                 x_predict_base = np.vstack([x_predict_base, self._calculate_x_vector(green_apple_vector_extra, red_apple_vector_extra)])
