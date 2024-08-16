@@ -101,7 +101,7 @@ def percent_ai_won(winners: dict[str, int]) -> float:
     return ai_wins / total_games * 100 if total_games > 0 else 0
 
 
-def create_plot_for_winners(winners: dict[str, int]) -> Figure:
+def create_plot_for_winners(winners: dict[str, int], points_to_win: int, total_games: int) -> Figure:
     # Check if there are any winners
     if not winners:
         print("No winners found")
@@ -110,7 +110,6 @@ def create_plot_for_winners(winners: dict[str, int]) -> Figure:
     # Get the players and wins
     players = list(winners.keys())
     wins = list(winners.values())
-    total_games = sum(wins)
 
     # Abbreviate player names for x-axis
     abbreviated_names = [abbreviate_name(player) for player in players]
@@ -140,8 +139,9 @@ def create_plot_for_winners(winners: dict[str, int]) -> Figure:
     bar_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Use the default black color for the legend handle
-    black_patch = mpatches.Patch(color="black", label=f"Total Games: {total_games}")
-    bar_ax.legend(handles=[black_patch], loc="upper right", fontsize=14)
+    black_patch_points = mpatches.Patch(color="black", label=f"Points to Win: {points_to_win}")
+    black_patch_games = mpatches.Patch(color="black", label=f"Total Games: {total_games}")
+    bar_ax.legend(handles=[black_patch_points, black_patch_games], loc="upper right", fontsize=14)
 
     # Pie chart
     pie_ax = fig.add_subplot(gs[1, 1])
@@ -173,13 +173,14 @@ def save_plot(plot_figure: Figure, output_filepath: str) -> None:
     plot_figure.savefig(output_filepath)
 
 
-def main(filepath: str) -> None:
+def main(filepath: str, points_to_win: int, total_games: int) -> None:
     # Get the winners dictionary
     try:
         winners = count_winners(filepath)
 
         # Print the winners
-        print(f"Total games: {sum(winners.values())}")
+        print(f"Points to win: {points_to_win}")
+        print(f"Total games: {total_games}")
         for player, wins in winners.items():
             print(f"{player}: {wins} wins")
 
@@ -192,7 +193,7 @@ def main(filepath: str) -> None:
         output_filepath = f"{base_name}.png"
 
         # Create a plot of the winners
-        plot = create_plot_for_winners(winners)
+        plot = create_plot_for_winners(winners, points_to_win, total_games)
 
         # Save the plot to a file
         save_plot(plot, output_filepath)
@@ -213,13 +214,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Count winners from a CSV file.")
 
     # Add an argument for the filename as input
-    parser.add_argument(
-        "filepath",
-        nargs="?",
-        default="./logs/winners.csv",
-        help="Path to the CSV file containing winners data"
-    )
+    parser.add_argument("filepath", nargs="?", default="./logs/winners.csv", help="Path to the CSV file containing winners data")
+    parser.add_argument("points_to_win", help="Total number of points to win (1-10).")
+    parser.add_argument("total_games", help="Total number of games to play (1-1000).")
 
     # Parse the arguments and call the main function
     args = parser.parse_args()
-    main(args.filepath)
+    main(args.filepath, args.points_to_win, args.total_games)

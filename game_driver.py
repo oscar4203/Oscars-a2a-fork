@@ -178,7 +178,7 @@ def main() -> None:
 
     # Run the winner counter and plot the results, if not in training mode
     if not args.training_mode:
-        data_analysis_main(game.winner_csv_filepath)
+        data_analysis_main(game.winner_csv_filepath, args.points_to_win, args.total_games)
 
 if __name__ == "__main__":
     main()

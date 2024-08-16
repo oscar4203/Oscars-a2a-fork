@@ -28,10 +28,11 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
+    def __init__(self, self_agent: Agent, judge_to_model: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agent_archetypes/"
-        self._judge: Agent = judge # The judge to be modeled
+        self._self_agent: Agent = self_agent
+        self._judge_to_model: Agent = judge_to_model # The judge to be modeled
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._use_extra_vectors: bool = use_extra_vectors
@@ -43,7 +44,7 @@ class Model():
             self._load_vectors(self._format_vector_filepath(False))
 
         # Check that the pretrained vectors have at least 2 vectors
-        if len(self._pretrained_vectors) < 2:
+        if not self._training_mode and len(self._pretrained_vectors) < 2:
             message = f"Pretrained vectors must have at least 2 vectors."\
                 f"\nPlease train the {self._pretrained_archetype} with 'extra_vectors' set to {self._use_extra_vectors}."
             logging.error(message)
@@ -62,7 +63,7 @@ class Model():
         self._learning_rate = 0.01  # Learning rate for updates
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(judge={self._judge.get_name()}"
+        return f"{self.__class__.__name__}(judge={self._judge_to_model.get_name()}"
 
     def _ensure_directory_exists(self, directory: str) -> None:
         """
@@ -91,7 +92,12 @@ class Model():
         self._ensure_directory_exists(directory)
 
         # Define the filename for the vectors
-        filename = f"{self._pretrained_archetype}_vectors"
+        if tmp_vectors:
+            filename = f"{self._self_agent.get_name()}"
+            filename += "-extra" if self._use_extra_vectors else ""
+            filename += "_tmp_vectors"
+        else:
+            filename = f"{self._pretrained_archetype}_vectors"
 
         # Add the extra vectors to the filename, if applicable
         if self._use_extra_vectors:
@@ -668,8 +674,8 @@ class LRModel(Model):
     """
     Linear Regression model for the AI agent.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
-        super().__init__(judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
+    def __init__(self, self_agent: Agent, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
+        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
         # Initialize the target slope and bias vectors, if not in training mode
         if not self._training_mode:
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
@@ -1063,8 +1069,8 @@ class NNModel(Model):
     """
     Neural Network model for the AI agent.
     """
-    def __init__(self, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
-        super().__init__(judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
+    def __init__(self, self_agent: Agent, judge: Agent, vector_size: int, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
+        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
         # Initialize the target slope and bias vectors, if not in training mode
         if not self._training_mode:
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
