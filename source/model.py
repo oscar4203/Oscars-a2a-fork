@@ -335,14 +335,39 @@ class Model():
 
         return chosen_apple_vectors_extra if self._use_extra_vectors else chosen_apple_vectors
 
-    def _normalize_vector(self, vector: np.ndarray) -> np.ndarray:
+    def _normalize_vectors(self, vector_array: np.ndarray) -> np.ndarray:
         """
-        Normalize the input vector using L2 (Euclidean Norm).
+        Normalize the input vectors using L2 (Euclidean Norm).
+        This function is designed to normalize 2D arrays, where each row is a vector.
+        If the input array is 1D, it will be reshaped to 2D prior to normalization, then reshaped back to 1D.
         """
-        norm = np.linalg.norm(vector)
-        if norm != 0:
-            vector = vector / norm
-        return vector
+        # Check if the vector array is 1D, if so reshape it to 2D
+        if vector_array.ndim == 1:
+            two_dim = False
+            vector_array = vector_array.reshape(1, -1)
+        elif vector_array.ndim > 2:
+            logging.error(f"Vector array has more than 2 dimensions.")
+            raise ValueError("Vector array has more than 2 dimensions.")
+        else:
+            two_dim = True
+
+        # Axis=1 normalizes each row individually, keepdims=True keeps the dimensions of the array
+        norms = np.linalg.norm(vector_array, axis=1, keepdims=True)
+
+        # Calculate the mean of the norms, excluding zeros
+        mean_norm = np.mean(norms[norms != 0])
+
+        # Replace zero norms with the mean norm
+        norms[norms == 0] = mean_norm
+
+        # Normalize the vectors
+        normalized_array = vector_array / norms
+
+        # Reshape the array back to 1D if it was originally 1D
+        if not two_dim:
+            normalized_array = normalized_array.reshape(-1)
+
+        return normalized_array
 
     def _calculate_x_vector(self, green_apple_vector: np.ndarray, red_apple_vector: np.ndarray) -> np.ndarray:
         """
@@ -354,10 +379,6 @@ class Model():
         # Calculate the x vector (product of green and red vectors)
         x_vector: np.ndarray = np.multiply(green_apple_vector, red_apple_vector)
         logging.debug(f"x_vector: {x_vector}")
-
-        # Normalize the x vector
-        x_vector = self._normalize_vector(x_vector)
-        logging.debug(f"Normalized x_vector: {x_vector}")
 
         return x_vector
 
@@ -403,10 +424,6 @@ class Model():
 
             # Calculate the average of the x and extra x vectors
             x_vector = np.add(x_vector, x_vector_extra) / 2
-
-        # Normalize the x vector
-        x_vector = self._normalize_vector(x_vector)
-        logging.debug(f"Normalized x_vector: {x_vector}")
 
         return x_vector
 
@@ -703,6 +720,10 @@ class LRModel(Model):
     #     assert x_vector_array.shape[0] > 1, "x_vector_array must have more than 1 row"
     #     assert y_vector_array.shape[0] > 1, "y_vector_array must have more than 1 row"
 
+    #     # Normalize the x and y vectors
+    #     x_vector_array = self._normalize_vectors(x_vector_array)
+    #     y_vector_array = self._normalize_vectors(y_vector_array)
+
     #     # Determine the number of columns in the x vector array
     #     num_columns = x_vector_array.shape[1]
     #     logging.debug(f"num_columns: {num_columns}")
@@ -766,6 +787,10 @@ class LRModel(Model):
                 f"Only 1D or 2D arrays are supported."
             logging.error(error_message)
             raise ValueError(error_message)
+
+        # Normalize the x and y vectors
+        x_vector_array = self._normalize_vectors(x_vector_array)
+        y_vector_array = self._normalize_vectors(y_vector_array)
 
         # Determine the number of vectors
         n: int = x_vector_array.shape[0]
@@ -848,8 +873,16 @@ class LRModel(Model):
             # Calculate the x vector
             x_predict_base = np.vstack([x_predict_base, self._calculate_x_vector(green_apple_vector, red_apple_vector)])
 
-            # Calculate the y vector
-            y_predict_base = np.vstack([y_predict_base, self._initialize_y_vectors(x_predict_base, winning_apple=True)])
+            # Include the extra vectors, if applicable
+            if self._use_extra_vectors and isinstance(self._chosen_apple_vectors[i], ChosenAppleVectorsExtra):
+                green_apple_vector_extra: np.ndarray = self._chosen_apple_vectors[i].green_apple_vector_extra
+                red_apple_vector_extra: np.ndarray = self._chosen_apple_vectors[i].winning_red_apple_vector_extra
+
+                # Calculate the x vector
+                x_predict_base = np.vstack([x_predict_base, self._calculate_x_vector(green_apple_vector_extra, red_apple_vector_extra)])
+
+        # Initialize the y vector
+        y_predict_base = np.vstack([y_predict_base, self._initialize_y_vectors(x_predict_base, winning_apple=True)])
 
         # Ensure there are at least 1 x_predict_base arrays to calculate linear regression
         if x_predict_base.shape[0] < 1:
