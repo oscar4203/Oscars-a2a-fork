@@ -90,14 +90,26 @@ def format_naming_scheme(players: list[Agent], total_games: int | None = None, p
     players_string = format_players_string(players)
 
     # Format the naming scheme
-    string = f"{date}-"
-    if total_games is not None:
-        string += f"{total_games}_games-"
-    if points_to_win is not None:
-        string += f"{points_to_win}_pts-"
-    string += f"{players_string}"
+    date_string = f"{date}-"
 
-    return string
+    # Check if there already exists a directory with the same date
+    num: int = 2
+    pattern: str = os.path.join(LOGGING_BASE_DIRECTORY, date_string + str(total_games) + '*')
+    while os.path.exists(pattern):
+        # Add a number to the end of the date
+        num_string = f"{num}-"
+        pattern = os.path.join(LOGGING_BASE_DIRECTORY, date_string + num_string + '*')
+        num += 1
+
+    # Add the total games and points to win if they are not None
+    final_string: str = date_string + str(num) + "-"
+    if total_games is not None:
+        final_string += f"{total_games}_games-"
+    if points_to_win is not None:
+        final_string += f"{points_to_win}_pts-"
+    final_string += f"{players_string}"
+
+    return final_string
 
 
 def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool = True) -> None:

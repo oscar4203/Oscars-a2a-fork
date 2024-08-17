@@ -31,13 +31,13 @@ class ApplesToApples:
     def get_game_state(self) -> GameState:
         return self.__game_state
 
-    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, reset_cards_between_games: bool, use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
+    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, use_extra_vectors: bool, use_losing_red_apples: bool, reset_cards_between_games: bool) -> None:
         self.__change_players_between_games = change_players
         self.__cycle_starting_judges_between_games = cycle_starting_judges
         self.__reset_models_between_games = reset_models
-        self.__reset_cards_between_games = reset_cards_between_games
         self.__use_extra_vectors = use_extra_vectors
         self.__use_losing_red_apples = use_losing_red_apples
+        self.__reset_cards_between_games = reset_cards_between_games
 
     def new_game(self) -> None:
         """

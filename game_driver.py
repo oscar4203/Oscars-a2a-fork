@@ -127,49 +127,48 @@ def main() -> None:
     change_players_between_games = "n"
     cycle_starting_judges = "n"
     reset_models_between_games = "n"
+    use_extra_vectors = "y"
+    use_losing_red_apples = "y"
     reset_cards_between_games = "n"
-    use_extra_vectors = "n"
-    use_losing_red_apples = "n"
 
     # Prompt the user on whether they want to change players between games
     if not args.training_mode:
         change_players_between_games = get_user_input_y_or_n("Do you want to change players between games? (y/n): ")
 
-    # Prompt the user on whether they want to cycle the starting judge between games
-    if change_players_between_games == "n" and not args.training_mode:
-        cycle_starting_judges = get_user_input_y_or_n("Do you want to cycle the starting judge between games? (y/n): ")
+        # Prompt the user on whether they want to cycle the starting judge between games
+        if change_players_between_games == "n":
+            cycle_starting_judges = get_user_input_y_or_n("Do you want to cycle the starting judge between games? (y/n): ")
 
-    # Prompt the user on whether they want to reset the opponent model vectors between games
-    if not args.training_mode:
+        # Prompt the user on whether they want to reset the opponent model vectors between games
         reset_models_between_games = get_user_input_y_or_n("Do you want to reset the opponent models between games? (y/n): ")
+
+        # Prompt the user on whether they want to include the synonym and description vectors inthe model
+        use_extra_vectors = get_user_input_y_or_n("Do you want to include the extra synonym and description vectors in the model training? (y/n): ")
+
+        # Prompt the user on whether they want to include the losing red apples in the model training
+        use_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples in the model training? (y/n): ")
 
     # Prompt the user on whether they want to reset the training cards between games
     if args.training_mode:
         reset_cards_between_games = get_user_input_y_or_n("Do you want to reset the training cards between games? (y/n): ")
-
-    # Prompt the user on whether they want to include the synonym and description vectors inthe model
-    use_extra_vectors = get_user_input_y_or_n("Do you want to include the extra synonym and description vectors in the model training? (y/n): ")
-
-    # Prompt the user on whether they want to include the losing red apples in the model training
-    use_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples in the model training? (y/n): ")
 
     # Set the game options
     game.set_game_options(
         change_players_between_games == 'y',
         cycle_starting_judges == 'y',
         reset_models_between_games == 'y',
-        reset_cards_between_games == 'y',
         use_extra_vectors == 'y',
-        use_losing_red_apples == 'y'
+        use_losing_red_apples == 'y',
+        reset_cards_between_games == 'y'
     )
 
     # Log the game options
     logging.info(f"Change players between games: {change_players_between_games == 'y'}")
     logging.info(f"Cycle starting judges: {cycle_starting_judges == 'y'}")
     logging.info(f"Reset models between games: {reset_models_between_games == 'y'}")
-    logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
     logging.info(f"Use extra vectors: {use_extra_vectors == 'y'}")
     logging.info(f"Use losing red apples: {use_losing_red_apples == 'y'}")
+    logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
 
     # Start the game, prompt the user for options
     while game.get_game_state().current_game < game.get_game_state().total_games:
@@ -182,6 +181,7 @@ def main() -> None:
             game.winner_csv_filepath,
             args.points_to_win,
             args.total_games,
+            change_players_between_games == 'y',
             cycle_starting_judges == 'y',
             reset_models_between_games == 'y',
             use_extra_vectors == 'y',

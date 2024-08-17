@@ -101,9 +101,8 @@ def percent_ai_won(winners: dict[str, int]) -> float:
     return ai_wins / total_games * 100 if total_games > 0 else 0
 
 
-def create_plot_for_winners(winners: dict[str, int], points_to_win: int, total_games: int,
-                            cycle_starting_judges: bool, reset_models_between_games: bool,
-                            use_extra_vectors: bool, use_losing_red_apples: bool) -> Figure:
+def create_plot_for_winners(winners: dict[str, int], points_to_win: int, total_games: int, change_players_between_games: bool,
+                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool, use_losing_red_apples: bool) -> Figure:
     # Check if there are any winners
     if not winners:
         print("No winners found")
@@ -184,7 +183,7 @@ def save_plot(plot_figure: Figure, output_filepath: str) -> None:
     plot_figure.savefig(output_filepath)
 
 
-def main(filepath: str, points_to_win: int, total_games: int,
+def main(filepath: str, points_to_win: int, total_games: int, change_players_between_games: bool,
             cycle_starting_judges: bool, reset_models_between_games: bool,
             use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
     # Get the winners dictionary
@@ -208,6 +207,7 @@ def main(filepath: str, points_to_win: int, total_games: int,
         # Create a plot of the winners
         plot = create_plot_for_winners(
             winners, points_to_win, total_games,
+            change_players_between_games,
             cycle_starting_judges,
             reset_models_between_games,
             use_extra_vectors,
@@ -236,6 +236,7 @@ if __name__ == "__main__":
     parser.add_argument("filepath", nargs="?", default="./logs/winners.csv", help="Path to the CSV file containing winners data")
     parser.add_argument("points_to_win", help="Total number of points to win (1-10).")
     parser.add_argument("total_games", help="Total number of games to play (1-1000).")
+    parser.add_argument("change_players_between_games", help="Change players between games (y/n).")
     parser.add_argument("cycle_starting_judges", help="Cycle starting judges between games (y/n).")
     parser.add_argument("reset_models_between_games", help="Reset models between games (y/n).")
     parser.add_argument("use_extra_vectors", help="Use extra vectors (y/n).")
@@ -247,6 +248,7 @@ if __name__ == "__main__":
         args.filepath,
         args.points_to_win,
         args.total_games,
+        args.change_players_between_games,
         args.cycle_starting_judges,
         args.reset_models_between_games,
         args.use_extra_vectors,

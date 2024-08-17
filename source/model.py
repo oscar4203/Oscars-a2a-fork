@@ -46,7 +46,7 @@ class Model():
         # Check that the pretrained vectors have at least 2 vectors
         if not self._training_mode and len(self._pretrained_vectors) < 2:
             message = f"Pretrained vectors must have at least 2 vectors."\
-                f"\nPlease train the {self._pretrained_archetype} with 'extra_vectors' set to {self._use_extra_vectors}."
+                f"\nPlease train the {self._pretrained_archetype} with 'use_losing_red_apples' set to {self._use_losing_red_apples}."
             logging.error(message)
             raise ValueError(message)
 
@@ -296,15 +296,26 @@ class Model():
                 losing_red_apple_vectors_extra: np.ndarray = np.vstack([losing_red_apple_vectors_extra, description_vector])
 
         # Create the chosen apple vectors
-        chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
-            green_apple_vector=green_apple_vector,
-            winning_red_apple_vector=winning_red_apple_vector,
-            losing_red_apple_vectors=losing_red_apple_vectors,
-            green_apple_vector_extra=green_apple_vector_extra,
-            winning_red_apple_vector_extra=winning_red_apple_vector_extra,
-            losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
-        )
-
+        if self._use_extra_vectors:
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=green_apple_vector_extra,
+                winning_red_apple_vector_extra=winning_red_apple_vector_extra,
+                losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
+            )
+        else:
+            # Create an empty array
+            empty_array: np.ndarray = np.zeros(0)
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=empty_array,
+                winning_red_apple_vector_extra=empty_array,
+                losing_red_apple_vectors_extra=empty_array
+            )
 
         return chosen_apple_vectors
 
