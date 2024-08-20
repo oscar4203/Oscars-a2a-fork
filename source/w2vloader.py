@@ -20,11 +20,12 @@ class HashEntry(ctypes.Structure):
 class VectorsW2V():
   def __init__(self, path: str, normalize: bool = False) -> None:
 
-
-    self.dll = ctypes.CDLL(os.getcwd() + "/w2vloader.dll")
+    fullpath: str = os.getcwd() + "/w2vloader.dll"
+    print("Full path", fullpath)
+    self.dll = ctypes.CDLL(fullpath)
     c_path = ctypes.create_string_buffer(path.encode())
 
-    self.dll.load_binary(c_path, ctypes.c_char(normalize))
+    self.dll.load_binary(c_path)
 
     # set up function stuff
     self.dll.lookup_entry.restype = ctypes.c_void_p

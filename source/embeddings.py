@@ -1,5 +1,7 @@
 from gensim.models import KeyedVectors
 from source.w2vloader import VectorsW2V
+import time
+
 
 import numpy as np
 
@@ -8,8 +10,12 @@ class Embedding():
     self.custom = custom
     if self.custom:
       self.cvectors = VectorsW2V(filename)
+      self.vector_size: int = 300
     else:
       self.kvectors = KeyedVectors.load_word2vec_format(filename, binary=True)
+      self.vector_size: int = self.kvectors.vector_size
+
+    print(self.vector_size)
 
 
   def get_vector(self, string: str) -> np.ndarray:
@@ -24,5 +30,10 @@ class Embedding():
   
   def __getitem__(self, string: str) -> np.ndarray:
     return self.get_vector(string)
+  
+
+
+
+
 
   

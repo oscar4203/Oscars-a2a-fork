@@ -12,12 +12,8 @@ from source.embeddings import Embedding
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import Model, model_type_mapping
-from source.game_logger import print_and_log, format_naming_scheme, \
-                            log_gameplay, log_winner, log_training, \
-                            LOGGING_BASE_DIRECTORY
-# from source.game_logger import print_and_log, format_naming_scheme, \
-#                             log_vectors, log_gameplay, log_winner, log_training, \
-#                             LOGGING_BASE_DIRECTORY
+from source.game_logger import format_naming_scheme, LOGGING_BASE_DIRECTORY, \
+                            log_vectors, log_gameplay, log_winner, log_training
 from source.data_classes import GameState, ApplesInPlay, ChosenApples
 
 
@@ -36,10 +32,11 @@ class ApplesToApples:
     def get_game_state(self) -> GameState:
         return self.__game_state
 
-    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
+    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, reset_cards_between_games: bool, use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
         self.__change_players_between_games = change_players
         self.__cycle_starting_judges_between_games = cycle_starting_judges
         self.__reset_models_between_games = reset_models
+        self.__reset_cards_between_games = reset_cards_between_games
         self.__use_extra_vectors = use_extra_vectors
         self.__use_losing_red_apples = use_losing_red_apples
 
@@ -48,31 +45,49 @@ class ApplesToApples:
         Start a new game of 'Apples to Apples' and reset the game state.
         Optionally, initialize new players.
         """
-        print_and_log("Starting new 'Apples to Apples' game.")
+        message = "Starting new 'Apples to Apples' game."
+        print(message)
+        logging.info(message)
 
         # Increment the current game counter
         self.__game_state.current_game += 1
 
         # Print and log the game message
-        print_and_log(f"\n------------- GAME {self.__game_state.current_game} of {self.__game_state.total_games} -------------")
+        message = f"\n------------- GAME {self.__game_state.current_game} of {self.__game_state.total_games} -------------"
+        print(message)
+        logging.info(message)
 
         # Reset the game state
-        print_and_log("Resetting game state.")
+        message = "Resetting game state."
+        print(message)
+        logging.info(message)
         self.__reset_game_state()
 
         # Initialize the decks
-        print_and_log("Initializing decks.")
+        message = "Initializing decks."
+        print(message)
+        logging.info(message)
         self.__initialize_decks()
 
         # Initialize the players for the first game
         if self.__game_state.current_game == 1:
-            print_and_log("Initializing players.")
+            message = "Initializing players."
+            print(message)
+            logging.info(message)
             self.__game_state.players = []
             self.__initialize_players()
         elif self.__game_state.current_game > 1:
             # Reset the opponent models for the AI agents, if applicable
             if self.__reset_models_between_games:
                 self.__reset_opponent_models()
+
+            # Reset the red apples in hand for all players, if applicable
+            if self.__reset_cards_between_games:
+                # Reset the red apples in hand for all players
+                for player in self.__game_state.players:
+                    if isinstance(player, HumanAgent):
+                        player.reset_red_apples()
+                        player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
 
             # Prompt the user on whether to keep the same players, if applicable
             if self.__change_players_between_games:
@@ -112,14 +127,17 @@ class ApplesToApples:
         self.__game_state.current_round += 1
 
         # Print and log the round message
-        round_message = f"\n===================" \
+        message = f"\n===================" \
                         f"\nROUND {self.__game_state.current_round}:" \
                         f"\n===================\n"
-        print_and_log(round_message)
+        print(message)
+        logging.info(message)
 
         # Print and log the player points
         for player in self.__game_state.players:
-            print_and_log(f"{player.get_name()}: {player.get_points()} points")
+            message = f"{player.get_name()}: {player.get_points()} points"
+            print(message)
+            logging.info(message)
 
     def __end_of_round(self) -> None:
         # Discard the apples in play
@@ -142,12 +160,16 @@ class ApplesToApples:
     def __load_and_shuffle_deck(self, deck: Deck, deck_name: str, base_file: str, expansion_file: str) -> None:
         # Load the base deck
         deck.load_deck(deck_name, base_file)
-        print_and_log(f"Loaded {len(deck.get_apples())} {deck_name.lower()}.")
+        message = f"Loaded {len(deck.get_apples())} {deck_name.lower()}."
+        print(message)
+        logging.info(message)
 
         # Load the expansion deck, if applicable
         if expansion_file:
             deck.load_deck(f"{deck_name} Expansion", expansion_file)
-            print_and_log(f"Loaded {len(deck.get_apples())} {deck_name.lower()} from the expansion.")
+            message = f"Loaded {len(deck.get_apples())} {deck_name.lower()} from the expansion."
+            print(message)
+            logging.info(message)
 
         # Shuffle the deck
         deck.shuffle()
@@ -175,7 +197,9 @@ class ApplesToApples:
 
     def __initialize_players(self) -> None:
         # Display the number of players
-        print_and_log(f"There are {self.__game_state.number_of_players} players.")
+        message = f"There are {self.__game_state.number_of_players} players."
+        print("\n" + message)
+        logging.info(message)
 
         if self.__training_mode:
             # Validate the user input for the model type
@@ -209,13 +233,13 @@ class ApplesToApples:
 
             # Create a new AI agent
             new_agent_name = f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}"
-            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, True)
+            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, self.__use_extra_vectors, self.__use_losing_red_apples, True)
 
             # Create the human agent
             human_agent = HumanAgent("Human Agent")
 
             # Have the human agent pick up max red apples in hand
-            human_agent.draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
+            human_agent.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
 
             # Append the human agent and AI agent
             self.__game_state.players.append(human_agent) # APPEND HUMAN AGENT FIRST!!!
@@ -225,7 +249,9 @@ class ApplesToApples:
             # Create the players when not in training mode
             for i in range(self.__game_state.number_of_players):
                 # Prompt the user to select the player type
-                print_and_log(f"\nWhat type is Agent {i + 1}?")
+                message = f"\nWhat type is Agent {i + 1}?"
+                print(message)
+                logging.info(message)
                 player_type: str = input("Please enter the player type (1: Human, 2: Random, 3: AI): ")
 
                 # Validate the user input
@@ -277,19 +303,19 @@ class ApplesToApples:
 
                     # Create the AI agent
                     new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
-                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, False)
+                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors, self.__use_losing_red_apples, False)
 
                 # Append the player object
                 self.__game_state.players.append(new_agent)
                 logging.info(self.__game_state.players[i])
 
                 # Have each player pick up max red apples in hand
-                self.__game_state.players[i].draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
+                self.__game_state.players[i].draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
 
         # Initialize the models for the AI agents
         for player in self.__game_state.players:
             if isinstance(player, AIAgent):
-                player.initialize_models(self.__keyed_vectors, self.__game_state.players)
+                player.initialize_models(self.embedding, self.__game_state.players)
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
     def __choose_starting_judge(self) -> None:
@@ -327,7 +353,9 @@ class ApplesToApples:
         # Assign the starting judge and set the judge status
         self.__game_state.current_judge = self.__game_state.players[judge_index]
         self.__game_state.current_judge.set_judge_status(True)
-        print_and_log(f"{self.__game_state.current_judge.get_name()} is the starting judge.")
+        message = f"{self.__game_state.current_judge.get_name()} is the starting judge."
+        print("\n" + message)
+        logging.info(message)
 
     def __assign_next_judge(self) -> None:
         # Check if the current judge is None
@@ -341,7 +369,9 @@ class ApplesToApples:
         # Assign the next judge and set the judge status
         self.__game_state.current_judge = self.__game_state.players[(self.__game_state.players.index(self.__game_state.current_judge) + 1) % self.__game_state.number_of_players]
         self.__game_state.current_judge.set_judge_status(True)
-        print_and_log(f"{self.__game_state.current_judge.get_name()} is the next judge.")
+        message = f"{self.__game_state.current_judge.get_name()} is the next judge."
+        print(message)
+        logging.info(message)
 
     def ___prompt_judge_draw_green_apple(self) -> None:
         # Check if the current judge is None
@@ -355,10 +385,12 @@ class ApplesToApples:
             raise ValueError("The apples in play is None.")
 
         # Prompt the judge to draw a green card
-        print_and_log(f"\n{self.__game_state.current_judge.get_name()}, please draw a green card.")
+        message = f"\n{self.__game_state.current_judge.get_name()}, please draw a green card."
+        print(message)
+        logging.info(message)
 
         # Set the green card in play
-        green_apple: GreenApple = self.__game_state.current_judge.draw_green_apple(self.__keyed_vectors, self.__green_apples_deck, self.__use_extra_vectors)
+        green_apple: GreenApple = self.__game_state.current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__use_extra_vectors)
         green_apple_dict: dict[Agent, GreenApple] = {self.__game_state.current_judge: green_apple}
         self.__game_state.apples_in_play.green_apple = green_apple_dict
 
@@ -368,7 +400,13 @@ class ApplesToApples:
             if player.get_judge_status():
                 continue
 
-            print_and_log(f"\n{player.get_name()}, please select a red apple.")
+            # Prompt the player to select a red apple
+            if self.__training_mode:
+                message = f"\n{player.get_name()}, please select a good red apple."
+            else:
+                message = f"\n{player.get_name()}, please select a red apple."
+            print(message)
+            logging.info(message)
 
             # Check if the current judge is None
             if self.__game_state.current_judge is None:
@@ -380,83 +418,38 @@ class ApplesToApples:
                 logging.error("The apples in play is None.")
                 raise ValueError("The apples in play is None.")
 
-            # Set the red apples in play
+            # Promt the player to pick a red apple
             red_apple = player.choose_red_apple(
                 self.__game_state.current_judge,
-                self.__game_state.apples_in_play.get_green_apple(),
-                self.__use_extra_vectors,
-                self.__use_losing_red_apples
+                self.__game_state.apples_in_play.get_green_apple()
             )
+
+            # Append the red apple to the list of red apples in play
             self.__game_state.apples_in_play.red_apples.append({player: red_apple})
             logging.info(f"Chosen red apple: {red_apple}")
 
+            # Prompt the player to select a bad red apple, if applicable
+            if self.__training_mode and self.__use_losing_red_apples:
+                message = f"\nThe green apple is '{self.__game_state.apples_in_play.get_green_apple()}'."
+                print(message)
+                logging.info(message)
+                message = f"\n{player.get_name()}, please select a bad red apple."
+                print(message)
+                logging.info(message)
+
+                # Prompt the player to select a bad red apple
+                bad_red_apple = player.choose_red_apple(
+                    self.__game_state.current_judge,
+                    self.__game_state.apples_in_play.get_green_apple()
+                )
+
+                # Append the bad red apple to the list of red apples in play
+                self.__game_state.apples_in_play.red_apples.append({player: bad_red_apple})
+                logging.info(f"Chosen bad red apple: {bad_red_apple}")
+
             # Prompt the player to pick up a new red apple
             if len(player.get_red_apples()) < self.__game_state.max_cards_in_hand:
-                player.draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
-
-    def __train_ai_agents(self) -> None:
-        # Check if the current judge is None
-        if self.__game_state.current_judge is None:
-            logging.error("The current judge is None.")
-            raise ValueError("The current judge is None.")
-
-        # Check if the chosen apples is None
-        if self.__game_state.chosen_apples is None:
-            logging.error("The chosen apples is None.")
-            raise ValueError("The chosen apples is None.")
-
-        # Train all AI agents (if applicable)
-        for player in self.__game_state.players:
-            # Train the AI agent
-            if isinstance(player, AIAgent):
-                # In training mode, train on the human agent
-                if self.__training_mode:
-                    for agent in self.__game_state.players:
-                        if isinstance(agent, HumanAgent):
-                            player.train_self_judge_model(
-                                self.__game_state.chosen_apples,
-                                self.__use_extra_vectors,
-                                self.__use_losing_red_apples
-                            )
-
-                            # Get the opponent judge model
-                            opponent_judge_model: Model | None = player.get_opponent_model(agent)
-
-                            # Check that the judge model is not None
-                            if opponent_judge_model is None:
-                                logging.error("The opponent judge model is None.")
-                                raise ValueError("The opponent judge model is None.")
-
-                            # TODO - refactor the log_vectors data and function???
-                            # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
-                            # log_vectors(self.__game_state, player, current_slope, current_bias, True)
-                else:
-                    # In non-training mode, train only if the player is not the current judge
-                    if player != self.__game_state.current_judge:
-                        player.train_opponent_judge_model(
-                            self.__game_state.current_judge,
-                            self.__game_state.chosen_apples,
-                            self.__use_extra_vectors,
-                            self.__use_losing_red_apples
-                        )
-
-                        # Get the opponent judge model
-                        opponent_judge_model: Model | None = player.get_opponent_model(self.__game_state.current_judge)
-
-                        # Check that the judge model is not None
-                        if opponent_judge_model is None:
-                            logging.error("The opponent judge model is None.")
-                            raise ValueError("The opponent judge model is None.")
-
-                        # TODO - refactor the log_vectors data and function???
-                        # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
-                        # log_vectors(self.__game_state, player, current_slope, current_bias, True)
-
-    def __reset_opponent_models(self) -> None:
-        # TODO - check if need to skip for training mode
-        for player in self.__game_state.players:
-            if isinstance(player, AIAgent):
-                player.reset_opponent_models()
+                player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_state.max_cards_in_hand, self.__use_extra_vectors)
 
     def __determine_round_winner(self) -> None:
             # Check if the current judge is None
@@ -473,21 +466,26 @@ class ApplesToApples:
             self.__game_state.chosen_apples = ChosenApples(self.__game_state.apples_in_play.green_apple, None, [])
 
             # Prompt the judge to select the winning red apple
-            print_and_log(f"\n{self.__game_state.current_judge.get_name()}, please select the winning red apple.")
-            self.__game_state.chosen_apples.winning_red_apple = self.__game_state.current_judge.choose_winning_red_apple(
-                self.__game_state.apples_in_play, self.__use_extra_vectors, self.__use_losing_red_apples)
+            message = f"\n{self.__game_state.current_judge.get_name()}, please select the winning red apple."
+            print(message)
+            logging.info(message)
 
-            # Extract the winning red apple
-            winning_red_apple: RedApple = self.__game_state.chosen_apples.get_winning_red_apple()
+            # Determine the winning red apple
+            if self.__training_mode:
+                self.__game_state.chosen_apples.winning_red_apple = self.__game_state.apples_in_play.red_apples[0].copy()
+            else:
+                self.__game_state.chosen_apples.winning_red_apple = self.__game_state.current_judge.choose_winning_red_apple(self.__game_state.apples_in_play)
 
             # Print and log the winning red apple
-            print_and_log(f"{self.__game_state.current_judge.get_name()} chose the winning red apple '{winning_red_apple}'.")
+            message = f"{self.__game_state.current_judge.get_name()} chose the winning red apple '{self.__game_state.chosen_apples.get_winning_red_apple()}'."
+            print(message)
+            logging.info(message)
 
             # Extract the losing red apples
             losing_red_apples: list[dict[Agent, RedApple]] = self.__game_state.apples_in_play.red_apples.copy()
             losing_red_apples.remove(self.__game_state.chosen_apples.winning_red_apple)
             self.__game_state.chosen_apples.losing_red_apples = losing_red_apples
-            logging.info(f"Losing Red Apples: {self.__game_state.chosen_apples.losing_red_apples}")
+            logging.info(f"Losing Red Apples: {self.__game_state.chosen_apples.get_losing_red_apples()}")
 
             # Extract the round winner
             round_winner: Agent = self.__game_state.chosen_apples.get_red_apple_winner()
@@ -499,11 +497,72 @@ class ApplesToApples:
 
             # Set the round winner
             self.__game_state.round_winner = round_winner
-            print_and_log(f"{self.__game_state.round_winner.get_name()} has won the round!")
-            logging.debug(f"{self.__game_state.round_winner} has won the round!")
+            message = f"\n***{self.__game_state.round_winner.get_name()} has won the round!***"
+            print(message)
+            logging.info(message)
 
             # Award points to the winning player
             self.__game_state.round_winner.set_points(self.__game_state.round_winner.get_points() + 1)
+
+    def __train_ai_agents(self) -> None:
+        # Check if the current judge is None
+        if self.__game_state.current_judge is None:
+            logging.error("The current judge is None.")
+            raise ValueError("The current judge is None.")
+
+        # Check if the chosen apples is None
+        if self.__game_state.chosen_apples is None:
+            logging.error("The chosen apples is None.")
+            raise ValueError("The chosen apples is None.")
+
+        # Train all AI agents (if applicable)
+        for player in self.__game_state.players:
+            # Train the AI agent
+            if isinstance(player, AIAgent):
+                # In training mode, train the AI "player" on the human agent
+                if self.__training_mode:
+                    for agent in self.__game_state.players:
+                        if isinstance(agent, HumanAgent):
+                            player.train_self_judge_model(
+                                self.__game_state.chosen_apples
+                            )
+
+                            # TODO - Refactor to get vector logging
+                            # # Get the opponent judge model
+                            # opponent_judge_model: Model | None = player.get_opponent_model(agent)
+
+                            # # Check that the judge model is not None
+                            # if opponent_judge_model is None:
+                            #     logging.error("The opponent judge model is None.")
+                            #     raise ValueError("The opponent judge model is None.")
+
+                            # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
+                            # log_vectors(self.__game_state, player, current_slope, current_bias, True)
+                else:
+                    # If not in training mode, train only if the player is not the current judge
+                    if player != self.__game_state.current_judge:
+                        player.train_opponent_judge_model(
+                            self.__game_state.current_judge,
+                            self.__game_state.chosen_apples,
+                        )
+
+                        # TODO - Refactor to get vector logging
+                        # # Get the opponent judge model
+                        # opponent_judge_model: Model | None = player.get_opponent_model(self.__game_state.current_judge)
+
+                        # # Check that the judge model is not None
+                        # if opponent_judge_model is None:
+                        #     logging.error("The opponent judge model is None.")
+                        #     raise ValueError("The opponent judge model is None.")
+
+                        # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
+                        # log_vectors(self.__game_state, player, current_slope, current_bias, True)
+
+    def __reset_opponent_models(self) -> None:
+        # TODO - check if need to skip for training mode
+        for player in self.__game_state.players:
+            if isinstance(player, AIAgent):
+                player.reset_opponent_models()
 
     def __is_game_over(self) -> None:
         for player in self.__game_state.players:
@@ -551,7 +610,9 @@ class ApplesToApples:
                 message = f"\n{border}\n{winner_text}\n{border}\n"
 
                 # Print and log the winner message
-                print_and_log(message)
+                message = message
+                print(message)
+                logging.info(message)
 
                 # Log the winner if not in training mode
                 if not self.__training_mode:
