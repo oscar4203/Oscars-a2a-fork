@@ -292,11 +292,11 @@ class AIAgent(Agent):
 
         # Initialize the self and opponent ml models
         if self.__ml_model_type is LRModel:
-            self.__self_ml_model: Model = LRModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = LRModel(self, self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(self, agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
         elif self.__ml_model_type is NNModel:
-            self.__self_ml_model: Model = NNModel(self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = NNModel(self, self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(self, agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 

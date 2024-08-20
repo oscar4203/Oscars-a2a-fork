@@ -170,7 +170,15 @@ def main() -> None:
 
     # Run the winner counter and plot the results, if not in training mode
     if not args.training_mode:
-        data_analysis_main(game.winner_csv_filepath)
+        data_analysis_main(
+            game.winner_csv_filepath,
+            args.points_to_win,
+            args.total_games,
+            cycle_starting_judges == 'y',
+            reset_models_between_games == 'y',
+            use_extra_vectors == 'y',
+            use_losing_red_apples == 'y'
+        )
 
 if __name__ == "__main__":
     main()

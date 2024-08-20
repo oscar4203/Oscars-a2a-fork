@@ -87,29 +87,15 @@ class ChosenAppleVectors:
     green_apple_vector: np.ndarray
     winning_red_apple_vector: np.ndarray
     losing_red_apple_vectors: np.ndarray
+    green_apple_vector_extra: np.ndarray
+    winning_red_apple_vector_extra: np.ndarray
+    losing_red_apple_vectors_extra: np.ndarray
 
     def __post_init__(self) -> None:
         logging.debug(f"Created ChosenAppleVectors object: {self}")
 
     def __str__(self) -> str:
         return f"ChosenAppleVectors(green_apple_vector={self.green_apple_vector}, "\
-               f"winning_red_apple_vector={self.winning_red_apple_vector}, "\
-               f"losing_red_apple_vectors={self.losing_red_apple_vectors})"
-
-@dataclass
-class ChosenAppleVectorsExtra:
-    green_apple_vector: np.ndarray
-    winning_red_apple_vector: np.ndarray
-    losing_red_apple_vectors: np.ndarray
-    green_apple_vector_extra: np.ndarray
-    winning_red_apple_vector_extra: np.ndarray
-    losing_red_apple_vectors_extra: np.ndarray
-
-    def __post_init__(self) -> None:
-        logging.debug(f"Created ChosenAppleVectorsExtra object: {self}")
-
-    def __str__(self) -> str:
-        return f"ChosenAppleVectorsExtra(green_apple_vector={self.green_apple_vector}, "\
                f"winning_red_apple_vector={self.winning_red_apple_vector}, "\
                f"losing_red_apple_vectors={self.losing_red_apple_vectors}, "\
                f"green_apple_vector_extra={self.green_apple_vector_extra}, "\

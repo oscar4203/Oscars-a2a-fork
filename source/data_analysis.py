@@ -101,7 +101,9 @@ def percent_ai_won(winners: dict[str, int]) -> float:
     return ai_wins / total_games * 100 if total_games > 0 else 0
 
 
-def create_plot_for_winners(winners: dict[str, int]) -> Figure:
+def create_plot_for_winners(winners: dict[str, int], points_to_win: int, total_games: int,
+                            cycle_starting_judges: bool, reset_models_between_games: bool,
+                            use_extra_vectors: bool, use_losing_red_apples: bool) -> Figure:
     # Check if there are any winners
     if not winners:
         print("No winners found")
@@ -110,7 +112,6 @@ def create_plot_for_winners(winners: dict[str, int]) -> Figure:
     # Get the players and wins
     players = list(winners.keys())
     wins = list(winners.values())
-    total_games = sum(wins)
 
     # Abbreviate player names for x-axis
     abbreviated_names = [abbreviate_name(player) for player in players]
@@ -129,7 +130,16 @@ def create_plot_for_winners(winners: dict[str, int]) -> Figure:
     legend_ax = fig.add_subplot(gs[0, :])
     handles = [Rectangle((0,0),1,1, color=color) for color in colors[:len(players)]]
     legend_ax.legend(handles, players, title="Players", loc="center", fontsize=12, title_fontsize=14)
-    legend_ax.axis('off')
+    legend_ax.axis("off")
+
+    # Info box plot
+    info_ax = fig.add_subplot(gs[0, 1])
+    info_ax.axis("off")
+    info_text = (f"cycle_starting_judges = {cycle_starting_judges}\n"
+                 f"reset_models_between_games = {reset_models_between_games}\n"
+                 f"use_extra_vectors = {use_extra_vectors}\n"
+                 f"use_losing_red_apples = {use_losing_red_apples}")
+    info_ax.text(0.5, 0.5, info_text, ha="left", va="center", fontsize=12, fontweight="bold")
 
     # Bar plot
     bar_ax = fig.add_subplot(gs[1, 0])
@@ -140,8 +150,9 @@ def create_plot_for_winners(winners: dict[str, int]) -> Figure:
     bar_ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Use the default black color for the legend handle
-    black_patch = mpatches.Patch(color="black", label=f"Total Games: {total_games}")
-    bar_ax.legend(handles=[black_patch], loc="upper right", fontsize=14)
+    black_patch_points = mpatches.Patch(color="black", label=f"Points to Win: {points_to_win}")
+    black_patch_games = mpatches.Patch(color="black", label=f"Total Games: {total_games}")
+    bar_ax.legend(handles=[black_patch_points, black_patch_games], loc="upper right", fontsize=14)
 
     # Pie chart
     pie_ax = fig.add_subplot(gs[1, 1])
@@ -173,13 +184,16 @@ def save_plot(plot_figure: Figure, output_filepath: str) -> None:
     plot_figure.savefig(output_filepath)
 
 
-def main(filepath: str) -> None:
+def main(filepath: str, points_to_win: int, total_games: int,
+            cycle_starting_judges: bool, reset_models_between_games: bool,
+            use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
     # Get the winners dictionary
     try:
         winners = count_winners(filepath)
 
         # Print the winners
-        print(f"Total games: {sum(winners.values())}")
+        print(f"Points to win: {points_to_win}")
+        print(f"Total games: {total_games}")
         for player, wins in winners.items():
             print(f"{player}: {wins} wins")
 
@@ -192,7 +206,13 @@ def main(filepath: str) -> None:
         output_filepath = f"{base_name}.png"
 
         # Create a plot of the winners
-        plot = create_plot_for_winners(winners)
+        plot = create_plot_for_winners(
+            winners, points_to_win, total_games,
+            cycle_starting_judges,
+            reset_models_between_games,
+            use_extra_vectors,
+            use_losing_red_apples
+            )
 
         # Save the plot to a file
         save_plot(plot, output_filepath)
@@ -213,13 +233,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Count winners from a CSV file.")
 
     # Add an argument for the filename as input
-    parser.add_argument(
-        "filepath",
-        nargs="?",
-        default="./logs/winners.csv",
-        help="Path to the CSV file containing winners data"
-    )
+    parser.add_argument("filepath", nargs="?", default="./logs/winners.csv", help="Path to the CSV file containing winners data")
+    parser.add_argument("points_to_win", help="Total number of points to win (1-10).")
+    parser.add_argument("total_games", help="Total number of games to play (1-1000).")
+    parser.add_argument("cycle_starting_judges", help="Cycle starting judges between games (y/n).")
+    parser.add_argument("reset_models_between_games", help="Reset models between games (y/n).")
+    parser.add_argument("use_extra_vectors", help="Use extra vectors (y/n).")
+    parser.add_argument("use_losing_red_apples", help="Use losing red apples (y/n).")
 
     # Parse the arguments and call the main function
     args = parser.parse_args()
-    main(args.filepath)
+    main(
+        args.filepath,
+        args.points_to_win,
+        args.total_games,
+        args.cycle_starting_judges,
+        args.reset_models_between_games,
+        args.use_extra_vectors,
+        args.use_losing_red_apples
+    )
