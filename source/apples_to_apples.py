@@ -19,7 +19,7 @@ from source.data_classes import GameState, ApplesInPlay, ChosenApples
 
 class ApplesToApples:
     def __init__(self, embedding: Embedding, training_mode: bool, green_expansion: str = '', red_expansion: str = '') -> None:
-        self.__embedding: Embedding = embedding
+        self.embedding: Embedding = embedding
         self.__training_mode: bool = training_mode
         self.__green_expansion_filename: str = green_expansion
         self.__red_expansion_filename: str = red_expansion

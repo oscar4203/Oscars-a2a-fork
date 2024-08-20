@@ -9,7 +9,8 @@ import re
 
 # Third-party Libraries
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3' # Suppress TensorFlow logging
-import keras.api._v2.keras as keras
+from tensorflow import keras
+# import keras.api._v2.keras as keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, LeakyReLU, ELU
 from keras.layers import Dropout, BatchNormalization
