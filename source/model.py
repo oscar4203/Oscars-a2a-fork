@@ -5,11 +5,12 @@ import logging
 import os
 import numpy as np
 from typing import Callable
+from enum import Enum
 import re
 
 # Third-party Libraries
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3' # Suppress TensorFlow logging
-import keras.api._v2.keras as keras
+from tensorflow import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, LeakyReLU, ELU
 from keras.layers import Dropout, BatchNormalization
@@ -22,6 +23,13 @@ from scipy import stats
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
 from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
+
+
+# Define the mapping from user input to score type
+class ScoreType(Enum):
+    EUCLIDEAN = 1
+    MSE = 2
+    MAE = 3
 
 
 class Model():
@@ -571,7 +579,7 @@ class Model():
 
         return slope, bias
 
-    def _calculate_score(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, use_euclidean: bool = False) -> float:
+    def _calculate_score(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, score_type: ScoreType) -> float:
         """
         Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
         The output is always non-negative.
@@ -597,7 +605,7 @@ class Model():
             logging.error("NaN values found in input vectors.")
             return float('nan')
 
-        if use_euclidean:
+        if score_type == ScoreType.EUCLIDEAN:
             # Calculate the Euclidean distance for slope and bias
             euclidean_slope = np.linalg.norm(slope_predict - slope_target)
             euclidean_bias = np.linalg.norm(bias_predict - bias_target)
@@ -610,21 +618,22 @@ class Model():
             logging.debug(f"total_distance: {total_distance}")
 
             return float(total_distance)
-        else:
-            # # Calculate the MSE for slope and bias
-            # mse_slope = np.mean((slope_predict - slope_target) ** 2)
-            # mse_bias = np.mean((bias_predict - bias_target) ** 2)
 
-            # logging.debug(f"mse_slope: {mse_slope}")
-            # logging.debug(f"mse_bias: {mse_bias}")
+        elif score_type == ScoreType.MSE:
+            # Calculate the MSE for slope and bias
+            mse_slope = np.mean((slope_predict - slope_target) ** 2)
+            mse_bias = np.mean((bias_predict - bias_target) ** 2)
 
-            # # Combine the MSE for slope and bias
-            # mse_total = mse_slope + mse_bias
-            # logging.debug(f"mse_total: {mse_total}")
+            logging.debug(f"mse_slope: {mse_slope}")
+            logging.debug(f"mse_bias: {mse_bias}")
 
-            # return float(mse_total)
+            # Combine the MSE for slope and bias
+            mse_total = mse_slope + mse_bias
+            logging.debug(f"mse_total: {mse_total}")
 
-            # TODO - Decide whether to use MSE or MAE (less sensitive to outliers)
+            return float(mse_total)
+
+        elif score_type == ScoreType.MAE:
             # Calculate the MAE for slope and bias
             mae_slope = np.mean(np.abs(slope_predict - slope_target))
             mae_bias = np.mean(np.abs(bias_predict - bias_target))
@@ -637,6 +646,10 @@ class Model():
             logging.debug(f"mae_total: {mae_total}")
 
             return float(mae_total)
+
+        else:
+            logging.error("Invalid score type.")
+            return float("nan")
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
@@ -840,17 +853,9 @@ class LRModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -912,17 +917,9 @@ class LRModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -1104,17 +1101,9 @@ class NNModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -1176,17 +1165,9 @@ class NNModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
