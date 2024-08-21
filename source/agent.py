@@ -69,14 +69,14 @@ class Agent:
         """
         self._red_apples = []
 
-    def draw_green_apple(self, keyed_vectors: KeyedVectors, green_apple_deck: Deck, extra_vectors: bool) -> GreenApple:
+    def draw_green_apple(self, keyed_vectors: KeyedVectors, green_apple_deck: Deck, extra_vectors: bool) -> dict["Agent", GreenApple]:
         """
-        Draw a green card from the deck (when the agent is the judge).
+        Draw a green apple from the deck (when the agent is the judge).
         The vectors are set as soon as the new green apple is drawn.
         """
         # Check if the Agent is a judge
         if self._judge_status:
-            # Draw a new green card
+            # Draw a new green apple
             new_green_apple = green_apple_deck.draw_apple()
             if not isinstance(new_green_apple, GreenApple):
                 raise TypeError("Expected a GreenApple, but got a different type")
@@ -94,12 +94,15 @@ class Agent:
             logging.error(f"{self._name} is the judge.")
             raise ValueError(f"{self._name} is the judge.")
 
-        # Display the green card drawn
-        message = f"{self._name} drew the green card '{self._green_apple}'."
+        # Display the green apple drawn
+        message = f"{self._name} drew the green apple '{self._green_apple}'."
         print(message)
         logging.info(message)
 
-        return self._green_apple
+        # Initialize the green apple dict
+        green_apple_dict: dict["Agent", GreenApple] = {self: self._green_apple}
+
+        return green_apple_dict
 
     def draw_red_apples(self, keyed_vectors: KeyedVectors, red_apple_deck: Deck, cards_in_hand: int, extra_vectors: bool) -> Deck | None:
         """
@@ -193,6 +196,10 @@ class HumanAgent(Agent):
         return red_apple
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
+        """
+        This method refers to the existing chosen red apple object from the list of red apples in play.
+        This is done to avoid duplicating the red apple object in memory.
+        """
         # Check if the agent is a judge
         if not self._judge_status:
             logging.error(f"{self._name} is not the judge.")
@@ -215,9 +222,8 @@ class HumanAgent(Agent):
         # Convert the input to an index
         red_apple_index = int(red_apple_index) - 1
 
-        # Remove the red apple from the agent's hand
-        # TODO - verify that the pop is doing what it is supposed to do
-        winning_red_apple = apples_in_play.red_apples.pop(red_apple_index)
+        # Refer to the existing red apple object
+        winning_red_apple = apples_in_play.red_apples[red_apple_index]
 
         return winning_red_apple
 
@@ -343,7 +349,7 @@ class AIAgent(Agent):
         """
         Train the AI self model for the current judge, given the new green and red apples.
         """
-        # Train the AI models with the new green card, red apple, and judge
+        # Train the AI models with the new green apple, red apple, and judge
         self.__self_ml_model.train_model(chosen_apples)
 
         # Extract the apples for logging
@@ -364,7 +370,7 @@ class AIAgent(Agent):
         # Check if the agent is a judge
         for agent in self.__opponents:
             if agent is current_judge:
-                # Train the AI models with the new green card, red apple, and judge
+                # Train the AI models with the new green apple, red apple, and judge
                 self.__opponent_ml_models[agent].train_model(chosen_apples)
 
                 # Extract the apples for logging

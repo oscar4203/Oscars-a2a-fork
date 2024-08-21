@@ -653,13 +653,13 @@ class Model():
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
-        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        Choose a red apple from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         """
         raise NotImplementedError("Subclass must implement the 'choose_winning_red_apple' method")
 
@@ -788,7 +788,7 @@ class LRModel(Model):
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
-        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        Choose a red apple from the agent's hand to play (when the agent is a regular player).
         This method applies the private linear regression methods to predict the best red apple.
         """
         # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
@@ -872,12 +872,12 @@ class LRModel(Model):
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method is only used by the self model and applies the private linear regression methods to predict the winning red apple.
         """
         # If in training mode, choose the only red apple and return early
         if self._training_mode:
-            winning_red_apple = apples_in_play.red_apples[0]
+            winning_red_apple: dict[Agent, RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
         # Initialize the x_predict_base and _base arrays
@@ -889,8 +889,7 @@ class LRModel(Model):
         logging.debug(f"x_predict_base: {x_predict_base}")
         logging.debug(f"y_predict_base: {y_predict_base}")
 
-        # Initialize variables to track the best choice
-        winning_red_apple: dict[Agent, RedApple] | None = None
+        # Initialize the best score
         best_score = np.inf
 
         # Iterate through the red apples to find the best one
@@ -928,9 +927,6 @@ class LRModel(Model):
                 logging.debug(f"New best score: {best_score}")
                 logging.debug(f"New best red apple: {winning_red_apple}")
 
-        # Check if the winning red apple is None
-        if winning_red_apple is None:
-            raise ValueError("No winning red apple was chosen.")
         logging.debug(f"Winning red apple: {winning_red_apple}")
 
         return winning_red_apple
@@ -1036,7 +1032,7 @@ class NNModel(Model):
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
-        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        Choose a red apple from the agent's hand to play (when the agent is a regular player).
         This method applies the private neural network methods to predict the best red apple.
         """
         # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
@@ -1120,12 +1116,12 @@ class NNModel(Model):
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private neural network methods to predict the winning red apple.
         """
         # If in training mode, choose the only red apple and return early
         if self._training_mode:
-            winning_red_apple = apples_in_play.red_apples[0]
+            winning_red_apple: dict[Agent, RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
         # Initialize the x_predict_base and _base arrays
@@ -1137,8 +1133,7 @@ class NNModel(Model):
         logging.debug(f"x_predict_base: {x_predict_base}")
         logging.debug(f"y_predict_base: {y_predict_base}")
 
-        # Initialize variables to track the best choice
-        winning_red_apple: dict[Agent, RedApple] | None = None
+        # Initialize the best score
         best_score = np.inf
 
         # Iterate through the red apples to find the best one
@@ -1176,9 +1171,6 @@ class NNModel(Model):
                 logging.debug(f"New best score: {best_score}")
                 logging.debug(f"New best red apple: {winning_red_apple}")
 
-        # Check if the winning red apple is None
-        if winning_red_apple is None:
-            raise ValueError("No winning red apple was chosen.")
         logging.debug(f"Winning red apple: {winning_red_apple}")
 
         return winning_red_apple
