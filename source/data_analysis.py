@@ -160,11 +160,17 @@ def create_game_settings_box(ax: Axes, points_to_win: int, total_games: int,
 
 
 def create_bar_plot(ax: Axes, names: list[str], values: list[int], colors: list[str], title: str, xlabel: str, ylabel: str) -> None:
+    # Create bar plot
     ax.bar(names, values, color=colors)
+
+    # Set titles and labels
     ax.set_title(title, fontsize=18, fontweight="bold")
     ax.set_xlabel(xlabel, fontsize=16, fontweight="bold")
     ax.set_ylabel(ylabel, fontsize=16, fontweight="bold")
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    # Add grid for better readability
+    ax.grid(True)
 
 
 def create_pie_chart(ax: Axes, data: list[int], labels: list[str], colors: list[str], title: str, total_rounds_games: int) -> None:
@@ -289,7 +295,7 @@ def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: Game
     pie_plot_data = (round_winners, abbreviated_names, colors)
     pie_plot_labels = ("Round Win Rates", total_rounds)
 
-    # Prepare the data and labels for Box plot
+    # Prepare the data and labels for Box plot TODO - try to make 0 visible on the box plot, try to make it look better
     round_wins_per_game_dict: dict["Agent", list[int]] = game_log.get_round_wins_per_game()
     round_wins_per_game: list[list[int]] = [
         round_wins_per_game_dict.get(player, [0] * len(game_log.game_states))
@@ -326,7 +332,7 @@ def create_game_winners_plot(game_winners_dict: dict[str, int], game_log: GameLo
     pie_plot_data = (game_winners, abbreviated_names, colors)
     pie_plot_labels = ("Game Win Rates", game_log.total_games)
 
-    # Prepare the data and labels for Box plot
+    # Prepare the data and labels for Box plot TODO - fix box plot data to be a bar chart with total rounds per game
     rounds_per_game_dict: dict[int, int] = game_log.get_rounds_per_game()
     rounds_per_game: list[int] = [rounds_per_game_dict.get(i, 0) for i in range(game_log.total_games)]
     box_plot_data = (rounds_per_game, [f"Game {i + 1}" for i in range(game_log.total_games)], colors)
