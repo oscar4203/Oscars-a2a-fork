@@ -22,8 +22,26 @@ class Agent:
         self._judge_status: bool = False
         self._green_apple: GreenApple | None = None
         self._red_apples: list[RedApple] = []
-
+    
     def __str__(self) -> str:
+        # Retrieve the green apple
+        if self._green_apple is not None:
+            green_apple = self._green_apple.get_adjective()
+        else:
+            green_apple = None
+
+        # Retrieve the red apples
+        red_apples = [red_apple.get_noun() for red_apple in self._red_apples]
+
+        return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
+            f"green_apple={green_apple}, red_apples={red_apples})"
+
+    def __repr__(self) -> str:
+        """
+        Return the string representation of the agent.
+        Returns a more detailed string representation of the agent, 
+        and calls the __repr__ method for each apple, so they are more detailed too.
+        """
         # Retrieve the green apple
         if self._green_apple is not None:
             green_apple = self._green_apple.get_adjective()
@@ -275,6 +293,16 @@ class AIAgent(Agent):
         self.__use_extra_vectors: bool = use_extra_vectors
         self.__use_losing_red_apples: bool = use_losing_red_apples
         self.__training_mode: bool = training_mode
+    
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
+            f"green_apple={self._green_apple}, red_apples={self._red_apples})"
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
+            f"ml_model_type={self.__ml_model_type}, pretrained_archetype={self.__pretrained_archetype}, " \
+            f"use_extra_vectors={self.__use_extra_vectors}, use_losing_red_apples={self.__use_losing_red_apples}, training_mode={self.__training_mode}, " \
+            f"green_apple={self._green_apple}, red_apples={self._red_apples})"
 
     def get_opponent_model(self, agent_as_key: Agent) -> Model | None:
         if self.__opponent_ml_models is None:
@@ -320,7 +348,6 @@ class AIAgent(Agent):
             agent_model: Model = self.__opponent_ml_models[opponent]
             agent_model.reset_model()
             message = f"Reset {opponent.get_name()}'s model."
-            print(message)
             logging.info(message)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:

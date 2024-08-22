@@ -17,7 +17,10 @@ class Apple:
         self._set: str = set
 
     def __str__(self) -> str:
-        return f"Apple(set={self._set})"
+        """
+        Returns a string representation of the only common attribute of all Apples: the set.
+        """
+        return f"{self.__class__.__name__}(set={self._set})"
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -89,6 +92,10 @@ class GreenApple(Apple):
     def __str__(self) -> str:
         synonyms_str = ', '.join(self.__synonyms) if self.__synonyms is not None else None
         return f"{self.__adjective} | Synonyms: {synonyms_str}"
+    
+    def __repr__(self) -> str:
+        synonyms_str = ', '.join(self.__synonyms) if self.__synonyms is not None else None
+        return f"{self.__class__.__name__}(set={self._set}, adjective={self.__adjective}, synonyms={synonyms_str})"
 
     def get_adjective(self) -> str:
         return self.__adjective
@@ -134,6 +141,9 @@ class RedApple(Apple):
 
     def __str__(self) -> str:
         return f"{self.__noun} | Description: {self.__description}"
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(set={self._set}, noun={self.__noun}, description={self.__description})"
 
     def get_noun(self) -> str:
         return self.__noun
