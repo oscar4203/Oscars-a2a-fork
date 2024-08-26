@@ -100,10 +100,10 @@ def format_naming_scheme(players: "list[Agent]", total_games: int | None = None,
 
     # Format the initial naming scheme
     date_string = f"{date}-"
-    final_string = create_final_naming_scheme_string(date_string, total_games, points_to_win, players_string)
+    num = 1
+    final_string = create_final_naming_scheme_string(date_string, total_games, points_to_win, players_string, num)
 
     # Check if there already exists a directory with the same naming scheme
-    num = 1
     while os.path.exists(os.path.join(LOGGING_BASE_DIRECTORY, final_string)):
         num += 1
         final_string = create_final_naming_scheme_string(date_string, total_games, points_to_win, players_string, num)
