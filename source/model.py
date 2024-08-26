@@ -913,8 +913,6 @@ class LRModel(Model):
 
             # Use linear regression to predict the preference output
             self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"self._slope_predict: {self._slope_predict}")
-            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
             # Evaluate the score
             score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
