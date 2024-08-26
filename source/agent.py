@@ -22,7 +22,7 @@ class Agent:
         self._judge_status: bool = False
         self._green_apple: GreenApple | None = None
         self._red_apples: list[RedApple] = []
-    
+
     def __str__(self) -> str:
         # Retrieve the green apple
         if self._green_apple is not None:
@@ -39,7 +39,7 @@ class Agent:
     def __repr__(self) -> str:
         """
         Return the string representation of the agent.
-        Returns a more detailed string representation of the agent, 
+        Returns a more detailed string representation of the agent,
         and calls the __repr__ method for each apple, so they are more detailed too.
         """
         # Retrieve the green apple
@@ -109,8 +109,8 @@ class Agent:
             # Assign the green apple to the agent's hand
             self._green_apple = new_green_apple
         else:
-            logging.error(f"{self._name} is the judge.")
-            raise ValueError(f"{self._name} is the judge.")
+            logging.error(f"{self._name} is not the judge.")
+            raise ValueError(f"{self._name} is not the judge.")
 
         # Display the green apple drawn
         message = f"{self._name} drew the green apple '{self._green_apple}'."
@@ -158,7 +158,7 @@ class Agent:
             print(message)
             logging.info(message)
 
-    def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> RedApple:
+    def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> dict["Agent", RedApple]:
         """
         Choose a red apple from the agent's hand to play (when the agent is a regular player).
         """
@@ -178,7 +178,7 @@ class HumanAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
         if self._judge_status:
             logging.error(f"{self._name} is the judge.")
@@ -211,7 +211,10 @@ class HumanAgent(Agent):
         print(f"{self._name} chose a red apple.")
         logging.info(f"{self._name} chose the red apple '{red_apple}'.")
 
-        return red_apple
+        # Put the red apple in a dictionary
+        red_apple_dict: dict["Agent", RedApple] = {self: red_apple}
+
+        return red_apple_dict
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
@@ -253,7 +256,7 @@ class RandomAgent(Agent):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
         if self._judge_status:
             logging.error(f"{self._name} is the judge.")
@@ -266,7 +269,10 @@ class RandomAgent(Agent):
         print(f"{self._name} chose a red apple.")
         logging.info(f"{self._name} chose the red apple '{red_apple}'.")
 
-        return red_apple
+        # Put the red apple in a dictionary
+        red_apple_dict: dict["Agent", RedApple] = {self: red_apple}
+
+        return red_apple_dict
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         # Check if the agent is a judge
@@ -293,11 +299,11 @@ class AIAgent(Agent):
         self.__use_extra_vectors: bool = use_extra_vectors
         self.__use_losing_red_apples: bool = use_losing_red_apples
         self.__training_mode: bool = training_mode
-    
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
             f"green_apple={self._green_apple}, red_apples={self._red_apples})"
-    
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
             f"ml_model_type={self.__ml_model_type}, pretrained_archetype={self.__pretrained_archetype}, " \
@@ -350,7 +356,7 @@ class AIAgent(Agent):
             message = f"Reset {opponent.get_name()}'s model."
             logging.info(message)
 
-    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> RedApple:
+    def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
         if self._judge_status:
             logging.error(f"{self._name} is the judge.")
@@ -364,7 +370,10 @@ class AIAgent(Agent):
         print(f"{self._name} chose a red apple.")
         logging.info(f"{self._name} chose the red apple '{red_apple}'.")
 
-        return red_apple
+        # Put the red apple in a dictionary
+        red_apple_dict: dict["Agent", RedApple] = {self: red_apple}
+
+        return red_apple_dict
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         # Choose a winning red apple
