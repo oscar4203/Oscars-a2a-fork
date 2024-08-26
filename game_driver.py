@@ -13,26 +13,23 @@ from source.w2vloader import VectorsW2V
 from source.apples_to_apples import ApplesToApples
 from source.game_logger import configure_logging
 from source.data_analysis import main as data_analysis_main
-from source.data_classes import GameState
+from source.data_classes import RoundState, GameState, GameLog
 
 
 class GameDriver:
     def __init__(self, training_mode: bool, number_of_players: int, points_to_win: int, total_games: int, green_expansion: str = '', red_expansion: str = '') -> None:
         # Set the game state for training mode
         if training_mode:
-            number_of_players = 2
+            number_of_players = 2 # Override the number of players for training mode
             max_cards_in_hand = 25
         else: # Set the game state for non-training mode
             max_cards_in_hand = 7
 
-        # Initialize the game state
-        self.game_state: GameState = GameState(
-                        number_of_players, [],
-                        max_cards_in_hand,
-                        points_to_win,
-                        total_games, 0, 0,
-                        None, None, [],
-                        None, None, None)
+        # Initialize the GameLog
+        self.game_log: GameLog = GameLog()
+        self.game_log.intialize_input_args(number_of_players, max_cards_in_hand, points_to_win, total_games)
+
+        # Set the filenames for the green and red apple expansions
         self.green_expansion_filename: str = green_expansion
         self.red_expansion_filename: str = red_expansion
 
@@ -76,7 +73,7 @@ def main() -> None:
         usage="python apples_to_apples.py <number_of_players> <points_to_win> <total_games> "\
               "[green_expansion] [red_expansion] [-V] [-T] [-D]",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
-                    "points to win, and total games to play. Include optional green and red card expansions. "\
+                    "points to win, and total games to play. Include optional green and red apple expansions. "\
                     "Use the -V flag to use the custom vector loader. "\
                     "Use the -T flag to run the program in training mode. "\
                     "Use the -D flag to enable debug mode for detailed logging."
@@ -86,8 +83,8 @@ def main() -> None:
     parser.add_argument("number_of_players", type=range_type(3, 8), help="Total number of players (3-8).")
     parser.add_argument("points_to_win", type=range_type(1, 10), help="Total number of points to win (1-10).")
     parser.add_argument("total_games", type=range_type(1,1000), help="Total number of games to play (1-1000).")
-    parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green card expansion (optional).")
-    parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red card expansion (optional).")
+    parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green apple expansion (optional).")
+    parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red apple expansion (optional).")
     parser.add_argument("-V", "--vector_loader", action="store_true", help="Use the custom vector loader")
     parser.add_argument("-T", "--training_mode", action="store_true", help="Train a user specified model archetype")
     parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode for detailed logging")
@@ -118,10 +115,10 @@ def main() -> None:
     game_driver.load_keyed_vectors(args.vector_loader)
 
     # Create the game object
-    game = ApplesToApples(game_driver.keyed_vectors, args.training_mode, args.green_expansion, args.red_expansion)
+    a2a_game = ApplesToApples(game_driver.keyed_vectors, args.training_mode, args.green_expansion, args.red_expansion)
 
-    # Set the static game state
-    game.initalize_game_state(game_driver.game_state)
+    # Set the static game log
+    a2a_game.initalize_game_log(game_driver.game_log)
 
     # Initialize all between game option variables
     change_players_between_games = "n"
@@ -153,7 +150,7 @@ def main() -> None:
         reset_cards_between_games = get_user_input_y_or_n("Do you want to reset the training cards between games? (y/n): ")
 
     # Set the game options
-    game.set_game_options(
+    a2a_game.set_game_options(
         change_players_between_games == 'y',
         cycle_starting_judges == 'y',
         reset_models_between_games == 'y',
@@ -170,17 +167,18 @@ def main() -> None:
     logging.info(f"Use losing red apples: {use_losing_red_apples == 'y'}")
     logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
 
-    # Start the game, prompt the user for options
-    while game.get_game_state().current_game < game.get_game_state().total_games:
-        # Start a new game
-        game.new_game()
+    # Start the first game
+    a2a_game.new_game()
+
+    # Continue playing games until the total number of games is reached
+    while game_driver.game_log.get_current_game_number() < game_driver.game_log.total_games:
+        # Start the next game
+        a2a_game.new_game()
 
     # Run the winner counter and plot the results, if not in training mode
     if not args.training_mode:
         data_analysis_main(
-            game.winner_csv_filepath,
-            args.points_to_win,
-            args.total_games,
+            game_driver.game_log,
             change_players_between_games == 'y',
             cycle_starting_judges == 'y',
             reset_models_between_games == 'y',
