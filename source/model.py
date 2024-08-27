@@ -16,10 +16,8 @@ from keras.layers import Dense, Activation, LeakyReLU, ELU
 from keras.layers import Dropout, BatchNormalization
 from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping
-from scipy import stats
 
 # Local Modules
-# if TYPE_CHECKING:
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
 from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors

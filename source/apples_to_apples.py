@@ -561,7 +561,7 @@ class ApplesToApples:
             if self.__training_mode:
                 log_training(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
             else:
-                log_game_state(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                log_game_state(self.__game_log.naming_scheme, self.__game_log, True)
 
             # Train the AI agents
             self.__train_ai_agents()
