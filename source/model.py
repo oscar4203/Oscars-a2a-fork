@@ -296,16 +296,86 @@ class Model():
                 # Append the description vector to the losing red apple vectors
                 losing_red_apple_vectors_extra: np.ndarray = np.vstack([losing_red_apple_vectors_extra, description_vector])
 
-        # Create the chosen apple vectors
-        chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
-            green_apple_vector=green_apple_vector,
-            winning_red_apple_vector=winning_red_apple_vector,
-            losing_red_apple_vectors=losing_red_apple_vectors,
-            green_apple_vector_extra=green_apple_vector_extra,
-            winning_red_apple_vector_extra=winning_red_apple_vector_extra,
-            losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
-        )
+    def _collect_chosen_apple_vectors(self, chosen_apples: ChosenApples) -> ChosenAppleVectors:
+        """
+        Collect the vectors from the chosen apples object, and store them in a ChosenAppleVectors object.
+        """
+        # Extract the chosen green apple vector
+        green_apple_vector: np.ndarray | None = chosen_apples.get_green_apple().get_adjective_vector()
+        # Check that the green apple vector is not None
+        if green_apple_vector is None:
+            logging.error(f"Green apple vector is None.")
+            raise ValueError("Green apple vector is None.")
 
+        # Extract the winning red apple vector
+        winning_red_apple_vector: np.ndarray | None = chosen_apples.get_winning_red_apple().get_noun_vector()
+        # Check that the winning red apple vector is not None
+        if winning_red_apple_vector is None:
+            logging.error(f"Winning red apple vector is None.")
+            raise ValueError("Winning red apple vector is None.")
+
+        # Initialize the extra vectors if applicable
+        if self._use_extra_vectors:
+            # Extract the extra green apple vector
+            green_apple_vector_extra: np.ndarray | None = chosen_apples.get_green_apple().get_synonyms_vector()
+            # Check that the green apple vector is not None
+            if green_apple_vector_extra is None:
+                logging.error(f"Green apple vector is None.")
+                raise ValueError("Green apple vector is None.")
+
+            # Extract the extra winning red apple vector
+            winning_red_apple_vector_extra: np.ndarray | None = chosen_apples.get_winning_red_apple().get_description_vector()
+            # Check that the winning red apple vector is not None
+            if winning_red_apple_vector_extra is None:
+                logging.error(f"Winning red apple vector is None.")
+                raise ValueError("Winning red apple vector is None.")
+
+        # Initialize the losing red apple vectors and extra vectors
+        losing_red_apple_vectors: np.ndarray = np.zeros((0, self._vector_size))
+        losing_red_apple_vectors_extra: np.ndarray = np.zeros((0, self._vector_size))
+
+        # Get the losing red apple vectors and extra vectors if applicable
+        for losing_red_apple in chosen_apples.get_losing_red_apples():
+            noun_vector: np.ndarray | None = losing_red_apple.get_noun_vector()
+            # Check that the noun vector is not None
+            if noun_vector is None:
+                logging.error(f"Noun vector is None.")
+                raise ValueError("Noun vector is None.")
+
+            # Append the noun vector to the losing red apple vectors
+            losing_red_apple_vectors: np.ndarray = np.vstack([losing_red_apple_vectors, noun_vector])
+
+            if self._use_extra_vectors:
+                description_vector: np.ndarray | None = losing_red_apple.get_description_vector()
+                # Check that the description_vector vector is not None
+                if description_vector is None:
+                    logging.error(f"Description vector is None.")
+                    raise ValueError("Description vector is None.")
+
+                # Append the description vector to the losing red apple vectors
+                losing_red_apple_vectors_extra: np.ndarray = np.vstack([losing_red_apple_vectors_extra, description_vector])
+
+        # Create the chosen apple vectors
+        if self._use_extra_vectors:
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=green_apple_vector_extra,
+                winning_red_apple_vector_extra=winning_red_apple_vector_extra,
+                losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
+            )
+        else:
+            # Create an empty array
+            empty_array: np.ndarray = np.zeros(0)
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=empty_array,
+                winning_red_apple_vector_extra=empty_array,
+                losing_red_apple_vectors_extra=empty_array
+            )
 
         return chosen_apple_vectors
 
