@@ -449,18 +449,18 @@ class Model():
         This will include the winning apple pairs, the losing if applicable, and the extra vectors for both if applicable.
         """
         # Initialize x_vectors and losing_x_vectors lists
-        x_vectors_list = []
+        winning_x_vectors_list = []
         losing_x_vectors_list = []
 
-        # Process the chosen apple vectors
+        # Assemble the chosen apple vectors into python lists
         for chosen_apple in chosen_apple_vectors:
             # Calculate the x vectors for the winning apple pairs
-            x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector, chosen_apple.winning_red_apple_vector))
+            winning_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector, chosen_apple.winning_red_apple_vector))
 
             # Include the extra vectors, if applicable
             if self._use_extra_vectors:
                 # Calculate the x vectors for the winning apple pairs
-                x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector_extra, chosen_apple.winning_red_apple_vector_extra))
+                winning_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector_extra, chosen_apple.winning_red_apple_vector_extra))
 
             # Process the losing apple pairs, if applicable
             if self._use_losing_red_apples:
@@ -477,19 +477,19 @@ class Model():
         x_vectors: np.ndarray = np.zeros((0, self._vector_size))
         y_vectors: np.ndarray = np.zeros((0, self._vector_size))
 
-        # Convert the list to a numpy array
-        x_vectors = np.vstack(x_vectors_list)
+        # Convert the winning list to a numpy array
+        x_vectors = np.vstack(winning_x_vectors_list)
 
         # Initialize the winning y_vectors
         y_vectors = self._initialize_y_vectors(x_vectors, winning_apple=True)
 
         # Finish processing the losing apple pairs, if applicable
         if self._use_losing_red_apples:
-            # Convert the list to a numpy array
+            # Convert the losing list to a numpy array
             losing_x_vectors = np.vstack(losing_x_vectors_list)
 
-            # Initialize the winning y_vectors
-            losing_y_vectors = self._initialize_y_vectors(losing_x_vectors, winning_apple=True)
+            # Initialize the losing y_vectors
+            losing_y_vectors = self._initialize_y_vectors(losing_x_vectors, winning_apple=False)
 
             # Stack the losing x_vectors and y_vectors
             x_vectors = np.vstack([x_vectors, losing_x_vectors])
