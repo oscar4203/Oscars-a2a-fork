@@ -11,7 +11,7 @@ from source.w2vloader import VectorsW2V
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import model_type_mapping
-from source.game_logger import LOGGING_BASE_DIRECTORY, log_game_state, log_round_winner, log_game_winner, log_training
+from source.game_logger import log_game_state, log_round_winner, log_game_winner, log_training
 from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 

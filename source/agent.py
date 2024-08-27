@@ -9,6 +9,7 @@ import numpy as np
 from gensim.models import KeyedVectors
 
 # Local Modules
+from source.model import Model, LRModel, NNModel
 from source.apples import GreenApple, RedApple, Deck
 from source.data_classes import ApplesInPlay, ChosenApples
 
@@ -285,8 +286,6 @@ class RandomAgent(Agent):
 
         return winning_red_apple
 
-# Import the "Model" class from local library here to avoid circular importing
-from source.model import Model, LRModel, NNModel
 
 class AIAgent(Agent):
     """

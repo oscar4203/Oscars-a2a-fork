@@ -13,7 +13,7 @@ from source.w2vloader import VectorsW2V
 from source.apples_to_apples import ApplesToApples
 from source.game_logger import configure_logging
 from source.data_analysis import main as data_analysis_main
-from source.data_classes import RoundState, GameState, GameLog
+from source.data_classes import GameLog
 
 
 class GameDriver:

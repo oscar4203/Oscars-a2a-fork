@@ -1,6 +1,7 @@
 # Description: AI model logic for use in the AI agents in the 'Apples to Apples' game.
 
 # Standard Libraries
+from typing import TYPE_CHECKING # Type hinting to avoid circular imports
 import logging
 import os
 import numpy as np
@@ -18,8 +19,9 @@ from keras.optimizers import Adam
 from keras.callbacks import EarlyStopping
 
 # Local Modules
+if TYPE_CHECKING:
+    from source.agent import Agent
 from source.apples import GreenApple, RedApple
-from source.agent import Agent
 from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
 
 
@@ -34,12 +36,12 @@ class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, self_agent: Agent, judge_to_model: Agent, vector_size: int, pretrained_archetype: str,
+    def __init__(self, self_agent: "Agent", judge_to_model: "Agent", vector_size: int, pretrained_archetype: str,
                  use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agent_archetypes/"
-        self._self_agent: Agent = self_agent
-        self._judge_to_model: Agent = judge_to_model # The judge to be modeled
+        self._self_agent: "Agent" = self_agent
+        self._judge_to_model: "Agent" = judge_to_model # The judge to be modeled
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._use_extra_vectors: bool = use_extra_vectors
@@ -655,7 +657,7 @@ class Model():
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
-    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         """
@@ -671,7 +673,7 @@ class LRModel(Model):
     """
     Linear Regression model for the AI agent.
     """
-    def __init__(self, self_agent: Agent, judge: Agent, vector_size: int, pretrained_archetype: str,
+    def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
                  use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
         # Initialize the target slope and bias vectors, if not in training mode
@@ -868,14 +870,14 @@ class LRModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method is only used by the self model and applies the private linear regression methods to predict the winning red apple.
         """
         # If in training mode, choose the only red apple and return early
         if self._training_mode:
-            winning_red_apple: dict[Agent, RedApple] = apples_in_play.red_apples[0]
+            winning_red_apple: dict["Agent", RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
         # Initialize the x_predict_base and _base arrays
@@ -959,7 +961,7 @@ class NNModel(Model):
     """
     Neural Network model for the AI agent.
     """
-    def __init__(self, self_agent: Agent, judge: Agent, vector_size: int, pretrained_archetype: str,
+    def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
                  use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
         # Initialize the target slope and bias vectors, if not in training mode
@@ -1110,14 +1112,14 @@ class NNModel(Model):
 
         return best_red_apple
 
-    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
+    def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private neural network methods to predict the winning red apple.
         """
         # If in training mode, choose the only red apple and return early
         if self._training_mode:
-            winning_red_apple: dict[Agent, RedApple] = apples_in_play.red_apples[0]
+            winning_red_apple: dict["Agent", RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
         # Initialize the x_predict_base and _base arrays
