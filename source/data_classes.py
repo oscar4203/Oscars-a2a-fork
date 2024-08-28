@@ -341,9 +341,9 @@ class GameLog:
             "number_of_players": self.get_number_of_players(),
             "game_players": [player.get_name() for player in self.get_game_players()],
             "current_judge": current_judge.get_name() if current_judge is not None else None,
-            "green_apple": self.get_apples_in_play().get_green_apple().get_adjective(),
-            "winning_red_apple": self.get_apples_in_play().get_red_apples()[0].get_noun(),
-            "losing_red_apples": [red_apple.get_noun() for red_apple in self.get_apples_in_play().get_red_apples()],
+            "green_apple": self.get_chosen_apples().get_green_apple().get_adjective(),
+            "winning_red_apple": self.get_chosen_apples().get_winning_red_apple().get_noun(),
+            "losing_red_apples": [red_apple.get_noun() for red_apple in self.get_chosen_apples().get_losing_red_apples()],
             "round_winner": round_winner.get_name() if round_winner is not None else None,
             "game_winner": game_winner.get_name() if game_winner is not None else None,
         }
