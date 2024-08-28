@@ -41,9 +41,9 @@ class VectorsW2V():
     c_string = ctypes.create_string_buffer(word.encode())
 
     entry = HashEntry.from_address(self.dll.lookup_entry(c_string))
-    # v_size = self.dll.get_vector_size().value
-    # print(type(v_size), v_size, "please work")
-    vector = np.ctypeslib.as_array(entry.vector, (300,)).copy()
+
+    vec_size = self.get_vector()
+    vector = np.ctypeslib.as_array(entry.vector, (vec_size,)).copy()
 
     return vector
 
