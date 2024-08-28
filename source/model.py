@@ -5,12 +5,13 @@ import logging
 import os
 import numpy as np
 from typing import Callable
+from enum import Enum
 import re
 
 # Third-party Libraries
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3' # Suppress TensorFlow logging
 from tensorflow import keras
-#import keras.api._v2.keras as keras
+#import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation, LeakyReLU, ELU
 from keras.layers import Dropout, BatchNormalization
@@ -23,6 +24,13 @@ from scipy import stats
 from source.apples import GreenApple, RedApple
 from source.agent import Agent
 from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
+
+
+# Define the mapping from user input to score type
+class ScoreType(Enum):
+    EUCLIDEAN = 1
+    MSE = 2
+    MAE = 3
 
 
 class Model():
@@ -47,7 +55,7 @@ class Model():
         # Check that the pretrained vectors have at least 2 vectors
         if not self._training_mode and len(self._pretrained_vectors) < 2:
             message = f"Pretrained vectors must have at least 2 vectors."\
-                f"\nPlease train the {self._pretrained_archetype} with 'extra_vectors' set to {self._use_extra_vectors}."
+                f"\nPlease train the {self._pretrained_archetype} with 'use_losing_red_apples' set to {self._use_losing_red_apples}."
             logging.error(message)
             raise ValueError(message)
 
@@ -501,18 +509,18 @@ class Model():
         This will include the winning apple pairs, the losing if applicable, and the extra vectors for both if applicable.
         """
         # Initialize x_vectors and losing_x_vectors lists
-        x_vectors_list = []
+        winning_x_vectors_list = []
         losing_x_vectors_list = []
 
-        # Process the chosen apple vectors
+        # Assemble the chosen apple vectors into python lists
         for chosen_apple in chosen_apple_vectors:
             # Calculate the x vectors for the winning apple pairs
-            x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector, chosen_apple.winning_red_apple_vector))
+            winning_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector, chosen_apple.winning_red_apple_vector))
 
             # Include the extra vectors, if applicable
             if self._use_extra_vectors:
                 # Calculate the x vectors for the winning apple pairs
-                x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector_extra, chosen_apple.winning_red_apple_vector_extra))
+                winning_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector_extra, chosen_apple.winning_red_apple_vector_extra))
 
             # Process the losing apple pairs, if applicable
             if self._use_losing_red_apples:
@@ -529,19 +537,19 @@ class Model():
         x_vectors: np.ndarray = np.zeros((0, self._vector_size))
         y_vectors: np.ndarray = np.zeros((0, self._vector_size))
 
-        # Convert the list to a numpy array
-        x_vectors = np.vstack(x_vectors_list)
+        # Convert the winning list to a numpy array
+        x_vectors = np.vstack(winning_x_vectors_list)
 
         # Initialize the winning y_vectors
         y_vectors = self._initialize_y_vectors(x_vectors, winning_apple=True)
 
         # Finish processing the losing apple pairs, if applicable
         if self._use_losing_red_apples:
-            # Convert the list to a numpy array
+            # Convert the losing list to a numpy array
             losing_x_vectors = np.vstack(losing_x_vectors_list)
 
-            # Initialize the winning y_vectors
-            losing_y_vectors = self._initialize_y_vectors(losing_x_vectors, winning_apple=True)
+            # Initialize the losing y_vectors
+            losing_y_vectors = self._initialize_y_vectors(losing_x_vectors, winning_apple=False)
 
             # Stack the losing x_vectors and y_vectors
             x_vectors = np.vstack([x_vectors, losing_x_vectors])
@@ -631,7 +639,7 @@ class Model():
 
         return slope, bias
 
-    def _calculate_score(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, use_euclidean: bool = False) -> float:
+    def _calculate_score(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, score_type: ScoreType) -> float:
         """
         Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
         The output is always non-negative.
@@ -657,7 +665,7 @@ class Model():
             logging.error("NaN values found in input vectors.")
             return float('nan')
 
-        if use_euclidean:
+        if score_type == ScoreType.EUCLIDEAN:
             # Calculate the Euclidean distance for slope and bias
             euclidean_slope = np.linalg.norm(slope_predict - slope_target)
             euclidean_bias = np.linalg.norm(bias_predict - bias_target)
@@ -670,21 +678,22 @@ class Model():
             logging.debug(f"total_distance: {total_distance}")
 
             return float(total_distance)
-        else:
-            # # Calculate the MSE for slope and bias
-            # mse_slope = np.mean((slope_predict - slope_target) ** 2)
-            # mse_bias = np.mean((bias_predict - bias_target) ** 2)
 
-            # logging.debug(f"mse_slope: {mse_slope}")
-            # logging.debug(f"mse_bias: {mse_bias}")
+        elif score_type == ScoreType.MSE:
+            # Calculate the MSE for slope and bias
+            mse_slope = np.mean((slope_predict - slope_target) ** 2)
+            mse_bias = np.mean((bias_predict - bias_target) ** 2)
 
-            # # Combine the MSE for slope and bias
-            # mse_total = mse_slope + mse_bias
-            # logging.debug(f"mse_total: {mse_total}")
+            logging.debug(f"mse_slope: {mse_slope}")
+            logging.debug(f"mse_bias: {mse_bias}")
 
-            # return float(mse_total)
+            # Combine the MSE for slope and bias
+            mse_total = mse_slope + mse_bias
+            logging.debug(f"mse_total: {mse_total}")
 
-            # TODO - Decide whether to use MSE or MAE (less sensitive to outliers)
+            return float(mse_total)
+
+        elif score_type == ScoreType.MAE:
             # Calculate the MAE for slope and bias
             mae_slope = np.mean(np.abs(slope_predict - slope_target))
             mae_bias = np.mean(np.abs(bias_predict - bias_target))
@@ -698,15 +707,19 @@ class Model():
 
             return float(mae_total)
 
+        else:
+            logging.error("Invalid score type.")
+            return float("nan")
+
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
-        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        Choose a red apple from the agent's hand to play (when the agent is a regular player).
         """
         raise NotImplementedError("Subclass must implement the 'choose_red_apple' method")
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         """
         raise NotImplementedError("Subclass must implement the 'choose_winning_red_apple' method")
 
@@ -835,7 +848,7 @@ class LRModel(Model):
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
-        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        Choose a red apple from the agent's hand to play (when the agent is a regular player).
         This method applies the private linear regression methods to predict the best red apple.
         """
         # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
@@ -900,17 +913,9 @@ class LRModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -927,12 +932,12 @@ class LRModel(Model):
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method is only used by the self model and applies the private linear regression methods to predict the winning red apple.
         """
         # If in training mode, choose the only red apple and return early
         if self._training_mode:
-            winning_red_apple = apples_in_play.red_apples[0]
+            winning_red_apple: dict[Agent, RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
         # Initialize the x_predict_base and _base arrays
@@ -944,8 +949,7 @@ class LRModel(Model):
         logging.debug(f"x_predict_base: {x_predict_base}")
         logging.debug(f"y_predict_base: {y_predict_base}")
 
-        # Initialize variables to track the best choice
-        winning_red_apple: dict[Agent, RedApple] | None = None
+        # Initialize the best score
         best_score = np.inf
 
         # Iterate through the red apples to find the best one
@@ -969,20 +973,10 @@ class LRModel(Model):
 
             # Use linear regression to predict the preference output
             self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"self._slope_predict: {self._slope_predict}")
-            logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -991,9 +985,6 @@ class LRModel(Model):
                 logging.debug(f"New best score: {best_score}")
                 logging.debug(f"New best red apple: {winning_red_apple}")
 
-        # Check if the winning red apple is None
-        if winning_red_apple is None:
-            raise ValueError("No winning red apple was chosen.")
         logging.debug(f"Winning red apple: {winning_red_apple}")
 
         return winning_red_apple
@@ -1099,7 +1090,7 @@ class NNModel(Model):
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
-        Choose a red card from the agent's hand to play (when the agent is a regular player).
+        Choose a red apple from the agent's hand to play (when the agent is a regular player).
         This method applies the private neural network methods to predict the best red apple.
         """
         # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
@@ -1164,17 +1155,9 @@ class NNModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -1191,12 +1174,12 @@ class NNModel(Model):
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        Choose the winning red card from the red cards submitted by the other agents (when the agent is the judge).
+        Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method applies the private neural network methods to predict the winning red apple.
         """
         # If in training mode, choose the only red apple and return early
         if self._training_mode:
-            winning_red_apple = apples_in_play.red_apples[0]
+            winning_red_apple: dict[Agent, RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
         # Initialize the x_predict_base and _base arrays
@@ -1208,8 +1191,7 @@ class NNModel(Model):
         logging.debug(f"x_predict_base: {x_predict_base}")
         logging.debug(f"y_predict_base: {y_predict_base}")
 
-        # Initialize variables to track the best choice
-        winning_red_apple: dict[Agent, RedApple] | None = None
+        # Initialize the best score
         best_score = np.inf
 
         # Iterate through the red apples to find the best one
@@ -1236,17 +1218,9 @@ class NNModel(Model):
             logging.debug(f"self._slope_predict: {self._slope_predict}")
             logging.debug(f"self._bias_predict: {self._bias_predict}")
 
-            # Evaluate the score using RMSE
-            score_mse = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target)
-            logging.debug(f"score_mse: {score_mse}")
-
-            # Evaluate the score using Euclidean distance
-            score_euclid = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, True)
-            logging.debug(f"score_euclid: {score_euclid}")
-
-            # Choose which score to use
-            score = score_mse
-            # score = score_euclid
+            # Evaluate the score
+            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
             if score < best_score:
@@ -1255,9 +1229,6 @@ class NNModel(Model):
                 logging.debug(f"New best score: {best_score}")
                 logging.debug(f"New best red apple: {winning_red_apple}")
 
-        # Check if the winning red apple is None
-        if winning_red_apple is None:
-            raise ValueError("No winning red apple was chosen.")
         logging.debug(f"Winning red apple: {winning_red_apple}")
 
         return winning_red_apple
