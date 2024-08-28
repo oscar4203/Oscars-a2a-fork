@@ -26,15 +26,16 @@ struct entry_t {
 };
 
 struct {
+  char *buffer;
   struct entry_t **lookup;
   long long lookup_size;
   long long vector_size;
   long long word_count;
+
 } hash_table;
 
 
 long long get_vector_size() {
-  
   return hash_table.vector_size;
 }
 
@@ -146,6 +147,7 @@ void load_binary(const char *filename) {
   fsetpos(fp, &pos);
 
   char *buffer = malloc(size);
+  hash_table.buffer = buffer;
   // printf("Reading into Buffer with size of %lld\n", size);
   fread(buffer, 1, size, fp);
   fclose(fp);
@@ -181,15 +183,38 @@ void load_binary(const char *filename) {
 }
 
 
+
+void unload_binary() {
+  for (long long i = 0; i < hash_table.lookup_size; i++) {
+    if (hash_table.lookup[i]) free(hash_table.lookup[i]);
+  }
+
+  free(hash_table.lookup);
+  free(hash_table.buffer); 
+}
+
+
 // int main() {
 
 //   clock_t start = clock();
 
-//   load_binary("vectors.bin", 0);
-//   lookup_entry("dock");
+//   load_binary("data/vectors.bin");
 //   clock_t end = clock();
 
 //   double elapsed_time = (end-start)/(double)CLOCKS_PER_SEC ;
 
-//   printf("Time Elapsed %f", elapsed_time);
+//   printf("Loaded Binary in %f seconds\n", elapsed_time);
+
+
+//   start = clock();
+//   unload_binary();
+
+//   end = clock();
+
+//   elapsed_time = (end-start)/(double)CLOCKS_PER_SEC ;
+
+//   printf("Unloaded Binary in %f seconds\n", elapsed_time);
+
+
+
 // }

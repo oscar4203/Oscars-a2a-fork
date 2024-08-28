@@ -27,10 +27,11 @@ class VectorsW2V():
 
     self.dll.load_binary(c_path)
 
+
     # set up function stuff
-    self.dll.lookup_entry.restype = ctypes.c_void_p
-    self.dll.get_vector_size = ctypes.c_longlong
-    self.dll.get_word_count = ctypes.c_longlong
+    self.dll.lookup_entry.stype = ctypes.c_void_p
+    self.dll.get_vector_size.restype = ctypes.c_longlong
+    self.dll.get_word_count.restype = ctypes.c_longlong
 
 
 
@@ -48,6 +49,16 @@ class VectorsW2V():
 
   def __getitem__(self, word: str) ->np.ndarray:
     return self.get_vector(word)
+  
+  def get_vector_size(self) -> int:
+    return int(self.dll.get_vector_size())
+  
+  def get_word_count(self) -> int:
+    return int(self.dll.get_word_count())
+  
+  def deinit(self):
+    self.dll.unload_binary()
+    
 
 
 

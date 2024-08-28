@@ -31,6 +31,10 @@ class Embedding():
   def __getitem__(self, string: str) -> np.ndarray:
     return self.get_vector(string)
   
+  def deinit(self):
+    if self.custom:
+      self.cvectors.deinit()
+  
 
 
 

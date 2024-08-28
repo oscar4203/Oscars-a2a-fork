@@ -237,6 +237,7 @@ class Model():
         self._chosen_apple_vectors = []
         logging.info(f"Reset the pretrained vectors and model vectors..")
 
+
     def _collect_chosen_apple_vectors(self, chosen_apples: ChosenApples) -> ChosenAppleVectors:
         """
         Collect the vectors from the chosen apples object, and store them in a ChosenAppleVectors object.
@@ -297,18 +298,28 @@ class Model():
                 losing_red_apple_vectors_extra: np.ndarray = np.vstack([losing_red_apple_vectors_extra, description_vector])
 
         # Create the chosen apple vectors
-        chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
-            green_apple_vector=green_apple_vector,
-            winning_red_apple_vector=winning_red_apple_vector,
-            losing_red_apple_vectors=losing_red_apple_vectors,
-            green_apple_vector_extra=green_apple_vector_extra,
-            winning_red_apple_vector_extra=winning_red_apple_vector_extra,
-            losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
-        )
-
+        if self._use_extra_vectors:
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=green_apple_vector_extra,
+                winning_red_apple_vector_extra=winning_red_apple_vector_extra,
+                losing_red_apple_vectors_extra=losing_red_apple_vectors_extra
+            )
+        else:
+            # Create an empty array
+            empty_array: np.ndarray = np.zeros(0)
+            chosen_apple_vectors: ChosenAppleVectors = ChosenAppleVectors(
+                green_apple_vector=green_apple_vector,
+                winning_red_apple_vector=winning_red_apple_vector,
+                losing_red_apple_vectors=losing_red_apple_vectors,
+                green_apple_vector_extra=empty_array,
+                winning_red_apple_vector_extra=empty_array,
+                losing_red_apple_vectors_extra=empty_array
+            )
 
         return chosen_apple_vectors
-
     def _normalize_vectors(self, vector_array: np.ndarray) -> np.ndarray:
         """
         Normalize the input vectors using L2 (Euclidean Norm).
