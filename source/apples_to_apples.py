@@ -11,7 +11,7 @@ from source.w2vloader import VectorsW2V
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import model_type_mapping
-from source.game_logger import LOGGING_BASE_DIRECTORY, log_game_state, log_round_winner, log_game_winner, log_training
+from source.game_logger import log_game_state, log_round_winner, log_game_winner, log_training
 from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
@@ -561,7 +561,7 @@ class ApplesToApples:
             if self.__training_mode:
                 log_training(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
             else:
-                log_game_state(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                log_game_state(self.__game_log.naming_scheme, self.__game_log, True)
 
             # Train the AI agents
             self.__train_ai_agents()
