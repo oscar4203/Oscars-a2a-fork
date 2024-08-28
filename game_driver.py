@@ -127,6 +127,7 @@ def main() -> None:
     use_extra_vectors = "y"
     use_losing_red_apples = "y"
     reset_cards_between_games = "n"
+    print_in_terminal = "y"
 
     # Prompt the user on whether they want to change players between games
     if not args.training_mode:
@@ -149,6 +150,9 @@ def main() -> None:
     if args.training_mode:
         reset_cards_between_games = get_user_input_y_or_n("Do you want to reset the training cards between games? (y/n): ")
 
+    # Prompt the user on whether they want to print the game info and results in the terminal
+    print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
+
     # Set the game options
     a2a_game.set_game_options(
         change_players_between_games == 'y',
@@ -156,7 +160,8 @@ def main() -> None:
         reset_models_between_games == 'y',
         use_extra_vectors == 'y',
         use_losing_red_apples == 'y',
-        reset_cards_between_games == 'y'
+        reset_cards_between_games == 'y',
+        print_in_terminal == 'y'
     )
 
     # Log the game options
@@ -166,6 +171,7 @@ def main() -> None:
     logging.info(f"Use extra vectors: {use_extra_vectors == 'y'}")
     logging.info(f"Use losing red apples: {use_losing_red_apples == 'y'}")
     logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
+    logging.info(f"Print in terminal: {print_in_terminal == 'y'}")
 
     # Start the first game
     a2a_game.new_game()
