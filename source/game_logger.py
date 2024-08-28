@@ -12,7 +12,7 @@ from datetime import datetime
 # Local Modules
 if TYPE_CHECKING:
     from source.agent import Agent
-    from source.data_classes import GameState, PreferenceUpdates
+    from source.data_classes import GameState, GameLog, PreferenceUpdates
 
 
 # Logging configuration
@@ -144,15 +144,17 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
 #     log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
 
 
-def log_game_state(naming_scheme: str, game_state: "GameState", header: bool) -> None:
+def log_game_state(naming_scheme: str, game_log: "GameLog", header: bool) -> None:
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"gameplay-{naming_scheme}.csv"
-    log_to_csv(directory, filename, list(game_state.gameplay_to_dict().keys()), game_state.gameplay_to_dict(), header)
+    filename = f"game_state-{naming_scheme}.csv"
+    log_to_csv(directory, filename, list(game_log.game_log_to_dict().keys()), game_log.game_log_to_dict(), header)
+
 
 def log_round_winner(naming_scheme: str, game_state: "GameState", header: bool) -> None:
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"round_winners-{naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_state.round_winner_to_dict().keys()), game_state.round_winner_to_dict(), header)
+
 
 def log_game_winner(naming_scheme: str, game_state: "GameState", header: bool) -> None:
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
