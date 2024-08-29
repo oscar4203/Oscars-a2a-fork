@@ -39,11 +39,17 @@ class VectorsW2V():
     # struct entry_t *lookup_entry(char *name) {
 
     c_string = ctypes.create_string_buffer(word.encode())
-
+    print(c_string)
     entry = HashEntry.from_address(self.dll.lookup_entry(c_string))
 
-    vec_size = self.get_vector()
-    vector = np.ctypeslib.as_array(entry.vector, (vec_size,)).copy()
+    print(entry)
+    vec_size = self.get_vector_size()
+    print(vec_size)
+    p_vector = np.ctypeslib.as_array(entry.vector, (vec_size,))
+    print(p_vector)
+
+    vector = p_vector.copy()
+    print(vector)
 
     return vector
 

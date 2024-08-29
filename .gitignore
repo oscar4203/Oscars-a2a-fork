@@ -22,9 +22,8 @@ gameplay.csv
 winners.csv
 training.csv
 
-# Numpy files and "agent_archetypes" directory
-agent_archetypes/
-*.npy
+# Numpy tmp files in "agent_archetypes/tmp" directory
+agent_archetypes/tmp
 
 ##########
 # Python #

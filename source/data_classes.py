@@ -195,6 +195,33 @@ class GameState:
                 f"round_states={[round_state for round_state in self.round_states]}, "\
                 f"discard_pile={[discard.to_dict() for discard in self.discard_pile]})"
 
+    def to_dict(self) -> dict[str, list[str] | list[dict] | str | int | ApplesInPlay | None]:
+        return {
+            "current_game": self.current_game,
+            "number_of_players": self.number_of_players,
+            "game_players": [player.get_name() for player in self.game_players],
+            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None,
+            "round_states": [round_state.to_dict() for round_state in self.round_states],
+            "discard_pile": [discard.to_dict() for discard in self.discard_pile]
+        }
+
+    def round_winner_to_dict(self) -> dict[str, str | None]:
+        return self.get_current_round().round_winner_to_dict()
+
+    def game_winner_to_dict(self) -> dict[str, str | None]:
+        return {
+            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
+        }
+
+    def training_to_dict(self) -> dict[str, list[str] | list[dict] | str | int | ApplesInPlay | None]:
+        return {
+            "current_game": self.current_game,
+            "number_of_players": self.number_of_players,
+            "game_players": [player.get_name() for player in self.game_players],
+            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None,
+            "discard_pile": [discard.to_dict() for discard in self.discard_pile]
+        }
+
     def add_player(self, player: "Agent") -> None:
         self.game_players.append(player)
         self.number_of_players += 1
@@ -263,44 +290,6 @@ class GameState:
     def get_discard_pile(self) -> list[ChosenApples]:
         return self.discard_pile
 
-    def to_dict(self) -> dict[str, list[str] | list[dict] | str | int | ApplesInPlay | None]:
-        return {
-            "current_game": self.current_game,
-            "number_of_players": self.number_of_players,
-            "game_players": [player.get_name() for player in self.game_players],
-            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None,
-            "round_states": [round_state.to_dict() for round_state in self.round_states],
-            "discard_pile": [discard.to_dict() for discard in self.discard_pile]
-        }
-
-    def gameplay_to_dict(self) -> dict[str, list[str] | list[dict] | str | int | ApplesInPlay | None]:
-        return { # TODO - fix this so the text is not so crazy long
-            "current_game": self.current_game,
-            "number_of_players": self.number_of_players,
-            "game_players": [player.get_name() for player in self.game_players],
-            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None,
-            "round_states": [round_state.to_dict() for round_state in self.round_states],
-            "discard_pile": [discard.to_dict() for discard in self.discard_pile]
-        }
-
-    def round_winner_to_dict(self) -> dict[str, str | None]:
-        return self.get_current_round().round_winner_to_dict()
-
-    def game_winner_to_dict(self) -> dict[str, str | None]:
-        return {
-            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None
-        }
-
-    def training_to_dict(self) -> dict[str, list[str] | list[dict] | str | int | ApplesInPlay | None]:
-        return {
-            "current_game": self.current_game,
-            "number_of_players": self.number_of_players,
-            "game_players": [player.get_name() for player in self.game_players],
-            "game_winner": self.game_winner.get_name() if self.game_winner is not None else None,
-            "round_states": [round_state.to_dict() for round_state in self.round_states],
-            "discard_pile": [discard.to_dict() for discard in self.discard_pile]
-        }
-
 
 @dataclass
 class GameLog:
@@ -329,6 +318,36 @@ class GameLog:
                 f"total_games={self.total_games}, "\
                 f"game_states={[game for game in self.game_states]})"
 
+    def to_dict(self) -> dict[str, list[str] | int | list[dict]]:
+        return {
+            "total_number_of_players": self.total_number_of_players,
+            "all_game_players": [player.get_name() for player in self.all_game_players],
+            "max_cards_in_hand": self.max_cards_in_hand,
+            "points_to_win": self.points_to_win,
+            "total_games": self.total_games,
+            "game_states": [game.to_dict() for game in self.game_states]
+        }
+
+    def game_log_to_dict(self) -> dict[str, int | list[str] | str | None]:
+        current_judge = self.get_current_judge()
+        round_winner = self.get_round_winner()
+        game_winner = self.get_game_winner()
+
+        return {
+            "points_to_win": self.points_to_win,
+            "total_games": self.total_games,
+            "current_game": self.get_current_game_number(),
+            "current_round": self.get_current_round(),
+            "number_of_players": self.get_number_of_players(),
+            "game_players": [player.get_name() for player in self.get_game_players()],
+            "current_judge": current_judge.get_name() if current_judge is not None else None,
+            "green_apple": self.get_chosen_apples().get_green_apple().get_adjective(),
+            "winning_red_apple": self.get_chosen_apples().get_winning_red_apple().get_noun(),
+            "losing_red_apples": [red_apple.get_noun() for red_apple in self.get_chosen_apples().get_losing_red_apples()],
+            "round_winner": round_winner.get_name() if round_winner is not None else None,
+            "game_winner": game_winner.get_name() if game_winner is not None else None,
+        }
+
     def intialize_input_args(self, total_number_of_players: int, max_cards_in_hand: int, points_to_win: int, total_games: int) -> None:
         self.total_number_of_players = total_number_of_players
         self.max_cards_in_hand = max_cards_in_hand
@@ -356,16 +375,6 @@ class GameLog:
 
     def add_round(self, round_state: RoundState) -> None:
         self.get_current_game_state().add_round(round_state)
-
-    def get_log(self) -> dict[str, list[str] | int | list[dict]]:
-        return {
-            "total_number_of_players": self.total_number_of_players,
-            "all_game_players": [player.get_name() for player in self.all_game_players],
-            "max_cards_in_hand": self.max_cards_in_hand,
-            "points_to_win": self.points_to_win,
-            "total_games": self.total_games,
-            "game_states": [game.to_dict() for game in self.game_states]
-        }
 
     def get_current_game_state(self) -> GameState:
         return self.game_states[-1]
@@ -452,6 +461,9 @@ class GameLog:
             message = "Current round winner is None."
             logging.error(message)
             raise ValueError(message)
+
+    def get_round_winner(self) -> "Agent | None":
+        return self.get_current_game_state().get_current_round_winner()
 
     def get_round_wins_per_game(self) -> dict["Agent", list[int]]:
         round_wins_per_game: dict[Agent, list[int]] = {player: [0] * len(self.game_states) for player in self.all_game_players}

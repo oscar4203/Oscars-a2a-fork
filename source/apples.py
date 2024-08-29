@@ -8,9 +8,9 @@ import numpy as np
 import re
 
 # Third-party Libraries
-from gensim.models import KeyedVectors
 
 # Local Modules
+from source.embeddings import Embedding
 
 class Apple:
     def __init__(self, set: str) -> None:
@@ -49,27 +49,27 @@ class Apple:
     def _split_text(self, text: str) -> list[str]:
         return text.split("_")
 
-    def _calculate_average_vector(self, words: list[str], keyed_vectors: KeyedVectors) -> np.ndarray:
+    def _calculate_average_vector(self, words: list[str], embedding: Embedding) -> np.ndarray:
         """
         Calculate the average vector for the input list of words
         """
         logging.debug(f"words: {words}")
         # Initialize the average vector to zeros
-        avg_vector: np.ndarray = np.zeros(keyed_vectors.vector_size)
+        avg_vector: np.ndarray = np.zeros(embedding.vector_size)
 
         # Iterate through the words
         for word in words:
-            # Try searching the keyed_vectors for the word
+            # Try searching the embedding for the word
             try:
                 # Add the vector of the word to the average vector
-                avg_vector += keyed_vectors[word]
+                avg_vector += embedding[word]
             except KeyError:
                 # If the word is not found, try converting it to lowercase
                 try:
                     # Add the vector of the word to the average vector
-                    avg_vector += keyed_vectors[word.lower()]
+                    avg_vector += embedding[word.lower()]
                 except KeyError:
-                    logging.info(f"The word '{word}' was not found in the keyed_vectors.")
+                    logging.info(f"The word '{word}' was not found in the embedding.")
 
         # Divide the average vector by the number of words
         if len(words) > 0:
@@ -109,7 +109,7 @@ class GreenApple(Apple):
     def get_synonyms_vector(self) -> np.ndarray | None:
         return self.__synonyms_vector
 
-    def set_adjective_vector(self, keyed_vectors: KeyedVectors) -> None:
+    def set_adjective_vector(self, embedding: Embedding) -> None:
         # Clean the adjective
         cleaned_adjective = self._format_text(self.__adjective)
 
@@ -117,9 +117,9 @@ class GreenApple(Apple):
         split_cleaned_adjective = self._split_text(cleaned_adjective)
 
         # Calculate the average vector for the adjective
-        self.__adjective_vector = self._calculate_average_vector(split_cleaned_adjective, keyed_vectors)
+        self.__adjective_vector = self._calculate_average_vector(split_cleaned_adjective, embedding)
 
-    def set_synonyms_vector(self, keyed_vectors: KeyedVectors) -> None:
+    def set_synonyms_vector(self, embedding: Embedding) -> None:
         # Check if synonyms exist
         if self.__synonyms is None:
             raise ValueError("Synonyms are not available for this Green Apple.")
@@ -128,7 +128,7 @@ class GreenApple(Apple):
         cleaned_synonyms = [self._format_text(synonym) for synonym in self.__synonyms]
 
         # Calculate the average vector for the synonyms
-        self.__synonyms_vector = self._calculate_average_vector(cleaned_synonyms, keyed_vectors)
+        self.__synonyms_vector = self._calculate_average_vector(cleaned_synonyms, embedding)
 
 
 class RedApple(Apple):
@@ -157,7 +157,7 @@ class RedApple(Apple):
     def get_description_vector(self) -> np.ndarray | None:
         return self.__description_vector
 
-    def set_noun_vector(self, keyed_vectors: KeyedVectors) -> None:
+    def set_noun_vector(self, embedding: Embedding) -> None:
         # Clean the noun
         cleaned_noun = self._format_text(self.__noun)
 
@@ -165,9 +165,9 @@ class RedApple(Apple):
         split_cleaned_noun = self._split_text(cleaned_noun)
 
         # Calculate the average vector for the noun
-        self.__noun_vector = self._calculate_average_vector(split_cleaned_noun, keyed_vectors)
+        self.__noun_vector = self._calculate_average_vector(split_cleaned_noun, embedding)
 
-    def set_description_vector(self, keyed_vectors: KeyedVectors) -> None:
+    def set_description_vector(self, embedding: Embedding) -> None:
         # Check if description exists
         if self.__description is None:
             raise ValueError("Description is not available for this Red Apple.")
@@ -179,7 +179,7 @@ class RedApple(Apple):
         split_cleaned_description = self._split_text(cleaned_description)
 
         # Calculate the average vector for the description
-        self.__description_vector = self._calculate_average_vector(split_cleaned_description, keyed_vectors)
+        self.__description_vector = self._calculate_average_vector(split_cleaned_description, embedding)
 
 
 class Deck:

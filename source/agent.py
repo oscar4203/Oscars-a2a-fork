@@ -8,6 +8,7 @@ import numpy as np
 
 # Local Modules
 from source.embeddings import Embedding
+from source.model import Model, LRModel, NNModel
 from source.apples import GreenApple, RedApple, Deck
 from source.data_classes import ApplesInPlay, ChosenApples
 
@@ -16,7 +17,8 @@ class Agent:
     
     Base class for the agents in the 'Apples to Apples' game
     """
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, print_in_terminal: bool) -> None:
+        self._print_in_terminal: bool = print_in_terminal
         self._name: str = name
         self._points: int = 0
         self._judge_status: bool = False
@@ -114,7 +116,8 @@ class Agent:
 
         # Display the green apple drawn
         message = f"{self._name} drew the green apple '{self._green_apple}'."
-        print(message)
+        if self._print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Initialize the green apple dict
@@ -147,15 +150,18 @@ class Agent:
                 self._red_apples.append(new_red_apple)
             if diff == 1:
                 message = f"{self._name} picked up 1 red apple."
-                print(message)
+                if self._print_in_terminal:
+                    print(message)
                 logging.info(message)
             else:
                 message = f"{self._name} picked up {diff} red apples."
-                print(message)
+                if self._print_in_terminal:
+                    print(message)
                 logging.info(message)
         else:
             message = f"{self._name} cannot pick up any more red apples. Agent already has enough red apples."
-            print(message)
+            if self._print_in_terminal:
+                print(message)
             logging.info(message)
 
     def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> dict["Agent", RedApple]:
@@ -175,8 +181,8 @@ class HumanAgent(Agent):
     """
     Human agent for the 'Apples to Apples' game.
     """
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
+    def __init__(self, name: str, print_in_terminal: bool) -> None:
+        super().__init__(name, print_in_terminal)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
@@ -253,8 +259,8 @@ class RandomAgent(Agent):
     """
     Random agent for the 'Apples to Apples' game.
     """
-    def __init__(self, name: str) -> None:
-        super().__init__(name)
+    def __init__(self, name: str, print_in_terminal: bool) -> None:
+        super().__init__(name, print_in_terminal)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
@@ -266,7 +272,8 @@ class RandomAgent(Agent):
         red_apple = self._red_apples.pop(random.choice(range(len(self._red_apples))))
 
         # Display the red apple chosen
-        print(f"{self._name} chose a red apple.")
+        if self._print_in_terminal:
+            print(f"{self._name} chose a red apple.")
         logging.info(f"{self._name} chose the red apple '{red_apple}'.")
 
         # Put the red apple in a dictionary
@@ -285,15 +292,13 @@ class RandomAgent(Agent):
 
         return winning_red_apple
 
-# Import the "Model" class from local library here to avoid circular importing
-from source.model import Model, LRModel, NNModel
 
 class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
-        super().__init__(name)
+    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False, print_in_terminal: bool = True) -> None:
+        super().__init__(name, print_in_terminal)
         self.__ml_model_type: LRModel | NNModel = ml_model_type
         self.__pretrained_archetype: str = pretrained_archetype
         self.__use_extra_vectors: bool = use_extra_vectors
@@ -367,7 +372,8 @@ class AIAgent(Agent):
         self._red_apples.remove(red_apple)
 
         # Display the red apple chosen
-        print(f"{self._name} chose a red apple.")
+        if self._print_in_terminal:
+            print(f"{self._name} chose a red apple.")
         logging.info(f"{self._name} chose the red apple '{red_apple}'.")
 
         # Put the red apple in a dictionary

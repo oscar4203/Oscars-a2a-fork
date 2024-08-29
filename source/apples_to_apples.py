@@ -12,7 +12,7 @@ from source.embeddings import Embedding
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import model_type_mapping
-from source.game_logger import LOGGING_BASE_DIRECTORY, log_game_state, log_round_winner, log_game_winner, log_training
+from source.game_logger import log_game_state, log_round_winner, log_game_winner, log_training
 from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
@@ -28,21 +28,24 @@ class ApplesToApples:
     def initalize_game_log(self, game_log: GameLog) -> None:
         self.__game_log = game_log
 
-    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, use_extra_vectors: bool, use_losing_red_apples: bool, reset_cards_between_games: bool) -> None:
+    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, use_extra_vectors: bool,
+                         use_losing_red_apples: bool, reset_cards_between_games: bool, print_in_terminal: bool) -> None:
         self.__change_players_between_games = change_players
         self.__cycle_starting_judges_between_games = cycle_starting_judges
         self.__reset_models_between_games = reset_models
         self.__use_extra_vectors = use_extra_vectors
         self.__use_losing_red_apples = use_losing_red_apples
         self.__reset_cards_between_games = reset_cards_between_games
+        self.__print_in_terminal = print_in_terminal
 
     def new_game(self) -> None:
         """
         Start a new game of 'Apples to Apples' and reset the game state.
         Optionally, initialize new players.
         """
-        message = "Starting new 'Apples to Apples' game."
-        print(message)
+        message = "\nStarting new 'Apples to Apples' game."
+        if self.__print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Initialize the GameState and add the game
@@ -56,20 +59,15 @@ class ApplesToApples:
 
         # Reset the game state
         message = "Resetting game state."
-        print(message)
+        if self.__print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Initialize the decks
-        message = "Initializing decks."
-        print(message)
-        logging.info(message)
         self.__initialize_decks()
 
         # Initialize the players for the first game
         if self.__game_log.get_current_game_number() == 1:
-            message = "Initializing players."
-            print(message)
-            logging.info(message)
             self.__initialize_players()
         elif self.__game_log.get_current_game_number() > 1:
             # Prompt the user on whether to keep the same players, if applicable
@@ -81,7 +79,8 @@ class ApplesToApples:
                 elif keep_players == "y":
                     self.__game_log.copy_players_to_new_game()
                     message = "Keeping the same players as last game."
-                    print(message)
+                    if self.__print_in_terminal:
+                        print(message)
                     logging.info(message)
             else:
                 # Copy players over to the new game
@@ -89,7 +88,8 @@ class ApplesToApples:
 
             # Reset the player points and judge status
             message = "Resetting player points and judge status."
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
             self.__reset_player_points_and_judge_status()
 
@@ -117,6 +117,12 @@ class ApplesToApples:
             player.set_judge_status(False)
 
     def __initialize_decks(self) -> None:
+        # Print and log the initialization message
+        message = "Initializing decks."
+        if self.__print_in_terminal:
+            print(message)
+        logging.info(message)
+
         # Shuffle the decks
         self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples.csv", self.__green_expansion_filename)
         self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples.csv", self.__red_expansion_filename)
@@ -125,14 +131,16 @@ class ApplesToApples:
         # Load the base deck
         deck.load_deck(deck_name, base_file)
         message = f"Loaded {len(deck.get_apples())} {deck_name.lower()}."
-        print(message)
+        if self.__print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Load the expansion deck, if applicable
         if expansion_file:
             deck.load_deck(f"{deck_name} Expansion", expansion_file)
             message = f"Loaded {len(deck.get_apples())} {deck_name.lower()} from the expansion."
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
 
         # Shuffle the deck
@@ -149,9 +157,15 @@ class ApplesToApples:
         return f"{base_name} {i}"
 
     def __initialize_players(self) -> None:
+        # Print and log the initialization message
+        message = "Initializing players."
+        print(message)
+        logging.info(message)
+
         # Display the number of players
         message = f"There are {self.__game_log.total_number_of_players} players per game."
-        print("\n" + message)
+        if self.__print_in_terminal:
+            print("\n" + message)
         logging.info(message)
 
         if self.__training_mode:
@@ -189,7 +203,7 @@ class ApplesToApples:
             new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, self.__use_extra_vectors, self.__use_losing_red_apples, True)
 
             # Create the human agent
-            human_agent = HumanAgent("Human Agent")
+            human_agent = HumanAgent("Human Agent", self.__print_in_terminal)
 
             # Have the human agent pick up max red apples in hand
             human_agent.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
@@ -224,10 +238,10 @@ class ApplesToApples:
                         new_agent_name = input(f"Please enter the name for the Human Agent: ")
                         if new_agent_name not in [agent.get_name() for agent in self.__game_log.get_game_players()]:
                             break
-                    new_agent = HumanAgent(f"Human Agent - {new_agent_name}")
+                    new_agent = HumanAgent(f"Human Agent - {new_agent_name}", self.__print_in_terminal)
                 elif player_type == '2':
                     new_agent_name = self.__generate_unique_agent_name("Random Agent")
-                    new_agent = RandomAgent(new_agent_name)
+                    new_agent = RandomAgent(new_agent_name, self.__print_in_terminal)
                 elif player_type == '3':
                     # Validate the user input for the machine learning model
                     ml_model_type: str = input("Please enter the machine learning model (1: Linear Regression, 2: Neural Network): ")
@@ -260,7 +274,8 @@ class ApplesToApples:
 
                     # Create the AI agent
                     new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
-                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors, self.__use_losing_red_apples, False)
+                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors, self.__use_losing_red_apples,
+                                        training_mode=False, print_in_terminal=self.__print_in_terminal)
 
                 # Append the player object to the current game and game log
                 self.__game_log.add_player_to_current_game(new_agent)
@@ -273,7 +288,7 @@ class ApplesToApples:
         # Initialize the models for the AI agents
         for player in self.__game_log.get_game_players():
             if isinstance(player, AIAgent):
-                player.initialize_models(self.embedding, self.__game_log.players)
+                player.initialize_models(self.embedding, self.__game_log.get_game_players())
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
         # Format the naming scheme when new players are initialized
@@ -322,7 +337,8 @@ class ApplesToApples:
 
             # Print and log the starting judge message
             message = f"{next_judge.get_name()} is the starting judge."
-            print("\n" + message)
+            if self.__print_in_terminal:
+                print("\n" + message)
             logging.info(message)
         else:
             # Determine the next judge
@@ -341,7 +357,8 @@ class ApplesToApples:
 
             # Print and log the next judge message
             message = f"{next_judge.get_name()} is the next judge."
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
 
         return next_judge
@@ -358,13 +375,15 @@ class ApplesToApples:
         message = f"\n===================" \
                         f"\nROUND {self.__game_log.get_current_round()}:" \
                         f"\n===================\n"
-        print(message)
+        if self.__print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Print and log the player points
         for player in self.__game_log.get_game_players():
             message = f"{player.get_name()}: {player.get_points()} points"
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
 
     def ___prompt_judge_draw_green_apple(self) -> None:
@@ -373,14 +392,15 @@ class ApplesToApples:
 
         # Prompt the judge to draw a green apple
         message = f"\n{current_judge.get_name()}, please draw a green apple."
-        print(message)
+        if self.__print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Set the green card in play
-        green_apple: GreenApple = self.__game_log.current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__use_extra_vectors)
-        green_apple_dict: dict[Agent, GreenApple] = {self.__game_log.current_judge: green_apple}
-        self.__game_log.apples_in_play.green_apple = green_apple_dict
-
+        green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__use_extra_vectors)
+        self.__game_log.set_green_apple_in_play(green_apple_dict)
+        self.__game_log.set_chosen_green_apple(green_apple_dict)
+        
     def __prompt_players_select_red_apples(self) -> None:
         # Prompt the players to select a red apple
         for player in self.__game_log.get_game_players():
@@ -392,7 +412,8 @@ class ApplesToApples:
                 message = f"\n{player.get_name()}, please select a good red apple."
             else:
                 message = f"\n{player.get_name()}, please select a red apple."
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
 
             # Prompt the player to pick a red apple
@@ -408,10 +429,12 @@ class ApplesToApples:
             # Prompt the player to select a bad red apple, if applicable
             if self.__training_mode and self.__use_losing_red_apples:
                 message = f"\nThe green apple is '{self.__game_log.get_apples_in_play().get_green_apple()}'."
-                print(message)
+                if self.__print_in_terminal:
+                    print(message)
                 logging.info(message)
                 message = f"\n{player.get_name()}, please select a bad red apple."
-                print(message)
+                if self.__print_in_terminal:
+                    print(message)
                 logging.info(message)
 
                 # Prompt the player to select a bad red apple
@@ -435,7 +458,8 @@ class ApplesToApples:
 
             # Prompt the judge to select the winning red apple
             message = f"\n{current_judge.get_name()}, please select the winning red apple."
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
 
             # Determine the winning red apple
@@ -450,7 +474,8 @@ class ApplesToApples:
             # Print and log the winning red apple
             winning_red_apple: RedApple = winning_red_apple_dict[self.__game_log.get_chosen_apples().get_red_apple_winner()]
             message = f"{current_judge.get_name()} chose the winning red apple '{winning_red_apple}'."
-            print(message)
+            if self.__print_in_terminal:
+                print(message)
             logging.info(message)
 
             # Set the losing red apples
@@ -470,7 +495,8 @@ class ApplesToApples:
 
             # Print and log the round winner
             message = f"***{round_winner.get_name()} has won the round!***"
-            print(f"\n{message}")
+            if self.__print_in_terminal:
+                print(f"\n{message}")
             logging.info(message)
 
             # Set the round winner and award the additional point
@@ -524,7 +550,8 @@ class ApplesToApples:
         # TODO - check if need to skip for training mode
         # Print and log the message
         message = "Resetting opponent models for all AI agents."
-        print(message)
+        if self.__print_in_terminal:
+            print(message)
         logging.info(message)
 
         # Reset the opponent models for all AI agents
@@ -562,7 +589,7 @@ class ApplesToApples:
             if self.__training_mode:
                 log_training(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
             else:
-                log_game_state(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                log_game_state(self.__game_log.naming_scheme, self.__game_log, True)
 
             # Train the AI agents
             self.__train_ai_agents()
@@ -580,7 +607,8 @@ class ApplesToApples:
 
                 # Print and log the winner message
                 message = message
-                print(message)
+                if self.__print_in_terminal:
+                    print(message)
                 logging.info(message)
 
                 # Log the winner if not in training mode

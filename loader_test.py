@@ -7,9 +7,9 @@ if __name__ == "__main__":
   e1 = Embedding("apples/GoogleNews-vectors-negative300.bin", custom=True)
   stop = time.perf_counter()
   print("Loaded in", stop - start)
-  e1.deinit() 
-
   print(e1["perfume"])
+  e1.deinit() 
+  
 
 
   print("Loading With Gensim Loader")
