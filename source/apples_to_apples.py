@@ -584,7 +584,8 @@ class ApplesToApples:
             self.__determine_round_winner()
 
             # Log the round winner
-            log_round_winner(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+            if not self.__training_mode:
+                log_round_winner(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
 
             # Check if the game is over
             self.__is_game_over()
