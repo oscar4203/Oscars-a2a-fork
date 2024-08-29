@@ -355,10 +355,11 @@ class ApplesToApples:
                 next_judge.set_judge_status(True)
 
             # Print and log the next judge message
-            message = f"{next_judge.get_name()} is the next judge."
-            if self.__print_in_terminal:
-                print(message)
-            logging.info(message)
+            if not self.__training_mode:
+                message = f"{next_judge.get_name()} is the next judge."
+                if self.__print_in_terminal:
+                    print(message)
+                logging.info(message)
 
         return next_judge
 
@@ -379,11 +380,12 @@ class ApplesToApples:
         logging.info(message)
 
         # Print and log the player points
-        for player in self.__game_log.get_game_players():
-            message = f"{player.get_name()}: {player.get_points()} points"
-            if self.__print_in_terminal:
-                print(message)
-            logging.info(message)
+        if not self.__training_mode:
+            for player in self.__game_log.get_game_players():
+                message = f"{player.get_name()}: {player.get_points()} points"
+                if self.__print_in_terminal:
+                    print(message)
+                logging.info(message)
 
     def ___prompt_judge_draw_green_apple(self) -> None:
         # Extract the current judge
@@ -456,10 +458,11 @@ class ApplesToApples:
             apples_in_play: ApplesInPlay = self.__game_log.get_apples_in_play()
 
             # Prompt the judge to select the winning red apple
-            message = f"\n{current_judge.get_name()}, please select the winning red apple."
-            if self.__print_in_terminal:
-                print(message)
-            logging.info(message)
+            if not self.__training_mode:
+                message = f"\n{current_judge.get_name()}, please select the winning red apple."
+                if self.__print_in_terminal:
+                    print(message)
+                logging.info(message)
 
             # Determine the winning red apple
             if self.__training_mode:
@@ -472,10 +475,11 @@ class ApplesToApples:
 
             # Print and log the winning red apple
             winning_red_apple: RedApple = winning_red_apple_dict[self.__game_log.get_chosen_apples().get_red_apple_winner()]
-            message = f"{current_judge.get_name()} chose the winning red apple '{winning_red_apple}'."
-            if self.__print_in_terminal:
-                print(message)
-            logging.info(message)
+            if not self.__training_mode:
+                message = f"{current_judge.get_name()} chose the winning red apple '{winning_red_apple}'."
+                if self.__print_in_terminal:
+                    print(message)
+                logging.info(message)
 
             # Set the losing red apples
             for red_apple_dict in apples_in_play.red_apples:
@@ -493,10 +497,11 @@ class ApplesToApples:
                 raise ValueError(f"Round winner {round_winner} not in list of players.")
 
             # Print and log the round winner
-            message = f"***{round_winner.get_name()} has won the round!***"
-            if self.__print_in_terminal:
-                print(f"\n{message}")
-            logging.info(message)
+            if not self.__training_mode:
+                message = f"***{round_winner.get_name()} has won the round!***"
+                if self.__print_in_terminal:
+                    print(f"\n{message}")
+                logging.info(message)
 
             # Set the round winner and award the additional point
             self.__game_log.set_round_winner(round_winner)
