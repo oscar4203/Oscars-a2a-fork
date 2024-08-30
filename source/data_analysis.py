@@ -4,6 +4,7 @@
 import os
 import csv
 import argparse
+import numpy as np
 
 # Third-party Libraries
 from tabulate import tabulate
@@ -14,6 +15,7 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.gridspec import GridSpec
 from matplotlib.axes import Axes
 from matplotlib.colors import to_rgba
+import matplotlib.patheffects as path_effects
 
 # Local Modules
 from source.agent import Agent
@@ -129,7 +131,7 @@ def create_legend(ax: Axes, colors: list[str], labels: list[str]) -> None:
 
     # Add a title to the legend
     ax.set_title("Legend", fontsize=18, fontweight="bold")
-    
+
     # Create a legend for the plot
     handles = [Rectangle((0,0),1,1, color=color) for color in colors]
     ax.legend(handles, labels, title="Players", loc="upper center", fontsize=12, title_fontsize=14)
@@ -186,15 +188,15 @@ def create_pie_chart(ax: Axes, data: list[int], labels: list[str], colors: list[
 
     # Create pie chart
     pie_result = ax.pie(filtered_data, labels=filtered_labels, colors=filtered_colors,
-                        autopct='%1.1f%%', startangle=140)
-    
+                        autopct="%1.1f%%", startangle=140)
+
     # Set font weight and size for pie chart
     if len(pie_result) == 3:
         wedges, texts, autotexts = pie_result
         for autotext in autotexts:
             autotext.set_fontweight("bold")
             autotext.set_fontsize(14)
-    
+
     # Add a title to the pie chart
     ax.set_title(title, fontsize=18, fontweight="bold")
 
@@ -212,19 +214,24 @@ def create_box_plot(ax: Axes, data: list[list[int]], labels: list[str], colors: 
 
     # Extend colors to match the length of data
     extended_colors = [rgba_colors[i % len(rgba_colors)] for i in range(len(data))]
-    
+
     # Create box plot
     box = ax.boxplot(data, patch_artist=True)
-    
+
     # Apply RGBA colors to the box plot
     for patch, color in zip(box["boxes"], extended_colors):
         patch.set_facecolor(color)
+        patch.set_linewidth(2)
+
+    # Set line width for other elements
+    for element in ["whiskers", "caps", "medians", "fliers"]:
+        plt.setp(box[element], linewidth=2)
 
     # Set titles and labels
     ax.set_title(title, fontsize=18, fontweight="bold")
     ax.set_xlabel(xlabel, fontsize=16, fontweight="bold")
     ax.set_ylabel(ylabel, fontsize=16, fontweight="bold")
-    
+
     # Ensure the number of ticks matches the number of labels
     ax.set_xticks(range(1, len(labels) + 1))
     ax.set_xticklabels(labels, rotation=45, ha="right")
@@ -233,44 +240,22 @@ def create_box_plot(ax: Axes, data: list[list[int]], labels: list[str], colors: 
     ax.grid(True)
 
 
-def create_figure(title: str, players_string: list[str], colors: list[str], game_log: GameLog, 
-                  change_players_between_games: bool, cycle_starting_judges: bool, 
-                  reset_models_between_games: bool, use_extra_vectors: bool, use_losing_red_apples: bool, 
-                  bar_plot_data, pie_plot_data, box_plot_data, bar_plot_labels, pie_plot_labels, box_plot_labels) -> Figure:
-    # Create a figure with GridSpec
-    fig = plt.figure(figsize=(16, 12))
-    gs = GridSpec(nrows=2, ncols=3, height_ratios=[5, 4], figure=fig)
+def create_line_graph(ax: Axes, rounds_per_game: list[int], game_labels: list[str], colors: list[str],
+                      title: str, xlabel: str, ylabel: str) -> None:
+    # Create a line graph
+    ax.plot(game_labels, rounds_per_game, marker='o', color='b', linestyle='-')
 
-    # Add a custom title with underlining
-    custom_title = f"{title}\n{'_' * len(title)}\n"
-    fig.suptitle(custom_title, fontsize=24, fontweight="bold")
+    # Set titles and labels
+    ax.set_title(title, fontsize=18, fontweight="bold")
+    ax.set_xlabel(xlabel, fontsize=16, fontweight="bold")
+    ax.set_ylabel(ylabel, fontsize=16, fontweight="bold")
 
-    # Legend
-    legend_ax = fig.add_subplot(gs[0, 2])
-    create_legend(legend_ax, colors, players_string)
+    # Ensure y-axis only shows whole non-negative integers
+    ax.set_ylim(bottom=0)  # Set the lower limit to 0
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))  # Ensure only whole numbers are shown
 
-    # Game settings box
-    game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
-    create_game_settings_box(game_settings_ax, game_log.points_to_win, game_log.total_games,
-                             change_players_between_games, cycle_starting_judges, reset_models_between_games,
-                             use_extra_vectors, use_losing_red_apples)
-
-    # Bar plot
-    bar_ax: Axes = fig.add_subplot(gs[0, 0])
-    create_bar_plot(bar_ax, *bar_plot_data, *bar_plot_labels)
-
-    # Pie chart
-    pie_ax: Axes = fig.add_subplot(gs[0, 1])
-    create_pie_chart(pie_ax, *pie_plot_data, *pie_plot_labels)
-
-    # Box plot
-    box_ax: Axes = fig.add_subplot(gs[1, 0:2])
-    create_box_plot(box_ax, *box_plot_data, *box_plot_labels)
-
-    # Adjust layout
-    plt.tight_layout()
-
-    return fig
+    # Add grid for better readability
+    ax.grid(True)
 
 
 def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: GameLog, change_players_between_games: bool,
@@ -305,10 +290,39 @@ def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: Game
     box_plot_data = (round_wins_per_game, abbreviated_names, colors)
     box_plot_labels = ("Distribution of Wins Across Games", "Players", "Round Wins")
 
-    return create_figure("Apples to Apples - Round Winners", players_string, colors, game_log, 
-                         change_players_between_games, cycle_starting_judges, reset_models_between_games, 
-                         use_extra_vectors, use_losing_red_apples, bar_plot_data, pie_plot_data, box_plot_data, 
-                         bar_plot_labels, pie_plot_labels, box_plot_labels)
+    # Create a figure with GridSpec
+    fig = plt.figure(figsize=(16, 12))
+    gs = GridSpec(nrows=2, ncols=3, height_ratios=[5, 4], figure=fig)
+
+    # Add a custom title with underlining
+    title = "Apples to Apples - Round Winners"
+    custom_title = f"{title}\n{'_' * len(title)}\n"
+    fig.suptitle(custom_title, fontsize=24, fontweight="bold")
+
+    # Legend
+    legend_ax = fig.add_subplot(gs[0, 2])
+    create_legend(legend_ax, colors, players_string)
+
+    # Game settings box
+    game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
+    create_game_settings_box(game_settings_ax, game_log.points_to_win, game_log.total_games,
+                             change_players_between_games, cycle_starting_judges, reset_models_between_games,
+                             use_extra_vectors, use_losing_red_apples)
+
+    # Create subplots for the bar, pie, and box plots
+    bar_ax = fig.add_subplot(gs[0, 0])
+    pie_ax = fig.add_subplot(gs[0, 1])
+    box_ax = fig.add_subplot(gs[1, 0:2])
+
+    # Create plots
+    create_bar_plot(bar_ax, *bar_plot_data, *bar_plot_labels)
+    create_pie_chart(pie_ax, *pie_plot_data, *pie_plot_labels)
+    create_box_plot(box_ax, *box_plot_data, *box_plot_labels)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    return fig
 
 
 def create_game_winners_plot(game_winners_dict: dict[str, int], game_log: GameLog, change_players_between_games: bool,
@@ -334,14 +348,108 @@ def create_game_winners_plot(game_winners_dict: dict[str, int], game_log: GameLo
 
     # Prepare the data and labels for Box plot TODO - fix box plot data to be a bar chart with total rounds per game
     rounds_per_game_dict: dict[int, int] = game_log.get_rounds_per_game()
-    rounds_per_game: list[int] = [rounds_per_game_dict.get(i, 0) for i in range(game_log.total_games)]
-    box_plot_data = (rounds_per_game, [f"Game {i + 1}" for i in range(game_log.total_games)], colors)
-    box_plot_labels = ("Distribution of Rounds Across Games", "Games", "Rounds")
+    rounds_per_game: list[int] = [rounds_per_game_dict.get(i + 1, 0) for i in range(game_log.total_games)]
+    line_plot_data = (rounds_per_game, [f"{i + 1}" for i in range(game_log.total_games)], colors)
+    line_plot_labels = ("Distribution of Rounds Across Games", "Games", "Rounds")
 
-    return create_figure("Apples to Apples - Game Winners", players_string, colors, game_log, 
-                         change_players_between_games, cycle_starting_judges, reset_models_between_games, 
-                         use_extra_vectors, use_losing_red_apples, bar_plot_data, pie_plot_data, box_plot_data, 
-                         bar_plot_labels, pie_plot_labels, box_plot_labels)
+    # Calculate min, max, and average rounds per game
+    min_rounds = min(rounds_per_game)
+    max_rounds = max(rounds_per_game)
+    avg_rounds = sum(rounds_per_game) / len(rounds_per_game)
+
+    # Create a figure with GridSpec
+    fig = plt.figure(figsize=(16, 12))
+    gs = GridSpec(nrows=2, ncols=3, height_ratios=[5, 4], figure=fig)
+
+    # Add a custom title with underlining
+    title = "Apples to Apples - Game Winners"
+    custom_title = f"{title}\n{'_' * len(title)}\n"
+    fig.suptitle(custom_title, fontsize=24, fontweight="bold")
+
+    # Legend
+    legend_ax = fig.add_subplot(gs[0, 2])
+    create_legend(legend_ax, colors, players_string)
+
+    # Game settings box
+    game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
+    create_game_settings_box(game_settings_ax, game_log.points_to_win, game_log.total_games,
+                             change_players_between_games, cycle_starting_judges, reset_models_between_games,
+                             use_extra_vectors, use_losing_red_apples)
+
+    # Create subplots for the bar, pie, and line plots
+    bar_ax = fig.add_subplot(gs[0, 0])
+    pie_ax = fig.add_subplot(gs[0, 1])
+    line_ax = fig.add_subplot(gs[1, 0:2])
+
+    # Create plots
+    create_bar_plot(bar_ax, *bar_plot_data, *bar_plot_labels)
+    create_pie_chart(pie_ax, *pie_plot_data, *pie_plot_labels)
+    create_line_graph(line_ax, *line_plot_data, *line_plot_labels)
+
+    # Add min, max, and average rounds per game as text annotations
+    stats_text = f"Min Rounds: {min_rounds}\nMax Rounds: {max_rounds}\nAvg Rounds: {avg_rounds:.2f}"
+    line_ax.text(0.95, 0.05, stats_text, transform=line_ax.transAxes, fontsize=12,
+                 verticalalignment="bottom", horizontalalignment="right", bbox=dict(facecolor="white", alpha=0.5))
+
+    # Adjust layout
+    plt.tight_layout()
+
+    return fig
+
+
+def create_heatmap(game_log: GameLog) -> Figure:
+    # Prepare common plot data
+    players_string, abbreviated_names, _, _ = prepare_plot_data(game_log)
+
+    # Initialize the heatmap data matrix
+    num_players = len(players_string)
+    heatmap_data = np.zeros((num_players, num_players), dtype=int)
+
+    # Populate the heatmap data matrix
+    for game in game_log.game_states:
+        for round in game.round_states:
+            judge: str = round.current_judge.get_name()
+            winner: str = round.round_winner.get_name() if round.round_winner is not None else "No Winner"
+            judge_index = players_string.index(judge)
+            winner_index = players_string.index(winner)
+            heatmap_data[judge_index, winner_index] += 1
+
+    # Create the heatmap figure
+    fig, ax = plt.subplots(figsize=(10, 8))
+    cax = ax.matshow(heatmap_data, cmap="YlGnBu")
+
+    # Add color bar
+    fig.colorbar(cax)
+
+    # Set axis labels
+    ax.set_xticks(np.arange(num_players))
+    ax.set_yticks(np.arange(num_players))
+    ax.set_xticklabels(abbreviated_names, fontsize=16, rotation=45, ha="left")
+    ax.set_yticklabels(abbreviated_names, fontsize=16)
+
+    # Add title
+    ax.set_title("Heatmap of Judges' Choices", pad=40, fontsize=20, fontweight="bold")
+
+    # Add subtitle aligned with the heatmap
+    ax.text(0.5, 1.3, "[x-axis: winners | y-axis: judges]", ha="center", va="center", transform=ax.transAxes, fontsize=16, fontweight="bold")
+
+    # Annotate each cell with the numeric value
+    for i in range(num_players):
+        for j in range(num_players):
+            text = ax.text(j, i, str(heatmap_data[i, j]), va="center", ha="center", color="white", fontsize=20, fontweight="bold")
+            text.set_path_effects([path_effects.Stroke(linewidth=2, foreground="black"), path_effects.Normal()])
+
+    # Set ticks at the edges of the cells
+    ax.set_xticks(np.arange(-0.5, num_players, 1), minor=True)
+    ax.set_yticks(np.arange(-0.5, num_players, 1), minor=True)
+
+    # Add grid lines at the minor ticks
+    ax.grid(which="minor", color="black", linestyle="-", linewidth=2)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    return fig
 
 
 def save_plot(plot_figure: Figure, output_filepath: str) -> None:
@@ -378,7 +486,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
             use_extra_vectors,
             use_losing_red_apples
             )
-        
+
         # Save the plot to a file
         save_plot(round_winners_plot, round_winners_output_filepath)
 
@@ -401,6 +509,19 @@ def main(game_log: GameLog, change_players_between_games: bool,
 
         # Save the plot to a file
         save_plot(game_winners_plot, game_winners_output_filepath)
+
+        # Display the plot
+        plt.show()
+
+        # Generate judge heatmap output filename
+        judge_heatmap_base_name = os.path.splitext(game_log.judge_heatmap_filepath)[0]
+        judge_heatmap_output_filepath = f"{judge_heatmap_base_name}.png"
+
+        # Create a plot of the judge heatmap
+        judge_heatmap_plot = create_heatmap(game_log)
+
+        # Save the plot to a file
+        save_plot(judge_heatmap_plot, judge_heatmap_output_filepath)
 
         # Display the plot
         plt.show()
