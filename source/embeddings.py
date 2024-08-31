@@ -8,8 +8,7 @@ import numpy as np
 class Embedding():
   def __init__(self, filename: str, custom: bool = True) -> None:
     self.custom = custom
-    if custom:
-      print("WE ARE USING CUSTOM VECTORS")
+
     start_time = time.perf_counter()
     if self.custom:
       self.cvectors = VectorsW2V(filename)
@@ -19,8 +18,6 @@ class Embedding():
       self.vector_size: int = self.kvectors.vector_size
 
     end_time = time.perf_counter()
-
-    print("loaded vectors in", end_time - start_time, "seconds.")
 
   def get_vector(self, string: str) -> np.ndarray:
     vector: np.ndarray

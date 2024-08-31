@@ -29,27 +29,23 @@ class VectorsW2V():
 
 
     # set up function stuff
-    self.dll.lookup_entry.stype = ctypes.c_void_p
+    self.dll.lookup_entry.restype = ctypes.c_void_p
     self.dll.get_vector_size.restype = ctypes.c_longlong
     self.dll.get_word_count.restype = ctypes.c_longlong
 
 
 
-  def get_vector(self, word: str) -> np.ndarray:
+  def get_vector(self, word: str) -> np.ndarray | None:
     # struct entry_t *lookup_entry(char *name) {
-
     c_string = ctypes.create_string_buffer(word.encode())
-    print(c_string)
-    entry = HashEntry.from_address(self.dll.lookup_entry(c_string))
-
-    print(entry)
+    pointer = self.dll.lookup_entry(c_string)
+    if pointer == None:
+      return
+    entry = HashEntry.from_address(pointer)
     vec_size = self.get_vector_size()
-    print(vec_size)
     p_vector = np.ctypeslib.as_array(entry.vector, (vec_size,))
-    print(p_vector)
 
     vector = p_vector.copy()
-    print(vector)
 
     return vector
 

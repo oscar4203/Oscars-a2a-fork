@@ -34,7 +34,10 @@ class GameDriver:
         self.red_expansion_filename: str = red_expansion
 
     def load_keyed_vectors(self, use_custom_loader: bool) -> None:
+        start = time.perf_counter()
         self.embedding = Embedding("./apples/GoogleNews-vectors-negative300.bin", custom=use_custom_loader)
+        end = time.perf_counter()
+        print("Loaded Vectors in", end-start, "seconds.")
 
 
 def range_type(min_value, max_value):
