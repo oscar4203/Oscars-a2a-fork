@@ -26,15 +26,16 @@ struct entry_t {
 };
 
 struct {
+  char *buffer;
   struct entry_t **lookup;
   long long lookup_size;
   long long vector_size;
   long long word_count;
+
 } hash_table;
 
 
 long long get_vector_size() {
-  
   return hash_table.vector_size;
 }
 
@@ -113,7 +114,7 @@ void *bread(void *dest, int elemSize, int elemCount, char *b, long long *cur) {
   return result;
 }
 
-void load_binary(const char *filename, char normalize) {
+void load_binary(const char *filename) {
   time_t tstart = time(NULL);
 
 
@@ -124,6 +125,7 @@ void load_binary(const char *filename, char normalize) {
   long long vectorSize, vectorCount;
   fscanf(fp, "%lld", &vectorCount);
   fscanf(fp, "%lld", &vectorSize);
+  // printf("LOADING BINARY: %s Vector size %lld, Vector Count %lld\n", filename, vectorSize, vectorCount);
 
   // Set up the hash table
   hash_table.word_count = vectorCount;
@@ -145,8 +147,12 @@ void load_binary(const char *filename, char normalize) {
   fsetpos(fp, &pos);
 
   char *buffer = malloc(size);
+  hash_table.buffer = buffer;
+  // printf("Reading into Buffer with size of %lld\n", size);
   fread(buffer, 1, size, fp);
   fclose(fp);
+  // printf("Done Reading buffer\n");
+  
 
   time_t tend = time(NULL);
 
@@ -156,6 +162,7 @@ void load_binary(const char *filename, char normalize) {
   long long cur = 0;
 
   for (int vectorIndex; vectorIndex < vectorCount; vectorIndex++) {
+    // printf("got here");
     // clean the name
     char *name = &buffer[cur];
     for (int c = 0; c < MAX_WORD_SIZE && cur < size; c++) {
@@ -171,39 +178,43 @@ void load_binary(const char *filename, char normalize) {
     cur += vectorSize * sizeof(float);
 
     create_entry(name, vector);
+    // printf("Loaded Vector #%d: %s\n", vectorIndex, name);
+  }
+}
 
-    // normalize step
-    if (normalize) {
-    // float len = 0;
-    // for (int i = 0; i < vectorSize; i++) {
-    //   len += vector[i] * vector[i];
-    // }
 
-    // len = sqrtf(len);
 
-    // for (int i = 0; i < vectorSize; i++)
-    //   vector[i] /= len;
-
-    }
-    
-
+void unload_binary() {
+  for (long long i = 0; i < hash_table.lookup_size; i++) {
+    if (hash_table.lookup[i]) free(hash_table.lookup[i]);
   }
 
-
-
-
+  free(hash_table.lookup);
+  free(hash_table.buffer); 
 }
 
 
-int main() {
+// int main() {
 
-  clock_t start = clock();
+//   clock_t start = clock();
 
-  load_binary("vectors.bin", 0);
-  lookup_entry("cock");
-  clock_t end = clock();
+//   load_binary("data/vectors.bin");
+//   clock_t end = clock();
 
-  double elapsed_time = (end-start)/(double)CLOCKS_PER_SEC ;
+//   double elapsed_time = (end-start)/(double)CLOCKS_PER_SEC ;
 
-  printf("Time Elapsed %f", elapsed_time);
-}
+//   printf("Loaded Binary in %f seconds\n", elapsed_time);
+
+
+//   start = clock();
+//   unload_binary();
+
+//   end = clock();
+
+//   elapsed_time = (end-start)/(double)CLOCKS_PER_SEC ;
+
+//   printf("Unloaded Binary in %f seconds\n", elapsed_time);
+
+
+
+// }

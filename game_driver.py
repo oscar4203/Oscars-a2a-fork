@@ -4,12 +4,12 @@
 import logging
 import argparse
 from datetime import datetime
+import time
 
 # Third-party Libraries
-from gensim.models import KeyedVectors
 
 # Local Modules
-from source.w2vloader import VectorsW2V
+from source.embeddings import Embedding
 from source.apples_to_apples import ApplesToApples
 from source.game_logger import configure_logging
 from source.data_analysis import main as data_analysis_main
@@ -34,16 +34,10 @@ class GameDriver:
         self.red_expansion_filename: str = red_expansion
 
     def load_keyed_vectors(self, use_custom_loader: bool) -> None:
-        # if use_custom_loader:
-        #     message = "Loading keyed vectors using custom loader..."
-        #     print(message)
-        #     logging.info(message)
-        #     self.keyed_vectors = VectorsW2V("./apples/GoogleNews-vectors-negative300.bin")
-        # else:
-            message = "Loading keyed vectors..."
-            print(message)
-            logging.info(message)
-            self.keyed_vectors = KeyedVectors.load_word2vec_format("./apples/GoogleNews-vectors-negative300.bin", binary=True)
+        start = time.perf_counter()
+        self.embedding = Embedding("./apples/GoogleNews-vectors-negative300.bin", custom=use_custom_loader)
+        end = time.perf_counter()
+        print("Loaded Vectors in", end-start, "seconds.")
 
 
 def range_type(min_value, max_value):
@@ -112,10 +106,12 @@ def main() -> None:
     game_driver = GameDriver(args.training_mode, args.number_of_players, args.points_to_win, args.total_games, args.green_expansion, args.red_expansion)
 
     # Load the keyed vectors
+
     game_driver.load_keyed_vectors(args.vector_loader)
 
+    
     # Create the game object
-    a2a_game = ApplesToApples(game_driver.keyed_vectors, args.training_mode, args.green_expansion, args.red_expansion)
+    a2a_game = ApplesToApples(game_driver.embedding, args.training_mode, args.green_expansion, args.red_expansion)
 
     # Set the static game log
     a2a_game.initalize_game_log(game_driver.game_log)
@@ -146,12 +142,12 @@ def main() -> None:
         # Prompt the user on whether they want to include the losing red apples in the model training
         use_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples in the model training? (y/n): ")
 
+        # Prompt the user on whether they want to print the game info and results in the terminal
+        print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
+
     # Prompt the user on whether they want to reset the training cards between games
     if args.training_mode:
         reset_cards_between_games = get_user_input_y_or_n("Do you want to reset the training cards between games? (y/n): ")
-
-    # Prompt the user on whether they want to print the game info and results in the terminal
-    print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
 
     # Set the game options
     a2a_game.set_game_options(

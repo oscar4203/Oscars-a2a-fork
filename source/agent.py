@@ -5,16 +5,16 @@ import logging
 import random
 import numpy as np
 
-# Third-party Libraries
-from gensim.models import KeyedVectors
 
 # Local Modules
+from source.embeddings import Embedding
 from source.model import Model, LRModel, NNModel
 from source.apples import GreenApple, RedApple, Deck
 from source.data_classes import ApplesInPlay, ChosenApples
 
 class Agent:
     """
+    
     Base class for the agents in the 'Apples to Apples' game
     """
     def __init__(self, name: str, print_in_terminal: bool) -> None:
@@ -89,7 +89,7 @@ class Agent:
         """
         self._red_apples = []
 
-    def draw_green_apple(self, keyed_vectors: KeyedVectors, green_apple_deck: Deck, extra_vectors: bool) -> dict["Agent", GreenApple]:
+    def draw_green_apple(self, embedding: Embedding, green_apple_deck: Deck, extra_vectors: bool) -> dict["Agent", GreenApple]:
         """
         Draw a green apple from the deck (when the agent is the judge).
         The vectors are set as soon as the new green apple is drawn.
@@ -102,11 +102,11 @@ class Agent:
                 raise TypeError("Expected a GreenApple, but got a different type")
 
             # Set the green apple adjective vector
-            new_green_apple.set_adjective_vector(keyed_vectors)
+            new_green_apple.set_adjective_vector(embedding)
 
             # Set the green apple synonyms vector, if applicable
             if extra_vectors:
-                new_green_apple.set_synonyms_vector(keyed_vectors)
+                new_green_apple.set_synonyms_vector(embedding)
 
             # Assign the green apple to the agent's hand
             self._green_apple = new_green_apple
@@ -125,7 +125,7 @@ class Agent:
 
         return green_apple_dict
 
-    def draw_red_apples(self, keyed_vectors: KeyedVectors, red_apple_deck: Deck, cards_in_hand: int, extra_vectors: bool) -> Deck | None:
+    def draw_red_apples(self, embedding: Embedding, red_apple_deck: Deck, cards_in_hand: int, extra_vectors: bool) -> Deck | None:
         """
         Draw red apples from the deck, ensuring the agent has enough red apples.
         The vectors are set as soon as the new red apples are drawn.
@@ -140,11 +140,11 @@ class Agent:
                     raise TypeError("Expected a RedApple, but got a different type")
 
                 # Set the red apple noun vector
-                new_red_apple.set_noun_vector(keyed_vectors)
+                new_red_apple.set_noun_vector(embedding)
 
                 # Set the red apple description vector, if applicable
                 if extra_vectors:
-                    new_red_apple.set_description_vector(keyed_vectors)
+                    new_red_apple.set_description_vector(embedding)
 
                 # Append the red apple to the agent's hand
                 self._red_apples.append(new_red_apple)
@@ -322,12 +322,12 @@ class AIAgent(Agent):
         else:
             return self.__opponent_ml_models.get(agent_as_key)
 
-    def initialize_models(self, keyed_vectors: KeyedVectors, all_players: list[Agent]) -> None:
+    def initialize_models(self, embedding: Embedding, all_players: list[Agent]) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
         # Initialize the keyed vectors
-        self.__keyed_vectors: KeyedVectors = keyed_vectors
+        self.__embedding: Embedding = embedding
         # self.__vectors = None # Vectors loaded via custom loader # TODO - Implement custom loader
 
         # Determine and initialize the opponents
@@ -336,11 +336,11 @@ class AIAgent(Agent):
 
         # Initialize the self and opponent ml models
         if self.__ml_model_type is LRModel:
-            self.__self_ml_model: Model = LRModel(self, self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(self, agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = LRModel(self, self, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(self, agent, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
         elif self.__ml_model_type is NNModel:
-            self.__self_ml_model: Model = NNModel(self, self, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(self, agent, self.__keyed_vectors.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = NNModel(self, self, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(self, agent, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__use_losing_red_apples, self.__training_mode) for agent in self.__opponents}
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 
