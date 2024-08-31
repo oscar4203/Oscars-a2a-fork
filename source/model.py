@@ -244,6 +244,7 @@ class Model():
         self._chosen_apple_vectors = []
         logging.info(f"Reset the pretrained vectors and model vectors..")
 
+
     def _collect_chosen_apple_vectors(self, chosen_apples: ChosenApples) -> ChosenAppleVectors:
         """
         Collect the vectors from the chosen apples object, and store them in a ChosenAppleVectors object.
@@ -326,7 +327,6 @@ class Model():
             )
 
         return chosen_apple_vectors
-
     def _normalize_vectors(self, vector_array: np.ndarray) -> np.ndarray:
         """
         Normalize the input vectors using L2 (Euclidean Norm).

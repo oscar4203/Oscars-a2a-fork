@@ -8,6 +8,7 @@ from gensim.models import KeyedVectors
 
 # Local Modules
 from source.w2vloader import VectorsW2V
+from source.embeddings import Embedding
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from source.model import model_type_mapping
@@ -16,8 +17,8 @@ from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
 class ApplesToApples:
-    def __init__(self, keyed_vectors: KeyedVectors, training_mode: bool, green_expansion: str = '', red_expansion: str = '') -> None:
-        self.__keyed_vectors: KeyedVectors = keyed_vectors
+    def __init__(self, embedding: Embedding, training_mode: bool, green_expansion: str = '', red_expansion: str = '') -> None:
+        self.embedding: Embedding = embedding
         self.__training_mode: bool = training_mode
         self.__green_expansion_filename: str = green_expansion
         self.__red_expansion_filename: str = red_expansion
@@ -102,7 +103,7 @@ class ApplesToApples:
                 for player in self.__game_log.get_game_players():
                     if isinstance(player, HumanAgent):
                         player.reset_red_apples()
-                        player.draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+                        player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
 
 
         # Start the game loop
@@ -205,7 +206,7 @@ class ApplesToApples:
             human_agent = HumanAgent("Human Agent", self.__print_in_terminal)
 
             # Have the human agent pick up max red apples in hand
-            human_agent.draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+            human_agent.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
 
             # Add the human agent and AI agent to the current game and game log
             self.__game_log.add_player_to_current_game(human_agent) # NOTE - APPEND HUMAN AGENT FIRST!!!
@@ -282,12 +283,12 @@ class ApplesToApples:
                 logging.info(f"Added new player {self.__game_log.get_game_players()[i]}")
 
                 # Have each player pick up max red apples in hand
-                self.__game_log.get_game_players()[i].draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+                self.__game_log.get_game_players()[i].draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
 
         # Initialize the models for the AI agents
         for player in self.__game_log.get_game_players():
             if isinstance(player, AIAgent):
-                player.initialize_models(self.__keyed_vectors, self.__game_log.get_game_players())
+                player.initialize_models(self.embedding, self.__game_log.get_game_players())
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
         # Format the naming scheme when new players are initialized
@@ -397,11 +398,11 @@ class ApplesToApples:
             print(message)
         logging.info(message)
 
-        # Set the green apple in play
-        green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(self.__keyed_vectors, self.__green_apples_deck, self.__use_extra_vectors)
+        # Set the green card in play
+        green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__use_extra_vectors)
         self.__game_log.set_green_apple_in_play(green_apple_dict)
         self.__game_log.set_chosen_green_apple(green_apple_dict)
-
+        
     def __prompt_players_select_red_apples(self) -> None:
         # Prompt the players to select a red apple
         for player in self.__game_log.get_game_players():
@@ -448,9 +449,9 @@ class ApplesToApples:
                 self.__game_log.add_red_apple_in_play(bad_red_apple_dict)
                 logging.info(f"Chosen bad red apple: {bad_red_apple_dict[player]}")
 
-            # Prompt the player to draw a new red apple
+            # Prompt the player to pick up a new red apple
             if len(player.get_red_apples()) < self.__game_log.max_cards_in_hand:
-                player.draw_red_apples(self.__keyed_vectors, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+                player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
 
     def __determine_round_winner(self) -> None:
             # Extract the current judge and apples in play

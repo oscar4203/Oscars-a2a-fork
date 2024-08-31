@@ -20,33 +20,47 @@ class HashEntry(ctypes.Structure):
 class VectorsW2V():
   def __init__(self, path: str, normalize: bool = False) -> None:
 
-
-    self.dll = ctypes.CDLL(os.getcwd() + "/w2vloader.dll")
+    fullpath: str = os.getcwd() + "/w2vloader.dll"
+    print("Full path", fullpath)
+    self.dll = ctypes.CDLL(fullpath)
     c_path = ctypes.create_string_buffer(path.encode())
 
-    self.dll.load_binary(c_path, ctypes.c_char(normalize))
+    self.dll.load_binary(c_path)
+
 
     # set up function stuff
     self.dll.lookup_entry.restype = ctypes.c_void_p
-    self.dll.get_vector_size = ctypes.c_longlong
-    self.dll.get_word_count = ctypes.c_longlong
+    self.dll.get_vector_size.restype = ctypes.c_longlong
+    self.dll.get_word_count.restype = ctypes.c_longlong
 
 
 
   def get_vector(self, word: str) -> np.ndarray:
     # struct entry_t *lookup_entry(char *name) {
-
+    vec_size = self.get_vector_size()
     c_string = ctypes.create_string_buffer(word.encode())
+    pointer = self.dll.lookup_entry(c_string)
+    if pointer == None:
+      return np.zeros((vec_size,))
+    entry = HashEntry.from_address(pointer)
+    p_vector = np.ctypeslib.as_array(entry.vector, (vec_size,))
 
-    entry = HashEntry.from_address(self.dll.lookup_entry(c_string))
-    # v_size = self.dll.get_vector_size().value
-    # print(type(v_size), v_size, "please work")
-    vector = np.ctypeslib.as_array(entry.vector, (300,)).copy()
+    vector = p_vector.copy()
 
     return vector
 
   def __getitem__(self, word: str) ->np.ndarray:
     return self.get_vector(word)
+  
+  def get_vector_size(self) -> int:
+    return int(self.dll.get_vector_size())
+  
+  def get_word_count(self) -> int:
+    return int(self.dll.get_word_count())
+  
+  def deinit(self):
+    self.dll.unload_binary()
+    
 
 
 
