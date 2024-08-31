@@ -146,12 +146,12 @@ def main() -> None:
         # Prompt the user on whether they want to include the losing red apples in the model training
         use_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples in the model training? (y/n): ")
 
+        # Prompt the user on whether they want to print the game info and results in the terminal
+        print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
+
     # Prompt the user on whether they want to reset the training cards between games
     if args.training_mode:
         reset_cards_between_games = get_user_input_y_or_n("Do you want to reset the training cards between games? (y/n): ")
-
-    # Prompt the user on whether they want to print the game info and results in the terminal
-    print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
 
     # Set the game options
     a2a_game.set_game_options(
