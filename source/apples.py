@@ -62,7 +62,9 @@ class Apple:
             # Try searching the embedding for the word
             try:
                 # Add the vector of the word to the average vector
-                avg_vector += embedding[word]
+                vec = embedding[word]
+                np.add(avg_vector, vec, out=avg_vector, casting='unsafe')
+                
             except KeyError:
                 # If the word is not found, try converting it to lowercase
                 try:

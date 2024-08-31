@@ -35,14 +35,14 @@ class VectorsW2V():
 
 
 
-  def get_vector(self, word: str) -> np.ndarray | None:
+  def get_vector(self, word: str) -> np.ndarray:
     # struct entry_t *lookup_entry(char *name) {
+    vec_size = self.get_vector_size()
     c_string = ctypes.create_string_buffer(word.encode())
     pointer = self.dll.lookup_entry(c_string)
     if pointer == None:
-      return
+      return np.zeros((vec_size,))
     entry = HashEntry.from_address(pointer)
-    vec_size = self.get_vector_size()
     p_vector = np.ctypeslib.as_array(entry.vector, (vec_size,))
 
     vector = p_vector.copy()

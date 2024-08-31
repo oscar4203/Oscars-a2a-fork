@@ -19,7 +19,7 @@ class Embedding():
 
     end_time = time.perf_counter()
 
-  def get_vector(self, string: str) -> np.ndarray:
+  def get_vector(self, string: str) -> np.ndarray | None:
     vector: np.ndarray
 
     if self.custom:
