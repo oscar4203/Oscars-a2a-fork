@@ -7,7 +7,7 @@ if __name__ == "__main__":
   e1 = Embedding("apples/GoogleNews-vectors-negative300.bin", custom=True)
   stop = time.perf_counter()
   print("Loaded in", stop - start)
-  print(e1["perfume"])
+  some_vec = e1["poop"]
   e1.deinit() 
   
 
@@ -17,4 +17,5 @@ if __name__ == "__main__":
   e1 = Embedding("apples/GoogleNews-vectors-negative300.bin", custom=False)
   stop = time.perf_counter()
   print("Loaded in", stop - start)
-  print(e1["perfume"])
+  other_vec = e1["poop"]
+
