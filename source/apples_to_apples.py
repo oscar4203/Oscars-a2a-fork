@@ -17,9 +17,10 @@ from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
 class ApplesToApples:
-    def __init__(self, embedding: Embedding, training_mode: bool, green_expansion: str = '', red_expansion: str = '') -> None:
+    def __init__(self, embedding: Embedding, training_mode: bool, load_all_packs: bool = False, green_expansion: str = '', red_expansion: str = '') -> None:
         self.embedding: Embedding = embedding
         self.__training_mode: bool = training_mode
+        self.__load_all_packs: bool = load_all_packs
         self.__green_expansion_filename: str = green_expansion
         self.__red_expansion_filename: str = red_expansion
         self.__green_apples_deck: Deck = Deck()
@@ -124,10 +125,14 @@ class ApplesToApples:
         logging.info(message)
 
         # Shuffle the decks
-        self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples.csv", self.__green_expansion_filename)
-        self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples.csv", self.__red_expansion_filename)
+        if self.__load_all_packs:
+            self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-all.csv")
+            self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-all.csv")
+        else:
+            self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-basic_set_party_set.csv", self.__green_expansion_filename)
+            self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-basic_set_party_set.csv", self.__red_expansion_filename)
 
-    def __load_and_shuffle_deck(self, deck: Deck, deck_name: str, base_file: str, expansion_file: str) -> None:
+    def __load_and_shuffle_deck(self, deck: Deck, deck_name: str, base_file: str, expansion_file: str = '') -> None:
         # Load the base deck
         deck.load_deck(deck_name, base_file)
         message = f"Loaded {len(deck.get_apples())} {deck_name.lower()}."
@@ -402,7 +407,7 @@ class ApplesToApples:
         green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__use_extra_vectors)
         self.__game_log.set_green_apple_in_play(green_apple_dict)
         self.__game_log.set_chosen_green_apple(green_apple_dict)
-        
+
     def __prompt_players_select_red_apples(self) -> None:
         # Prompt the players to select a red apple
         for player in self.__game_log.get_game_players():
