@@ -4,7 +4,7 @@
 #include <string.h>
 #include <math.h>
 
-// add a makefile to produce a dll 
+// add a makefile to produce a dll
 #ifdef _WIN32
   #define FTELL64(pfile) _ftelli64(pfile)
   #define FSEEK64(pfile, offset, origin) _fseeki64(pfile, offset, origin)
@@ -93,7 +93,7 @@ struct entry_t *lookup_entry(char *name) {
   while (entry && strcmp(name, entry->name) != 0)
     entry = entry->next;
 
-  
+
   return entry;
 }
 
@@ -135,7 +135,7 @@ void load_binary(const char *filename) {
   hash_table.lookup_size = (vectorCount * 3)/2;
   hash_table.lookup = malloc(sizeof(struct entry_t *) * hash_table.lookup_size);
   memset(hash_table.lookup, 0, sizeof(struct entry_t *) * hash_table.lookup_size);
-  
+
   // Get the file size and allocate for it
   long long start = FTELL64(fp);
   fpos_t pos;
@@ -152,7 +152,7 @@ void load_binary(const char *filename) {
   fread(buffer, 1, size, fp);
   fclose(fp);
   // printf("Done Reading buffer\n");
-  
+
 
   time_t tend = time(NULL);
 
@@ -190,7 +190,7 @@ void unload_binary() {
   }
 
   free(hash_table.lookup);
-  free(hash_table.buffer); 
+  free(hash_table.buffer);
 }
 
 

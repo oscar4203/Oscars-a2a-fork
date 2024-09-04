@@ -339,7 +339,7 @@ class GameLog:
             "points_to_win": self.points_to_win,
             "total_games": self.total_games,
             "current_game": self.get_current_game_number(),
-            "current_round": self.get_current_round(),
+            "current_round": self.get_current_round_number(),
             "number_of_players": self.get_number_of_players(),
             "game_players": [player.get_name() for player in self.get_game_players()],
             "current_judge": current_judge.get_name() if current_judge is not None else None,
@@ -423,7 +423,7 @@ class GameLog:
     def get_discard_pile(self) -> list[ChosenApples]:
         return self.get_current_game_state().get_discard_pile()
 
-    def get_current_round(self) -> int:
+    def get_current_round_number(self) -> int:
         if len(self.game_states) == 0:
             message = "No game states have been added."
             logging.error(message)
@@ -493,7 +493,9 @@ class GameLog:
 
 @dataclass
 class PreferenceUpdates:
-    agent: "Agent"
+    judge: "Agent"
+    player: "Agent"
+    game: int
     round: int
     datetime: str
     green_apple: "GreenApple"
@@ -502,13 +504,15 @@ class PreferenceUpdates:
     bias: np.ndarray
 
     def __str__(self) -> str:
-        return f"PreferenceUpdates(agent={self.agent.get_name()}, round={self.round}, datetime={self.datetime}, "\
-               f"green apple={self.green_apple.get_adjective()}, winning red apple={self.winning_red_apple.get_noun()}, "\
+        return f"PreferenceUpdates(judge={self.judge.get_name()}, player={self.player.get_name()}, game={self.game}, round={self.round}, "\
+               f"datetime={self.datetime}, green apple={self.green_apple.get_adjective()}, winning red apple={self.winning_red_apple.get_noun()}, "\
                f"slope={self.slope}), bias={self.bias}"
 
     def to_dict(self) -> dict:
         return {
-            "Agent": self.agent.get_name(),
+            "judge": self.judge.get_name(),
+            "player": self.player.get_name(),
+            "game": self.game,
             "round": self.round,
             "datetime": self.datetime,
             "green_apple": self.green_apple.get_adjective(),
