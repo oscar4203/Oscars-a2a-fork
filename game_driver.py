@@ -54,8 +54,8 @@ def get_user_input_y_or_n(prompt: str) -> str:
 
 
 def main() -> None:
-    # Take a snapshot of the current date and time
-    date_time = datetime.now().strftime("%Y-%m-%d-%H-%M)")
+    # # Take a snapshot of the current date and time
+    # date_time = datetime.now().strftime("%Y-%m-%d-%H-%M)")
 
     # Define the command line arguments
     parser = argparse.ArgumentParser(
@@ -71,9 +71,9 @@ def main() -> None:
     )
 
     # Add the command line arguments
-    parser.add_argument("number_of_players", type=range_type(3, 8), help="Total number of players (3-8).")
+    parser.add_argument("number_of_players", type=range_type(3, 10), help="Total number of players (3-10).")
     parser.add_argument("points_to_win", type=range_type(1, 10), help="Total number of points to win (1-10).")
-    parser.add_argument("total_games", type=range_type(1,1000), help="Total number of games to play (1-1000).")
+    parser.add_argument("total_games", type=range_type(1, 1000), help="Total number of games to play (1-1000).")
     parser.add_argument("green_expansion", type=str, nargs='?', default='', help="Filename to a green apple expansion (optional).")
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red apple expansion (optional).")
     parser.add_argument("-A", "--load_all_packs", action="store_true", help="Load all available card packs")
@@ -169,10 +169,20 @@ def main() -> None:
     # Start the first game
     a2a_game.new_game()
 
+    # Start the game timer
+    start = time.perf_counter()
+
     # Continue playing games until the total number of games is reached
     while game_driver.game_log.get_current_game_number() < game_driver.game_log.total_games:
         # Start the next game
         a2a_game.new_game()
+
+    # End the game timer
+    end = time.perf_counter()
+
+    # Print and log the total time elapsed
+    print(f"Total time elapsed: {end - start} seconds")
+    logging.info(f"Total time elapsed: {end - start} seconds")
 
     # Run the winner counter and plot the results, if not in training mode
     if not args.training_mode:
