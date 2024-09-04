@@ -26,11 +26,11 @@ from source.apples import GreenApple, RedApple
 from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
 
 
-# Define the mapping from user input to score type
-class ScoreType(Enum):
-    EUCLIDEAN = 1
-    MSE = 2
-    MAE = 3
+# # Define the mapping from user input to score type
+# class ScoreType(Enum):
+#     EUCLIDEAN = 1
+#     MSE = 2
+#     MAE = 3
 
 
 class Model():
@@ -228,7 +228,7 @@ class Model():
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
 
-    def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+    def get_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Get the current slope and bias vectors.
         """
@@ -725,17 +725,19 @@ class LRModel(Model):
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
-            self.slope = np.ones((vector_size,))
-            self.bias = np.zeros((vector_size,))
+            self._slope = np.ones((vector_size,))
+            self._bias = np.zeros((vector_size,))
         elif pretrained_archetype == "Contrarian":
-            self.slope = -1.0 * np.ones((vector_size,))
-            self.bias = np.zeros((vector_size,))
+            self._slope = -1.0 * np.ones((vector_size,))
+            self._bias = np.zeros((vector_size,))
         else:
-            self.slope, self.bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
+            self._slope, self._bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
 
-        # Initialize the target slope and bias vectors, if not in training mode
-        if not self._training_mode:
-            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
+    def get_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Get the current slope and bias vectors.
+        """
+        return self._slope, self._bias
 
     def __linear_regression(self, x_vector_array: np.ndarray, y_vector_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -851,7 +853,7 @@ class LRModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -979,7 +981,7 @@ class LRModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -1020,7 +1022,7 @@ class LRModel(Model):
             self._save_chosen_apple_vectors(self._chosen_apple_vectors, self._training_mode)
             # Extract and update the slope and bias vectors, but only if there are at least 2 chosen apple vectors
             if len(self._chosen_apple_vectors) >= 2:
-                self.slope, self.bias = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__linear_regression)
+                self._slope, self._bias = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__linear_regression)
 
         logging.info(f"Trained the model using the chosen apple vectors.")
 
@@ -1035,17 +1037,13 @@ class NNModel(Model):
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
-            self.slope = np.ones((vector_size,))
-            self.bias = np.zeros((vector_size,))
+            self._slope = np.ones((vector_size,))
+            self._bias = np.zeros((vector_size,))
         elif pretrained_archetype == "Contrarian":
-            self.slope = -1.0 * np.ones((vector_size,))
-            self.bias = np.zeros((vector_size,))
+            self._slope = -1.0 * np.ones((vector_size,))
+            self._bias = np.zeros((vector_size,))
         else:
-            self.slope, self.bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
-
-        # Initialize the target slope and bias vectors, if not in training mode
-        if not self._training_mode:
-            self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
+            self._slope, self._bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
 
         # Define the neural network model architecture with two hidden layers
         self.__nn_model = Sequential([
@@ -1064,14 +1062,11 @@ class NNModel(Model):
         # Compile the model
         self.__nn_model.compile(optimizer=Adam(learning_rate=self._learning_rate), loss="mean_squared_error")
 
-    def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+    def get_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
         """
         Get the current slope and bias vectors.
         """
-        if self._training_mode:
-            return self._slope_target, self._bias_target
-        else:
-            return self._slope_predict, self._bias_predict
+        return self._slope, self._bias
 
     def __forward_propagation(self, x_vector_array: np.ndarray, y_vector_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -1124,7 +1119,7 @@ class NNModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -1167,7 +1162,7 @@ class NNModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score

@@ -14,7 +14,6 @@ from source.data_classes import ApplesInPlay, ChosenApples
 
 class Agent:
     """
-    
     Base class for the agents in the 'Apples to Apples' game
     """
     def __init__(self, name: str, print_in_terminal: bool) -> None:
@@ -348,7 +347,7 @@ class AIAgent(Agent):
         """
         Get the current slope and bias vectors for the AI self model.
         """
-        return self.__self_ml_model.get_current_slope_and_bias_vectors()
+        return self.__self_ml_model.get_slope_and_bias_vectors()
 
     def reset_opponent_models(self) -> None:
         """

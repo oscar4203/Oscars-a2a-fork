@@ -6,13 +6,14 @@ import os
 import csv
 import logging
 from datetime import datetime
+import numpy as np
 
 # Third-party Libraries
 
 # Local Modules
 if TYPE_CHECKING:
     from source.agent import Agent
-    from source.data_classes import GameState, GameLog, PreferenceUpdates
+    from source.data_classes import GameState, GameLog
 
 
 # Logging configuration
@@ -129,19 +130,20 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
         writer.writerow(data)
 
 
-# def log_vectors(game_log: "GameLog", game_state: "GameState", player: "Agent", current_slope: np.ndarray, current_bias: np.ndarray, header: bool) -> None:
-#     date_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
-#     naming_scheme = game_log.naming_scheme
-#     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-#     filename = f"vectors-{naming_scheme}.csv"
-#     # # Check that the chosen apples is not None
-#     # if game_state.chosen_apples is None:
-#     #     raise ValueError("Green apple or winning red apple or current judge is None.")
-#     preference_updates = PreferenceUpdates(player, game_log.get_current_round(), date_time,
-#                                            game_state.get_current_round_chosen_apples().get_green_apple(),
-#                                            game_state.get_current_round_chosen_apples().get_winning_red_apple(),
-#                                            current_slope, current_bias)
-#     log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
+def log_vectors(game_log: "GameLog", game_state: "GameState", judge: "Agent", player: "Agent", slope: np.ndarray, bias: np.ndarray, header: bool) -> None:
+    date_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
+    naming_scheme = game_log.naming_scheme
+    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
+    filename = f"vectors-{naming_scheme}.csv"
+
+    # Runtime import to avoid circular dependency
+    from source.data_classes import PreferenceUpdates
+
+    preference_updates = PreferenceUpdates(judge, player, game_log.get_current_game_number(), game_log.get_current_round_number(), date_time,
+                                           game_state.get_current_round_chosen_apples().get_green_apple(),
+                                           game_state.get_current_round_chosen_apples().get_winning_red_apple(),
+                                           slope, bias)
+    log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
 
 
 def log_game_state(naming_scheme: str, game_log: "GameLog", header: bool) -> None:
@@ -162,7 +164,7 @@ def log_game_winner(naming_scheme: str, game_state: "GameState", header: bool) -
     log_to_csv(directory, filename, list(game_state.game_winner_to_dict().keys()), game_state.game_winner_to_dict(), header)
 
 
-def log_training(naming_scheme: str, game_state: "GameState", header: bool) -> None:
+def log_training_mode(naming_scheme: str, game_state: "GameState", header: bool) -> None:
     directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
     filename = f"training-{naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_state.training_to_dict().keys()), game_state.training_to_dict(), header)

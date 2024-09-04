@@ -4,15 +4,13 @@
 import logging
 
 # Third-party Libraries
-from gensim.models import KeyedVectors
 
 # Local Modules
-from source.w2vloader import VectorsW2V
 from source.embeddings import Embedding
 from source.apples import GreenApple, RedApple, Deck
 from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
-from source.model import model_type_mapping
-from source.game_logger import log_game_state, log_round_winner, log_game_winner, log_training
+from source.model import model_type_mapping, Model
+from source.game_logger import log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
 from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
@@ -336,7 +334,7 @@ class ApplesToApples:
 
     def __determine_next_judge(self) -> Agent:
         # If it's the first round, choose the starting judge
-        if self.__game_log.get_current_round() == 0:
+        if self.__game_log.get_current_round_number() == 0:
             # Choose the starting judge and set the judge status
             next_judge = self.__choose_starting_judge()
             next_judge.set_judge_status(True)
@@ -380,7 +378,7 @@ class ApplesToApples:
 
         # Print and log the round message
         message = f"\n===================" \
-                        f"\nROUND {self.__game_log.get_current_round()}:" \
+                        f"\nROUND {self.__game_log.get_current_round_number()}:" \
                         f"\n===================\n"
         if self.__print_in_terminal:
             print(message)
@@ -526,17 +524,16 @@ class ApplesToApples:
                                 self.__game_log.get_chosen_apples()
                             )
 
-                            # TODO - Refactor to get vector logging
-                            # # Get the opponent judge model
-                            # opponent_judge_model: Model | None = player.get_opponent_model(agent)
+                            # Get the opponent judge model
+                            opponent_judge_model: Model | None = player.get_opponent_model(agent)
 
-                            # # Check that the judge model is not None
-                            # if opponent_judge_model is None:
-                            #     logging.error("The opponent judge model is None.")
-                            #     raise ValueError("The opponent judge model is None.")
+                            # Check that the judge model is not None
+                            if opponent_judge_model is None:
+                                logging.error("The opponent judge model is None.")
+                                raise ValueError("The opponent judge model is None.")
 
-                            # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
-                            # log_vectors(self.__game_log.get_current_game_state(), player, current_slope, current_bias, True)
+                            slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
+                            log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
                 else:
                     # If not in training mode, train only if the player is not the current judge
                     if player != self.__game_log.get_current_judge():
@@ -545,17 +542,16 @@ class ApplesToApples:
                             self.__game_log.get_chosen_apples(),
                         )
 
-                        # TODO - Refactor to get vector logging
-                        # # Get the opponent judge model
-                        # opponent_judge_model: Model | None = player.get_opponent_model(self.__game_log.get_current_round_judge())
+                        # Get the opponent judge model
+                        opponent_judge_model: Model | None = player.get_opponent_model(self.__game_log.get_current_judge())
 
-                        # # Check that the judge model is not None
-                        # if opponent_judge_model is None:
-                        #     logging.error("The opponent judge model is None.")
-                        #     raise ValueError("The opponent judge model is None.")
+                        # Check that the judge model is not None
+                        if opponent_judge_model is None:
+                            logging.error("The opponent judge model is None.")
+                            raise ValueError("The opponent judge model is None.")
 
-                        # current_slope, current_bias = opponent_judge_model.get_current_slope_and_bias_vectors()
-                        # log_vectors(self.__game_log.get_current_game_state(), player, current_slope, current_bias, True)
+                        slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
+                        log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
 
     def __reset_opponent_models(self) -> None:
         # TODO - check if need to skip for training mode
@@ -599,7 +595,7 @@ class ApplesToApples:
 
             # Log the gameplay or training results
             if self.__training_mode:
-                log_training(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                log_training_mode(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
             else:
                 log_game_state(self.__game_log.naming_scheme, self.__game_log, True)
 

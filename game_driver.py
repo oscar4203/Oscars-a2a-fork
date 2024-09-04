@@ -3,7 +3,6 @@
 # Standard Libraries
 import logging
 import argparse
-from datetime import datetime
 import time
 
 # Third-party Libraries
@@ -54,9 +53,6 @@ def get_user_input_y_or_n(prompt: str) -> str:
 
 
 def main() -> None:
-    # # Take a snapshot of the current date and time
-    # date_time = datetime.now().strftime("%Y-%m-%d-%H-%M)")
-
     # Define the command line arguments
     parser = argparse.ArgumentParser(
         prog="'Apples to Apples' card game",
@@ -118,7 +114,7 @@ def main() -> None:
     cycle_starting_judges = "n"
     reset_models_between_games = "n"
     use_extra_vectors = "y"
-    use_losing_red_apples = "y"
+    use_losing_red_apples = "y" # TODO - make this always active for comedian
     reset_cards_between_games = "n"
     print_in_terminal = "y"
 
