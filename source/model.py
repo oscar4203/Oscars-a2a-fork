@@ -63,9 +63,9 @@ class Model():
         self._chosen_apples: list[ChosenApples] = []
         self._chosen_apple_vectors: list[ChosenAppleVectors] = []
 
-         # Initialize target and predict slope and bias vectors
-        self._slope_predict: np.ndarray = np.zeros((0, self._vector_size))
-        self._bias_predict: np.ndarray = np.zeros((0, self._vector_size))
+        #  # Initialize target and predict slope and bias vectors
+        # self._slope_predict: np.ndarray = np.zeros((0, self._vector_size))
+        # self._bias_predict: np.ndarray = np.zeros((0, self._vector_size))
 
         # Learning attributes
         self._y_target: np.ndarray = np.zeros((0, self._vector_size)) # Target score for the model
@@ -580,77 +580,122 @@ class Model():
 
         return slope, bias
 
-    def _calculate_score(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, score_type: ScoreType) -> float:
-        """
-        Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
-        The output is always non-negative.
+    # def _calculate_score(self, y_predict: np.ndarray, x_vector: np.ndarray, score_type: ScoreType) -> float:
+    #     """
+    #     Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
+    #     The output is always non-negative.
 
-        Parameters:
-        slope_predict (np.ndarray): Predicted slope vectors.
-        bias_predict (np.ndarray): Predicted bias vectors.
-        slope_target (np.ndarray): Target slope vectors.
-        bias_target (np.ndarray): Target bias vectors.
-        use_euclidean (bool): If True, use Euclidean distance; otherwise, use MSE. Default is False.
+    #     Parameters:
+    #     slope_predict (np.ndarray): Predicted slope vectors.
+    #     bias_predict (np.ndarray): Predicted bias vectors.
+    #     slope_target (np.ndarray): Target slope vectors.
+    #     bias_target (np.ndarray): Target bias vectors.
+    #     use_euclidean (bool): If True, use Euclidean distance; otherwise, use MSE. Default is False.
 
-        Returns:
-        float: The calculated score.
-        """
-        logging.debug(f"slope_predict: {slope_predict}")
-        logging.debug(f"bias_predict: {bias_predict}")
-        logging.debug(f"slope_target: {slope_target}")
-        logging.debug(f"bias_target: {bias_target}")
+    #     Returns:
+    #     float: The calculated score.
+    #     """
+    #     # Check for NaN values in the vectors
+    #     if np.isnan(y_predict).any() or np.isnan(x_vector).any():
+    #         logging.error("NaN values found in input vectors.")
+    #         return float('nan')
 
-        # Check for NaN values in the vectors
-        if np.isnan(slope_predict).any() or np.isnan(slope_target).any() or \
-        np.isnan(bias_predict).any() or np.isnan(bias_target).any():
-            logging.error("NaN values found in input vectors.")
-            return float('nan')
+    #     if score_type == ScoreType.EUCLIDEAN:
+    #         # Calculate the Euclidean distance
+    #         euclidean_distance = np.linalg.norm(y_predict - x_vector)
+    #         logging.debug(f"euclidean_distance: {euclidean_distance}")
 
-        if score_type == ScoreType.EUCLIDEAN:
-            # Calculate the Euclidean distance for slope and bias
-            euclidean_slope = np.linalg.norm(slope_predict - slope_target)
-            euclidean_bias = np.linalg.norm(bias_predict - bias_target)
+    #         return float(euclidean_distance)
 
-            logging.debug(f"euclidean_slope: {euclidean_slope}")
-            logging.debug(f"euclidean_bias: {euclidean_bias}")
+    #     elif score_type == ScoreType.MSE:
+    #         # Calculate the MSE
+    #         mse = np.mean((y_predict - x_vector) ** 2)
+    #         logging.debug(f"mse: {mse}")
 
-            # Combine the Euclidean distances for slope and bias
-            total_distance = euclidean_slope + euclidean_bias
-            logging.debug(f"total_distance: {total_distance}")
+    #         return float(mse)
 
-            return float(total_distance)
+    #     elif score_type == ScoreType.MAE:
+    #         # Calculate the MAE
+    #         mae = np.mean(np.abs(y_predict - x_vector))
+    #         logging.debug(f"mae: {mae}")
 
-        elif score_type == ScoreType.MSE:
-            # Calculate the MSE for slope and bias
-            mse_slope = np.mean((slope_predict - slope_target) ** 2)
-            mse_bias = np.mean((bias_predict - bias_target) ** 2)
+    #         return float(mae)
 
-            logging.debug(f"mse_slope: {mse_slope}")
-            logging.debug(f"mse_bias: {mse_bias}")
+    #     else:
+    #         logging.error("Invalid score type.")
+    #         return float("nan")
 
-            # Combine the MSE for slope and bias
-            mse_total = mse_slope + mse_bias
-            logging.debug(f"mse_total: {mse_total}")
+    # def _calculate_score_old(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, score_type: ScoreType) -> float:
+    #     """
+    #     Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
+    #     The output is always non-negative.
 
-            return float(mse_total)
+    #     Parameters:
+    #     slope_predict (np.ndarray): Predicted slope vectors.
+    #     bias_predict (np.ndarray): Predicted bias vectors.
+    #     slope_target (np.ndarray): Target slope vectors.
+    #     bias_target (np.ndarray): Target bias vectors.
+    #     use_euclidean (bool): If True, use Euclidean distance; otherwise, use MSE. Default is False.
 
-        elif score_type == ScoreType.MAE:
-            # Calculate the MAE for slope and bias
-            mae_slope = np.mean(np.abs(slope_predict - slope_target))
-            mae_bias = np.mean(np.abs(bias_predict - bias_target))
+    #     Returns:
+    #     float: The calculated score.
+    #     """
+    #     logging.debug(f"slope_predict: {slope_predict}")
+    #     logging.debug(f"bias_predict: {bias_predict}")
+    #     logging.debug(f"slope_target: {slope_target}")
+    #     logging.debug(f"bias_target: {bias_target}")
 
-            logging.debug(f"mae_slope: {mae_slope}")
-            logging.debug(f"mae_bias: {mae_bias}")
+    #     # Check for NaN values in the vectors
+    #     if np.isnan(slope_predict).any() or np.isnan(slope_target).any() or \
+    #     np.isnan(bias_predict).any() or np.isnan(bias_target).any():
+    #         logging.error("NaN values found in input vectors.")
+    #         return float('nan')
 
-            # Combine the MAE for slope and bias
-            mae_total = mae_slope + mae_bias
-            logging.debug(f"mae_total: {mae_total}")
+    #     if score_type == ScoreType.EUCLIDEAN:
+    #         # Calculate the Euclidean distance for slope and bias
+    #         euclidean_slope = np.linalg.norm(slope_predict - slope_target)
+    #         euclidean_bias = np.linalg.norm(bias_predict - bias_target)
 
-            return float(mae_total)
+    #         logging.debug(f"euclidean_slope: {euclidean_slope}")
+    #         logging.debug(f"euclidean_bias: {euclidean_bias}")
 
-        else:
-            logging.error("Invalid score type.")
-            return float("nan")
+    #         # Combine the Euclidean distances for slope and bias
+    #         total_distance = euclidean_slope + euclidean_bias
+    #         logging.debug(f"total_distance: {total_distance}")
+
+    #         return float(total_distance)
+
+    #     elif score_type == ScoreType.MSE:
+    #         # Calculate the MSE for slope and bias
+    #         mse_slope = np.mean((slope_predict - slope_target) ** 2)
+    #         mse_bias = np.mean((bias_predict - bias_target) ** 2)
+
+    #         logging.debug(f"mse_slope: {mse_slope}")
+    #         logging.debug(f"mse_bias: {mse_bias}")
+
+    #         # Combine the MSE for slope and bias
+    #         mse_total = mse_slope + mse_bias
+    #         logging.debug(f"mse_total: {mse_total}")
+
+    #         return float(mse_total)
+
+    #     elif score_type == ScoreType.MAE:
+    #         # Calculate the MAE for slope and bias
+    #         mae_slope = np.mean(np.abs(slope_predict - slope_target))
+    #         mae_bias = np.mean(np.abs(bias_predict - bias_target))
+
+    #         logging.debug(f"mae_slope: {mae_slope}")
+    #         logging.debug(f"mae_bias: {mae_bias}")
+
+    #         # Combine the MAE for slope and bias
+    #         mae_total = mae_slope + mae_bias
+    #         logging.debug(f"mae_total: {mae_total}")
+
+    #         return float(mae_total)
+
+    #     else:
+    #         logging.error("Invalid score type.")
+    #         return float("nan")
 
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
@@ -677,8 +722,8 @@ class LRModel(Model):
     def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
                  use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
-        # Initialize the target slope and bias vectors, if not in training mode
 
+        # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
             self.slope = np.ones((vector_size,))
             self.bias = np.zeros((vector_size,))
@@ -688,9 +733,9 @@ class LRModel(Model):
         else:
             self.slope, self.bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
 
+        # Initialize the target slope and bias vectors, if not in training mode
         if not self._training_mode:
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
-
 
     def __linear_regression(self, x_vector_array: np.ndarray, y_vector_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -792,115 +837,29 @@ class LRModel(Model):
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
         Choose a red apple from the agent's hand to play (when the agent is a regular player).
-        This method applies the private linear regression methods to predict the best red apple.
+        The score is calculated by summing all the elements in the score_vec.
+        For any two words, the product of two similar elements will be positive, and the product of two dissimilar elements will be smaller or negative.
         """
+        # Initialize the best score and best red apple
         best_score = -np.inf
         best_red_apple: RedApple | None = None
 
-        g_vec: np.ndarray | None = green_apple.get_adjective_vector()
-
-        if g_vec is None:
-            logging.error(f"Green apple vector is None.")
-            raise ValueError("Green apple vector is None.")
-
-        for red_apple in red_apples_in_hand:
-            r_vec: np.ndarray | None = red_apple.get_noun_vector()
-
-            if r_vec is None:
-                logging.error(f"Red apple vector is None.")
-                raise ValueError("Red apple vector is None.")
-
-            combine_vec = np.multiply(g_vec, r_vec)
-
-            score_vec = np.add(np.multiply(self.slope, combine_vec), self.bias)
-
-            score = np.sum(score_vec)
-
-            if score > best_score:
-                best_score = score
-                best_red_apple = red_apple
-
-
-        # Check if the best red apple was chosen
-        if best_red_apple is None:
-            raise ValueError("No red apple was chosen.")
-
-        return best_red_apple
-
-
-    def choose_red_apple_old(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
-        """
-        Choose a red apple from the agent's hand to play (when the agent is a regular player).
-        This method applies the private linear regression methods to predict the best red apple.
-        """
-        # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
-        if len(self._chosen_apple_vectors) > 1:
-            # Calculate the x_predict_base and y_predict_base vectors from the chosen apple vectors
-            x_predict_base, y_predict_base = self._calculate_x_and_y_vectors(self._chosen_apple_vectors)
-        else:
-            x_pretrain: np.ndarray = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].winning_red_apple_vector)
-            y_pretrain: np.ndarray = self._initialize_y_vectors(x_pretrain, winning_apple=True)
-
-            # Process the losing apple pairs, if applicable
-            if self._use_losing_red_apples:
-                x_pretrain_losing = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].losing_red_apple_vectors[0])
-                y_pretrain_losing = self._initialize_y_vectors(x_pretrain_losing, winning_apple=False)
-
-                # Stack the losing x_predict and y_predict vectors
-                x_pretrain = np.vstack([x_pretrain, x_pretrain_losing])
-                y_pretrain = np.vstack([y_pretrain, y_pretrain_losing])
-
-            # Stack the base vectors with the new vectors
-            x_predict_base: np.ndarray = x_pretrain
-            y_predict_base: np.ndarray = y_pretrain
-
-        logging.debug(f"x_predict_base: {x_predict_base}")
-        logging.debug(f"y_predict_base: {y_predict_base}")
-
-        # Initialize the best score and best red apple
-        best_red_apple: RedApple | None = None
-        best_score: float = np.inf
-
         # Iterate through the red apples to find the best one
         for red_apple in red_apples_in_hand:
-            # Calculate the winning x_predict vector
-            x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple)
-            logging.debug(f"x_predict before: {x_predict}")
+            # Calculate the x vector
+            x_vec = self._calculate_x_vector_from_apples(green_apple, red_apple)
+            logging.debug(f"x_vec: {x_vec}")
 
-            # Initialize the winning y_predict vector
-            y_predict: np.ndarray = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_predict before: {y_predict}")
-
-            # Process the losing apple pairs, if applicable
-            if self._use_losing_red_apples:
-                if len(self._chosen_apple_vectors) > 1:
-                    # Calculate the losing x_predict and y_predict vectors from the chosen apple vectors
-                    losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors(self._chosen_apple_vectors)
-                else:
-                    # Calculate the first losing x_predict and y_predict vectors from the pretrained data
-                    losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors([self._pretrained_vectors[0]])
-
-                # Stack the losing x_predict and y_predict vectors
-                x_predict = np.vstack([x_predict, losing_x_predict])
-                y_predict = np.vstack([y_predict, losing_y_predict])
-
-            # Stack the base vectors with the new vectors
-            x_predict = np.vstack([x_predict_base, x_predict])
-            y_predict = np.vstack([y_predict_base, y_predict])
-            logging.debug(f"x_predict after stacking: {x_predict}")
-            logging.debug(f"y_predict after stacking: {y_predict}")
-
-            # Use linear regression to predict the preference output
-            self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
-            logging.debug(f"self._slope_predict: {self._slope_predict}")
-            logging.debug(f"self._bias_predict: {self._bias_predict}")
+            # Calculate the score vector
+            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
-            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            score = np.sum(y_vec)
             logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
-            if score < best_score:
+            if score > best_score:
                 best_score = score
                 best_red_apple = red_apple
                 logging.debug(f"New best score: {best_score}")
@@ -912,49 +871,129 @@ class LRModel(Model):
 
         return best_red_apple
 
+
+    # def choose_red_apple_old(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
+    #     """
+    #     Choose a red apple from the agent's hand to play (when the agent is a regular player).
+    #     This method applies the private linear regression methods to predict the best red apple.
+    #     """
+    #     # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
+    #     if len(self._chosen_apple_vectors) > 1:
+    #         # Calculate the x_predict_base and y_predict_base vectors from the chosen apple vectors
+    #         x_predict_base, y_predict_base = self._calculate_x_and_y_vectors(self._chosen_apple_vectors)
+    #     else:
+    #         x_pretrain: np.ndarray = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].winning_red_apple_vector)
+    #         y_pretrain: np.ndarray = self._initialize_y_vectors(x_pretrain, winning_apple=True)
+
+    #         # Process the losing apple pairs, if applicable
+    #         if self._use_losing_red_apples:
+    #             x_pretrain_losing = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].losing_red_apple_vectors[0])
+    #             y_pretrain_losing = self._initialize_y_vectors(x_pretrain_losing, winning_apple=False)
+
+    #             # Stack the losing x_predict and y_predict vectors
+    #             x_pretrain = np.vstack([x_pretrain, x_pretrain_losing])
+    #             y_pretrain = np.vstack([y_pretrain, y_pretrain_losing])
+
+    #         # Stack the base vectors with the new vectors
+    #         x_predict_base: np.ndarray = x_pretrain
+    #         y_predict_base: np.ndarray = y_pretrain
+
+    #     logging.debug(f"x_predict_base: {x_predict_base}")
+    #     logging.debug(f"y_predict_base: {y_predict_base}")
+
+    #     # Initialize the best score and best red apple
+    #     best_red_apple: RedApple | None = None
+    #     best_score: float = np.inf
+
+    #     # Iterate through the red apples to find the best one
+    #     for red_apple in red_apples_in_hand:
+    #         # Calculate the winning x_predict vector
+    #         x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple)
+    #         logging.debug(f"x_predict before: {x_predict}")
+
+    #         # Initialize the winning y_predict vector
+    #         y_predict: np.ndarray = self._initialize_y_vectors(x_predict, winning_apple=True)
+    #         logging.debug(f"y_predict before: {y_predict}")
+
+    #         # Process the losing apple pairs, if applicable
+    #         if self._use_losing_red_apples:
+    #             if len(self._chosen_apple_vectors) > 1:
+    #                 # Calculate the losing x_predict and y_predict vectors from the chosen apple vectors
+    #                 losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors(self._chosen_apple_vectors)
+    #             else:
+    #                 # Calculate the first losing x_predict and y_predict vectors from the pretrained data
+    #                 losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors([self._pretrained_vectors[0]])
+
+    #             # Stack the losing x_predict and y_predict vectors
+    #             x_predict = np.vstack([x_predict, losing_x_predict])
+    #             y_predict = np.vstack([y_predict, losing_y_predict])
+
+    #         # Stack the base vectors with the new vectors
+    #         x_predict = np.vstack([x_predict_base, x_predict])
+    #         y_predict = np.vstack([y_predict_base, y_predict])
+    #         logging.debug(f"x_predict after stacking: {x_predict}")
+    #         logging.debug(f"y_predict after stacking: {y_predict}")
+
+    #         # Use linear regression to predict the preference output
+    #         self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
+    #         logging.debug(f"self._slope_predict: {self._slope_predict}")
+    #         logging.debug(f"self._bias_predict: {self._bias_predict}")
+
+    #         # Evaluate the score
+    #         score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+    #         logging.debug(f"score: {score}")
+
+    #         # Update the best score and accompanying red apple
+    #         if score < best_score:
+    #             best_score = score
+    #             best_red_apple = red_apple
+    #             logging.debug(f"New best score: {best_score}")
+    #             logging.debug(f"New best red apple: {best_red_apple}")
+
+    #     # Check if the best red apple was chosen
+    #     if best_red_apple is None:
+    #         raise ValueError("No red apple was chosen.")
+
+    #     return best_red_apple
+
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
-        This method is only used by the self model and applies the private linear regression methods to predict the winning red apple.
+        This method is only used by the self model.
         """
-
         # If in training mode, choose the only red apple and return early
         winning_red_apple: dict["Agent", RedApple] = apples_in_play.red_apples[0]
         if self._training_mode:
             return winning_red_apple
 
+        # Initialize the best score
+        best_score = -np.inf
 
-        green_apple = apples_in_play.get_green_apple()
-
-        g_vec: np.ndarray | None = green_apple.get_adjective_vector()
-
-        if g_vec is None:
-            logging.error(f"Green apple vector is None.")
-            raise ValueError("Green apple vector is None.")
-
-        winning_score = -np.inf
-
+        # Iterate through the red apples to find the best one
         for red_apple_dict in apples_in_play.red_apples:
-            red_apple: RedApple = list(red_apple_dict.values())[0]
+            # Extract the red apple from the dictionary
+            red_apple: RedApple = list(red_apple_dict.values())[0] # "values()" returns a single RedApple object but need to convert it to a list and extract the first element
 
-            r_vec: np.ndarray | None = red_apple.get_noun_vector()
+            # Calculate the winning x_vec
+            x_vec = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), red_apple)
+            logging.debug(f"x_vec: {x_vec}")
 
-            if r_vec is None:
-                logging.error(f"Red apple vector is None.")
-                raise ValueError("Red apple vector is None.")
+            # Calculate the score vector
+            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            logging.debug(f"score_vec: {y_vec}")
 
-            similar_vec = np.multiply(g_vec, r_vec)
+            # Evaluate the score
+            score = np.sum(y_vec)
+            logging.debug(f"score: {score}")
 
-            score_vec = np.add(np.multiply(self.slope, similar_vec), self.bias)
-
-            score = np.sum(score_vec)
-
-            if score > winning_score:
-                winning_score = score
+            # Update the best score and accompanying red apple
+            if score > best_score:
+                best_score = score
                 winning_red_apple = red_apple_dict
+                logging.debug(f"New best score: {best_score}")
+                logging.debug(f"New best red apple: {winning_red_apple}")
 
-
-
+        logging.debug(f"Winning red apple: {winning_red_apple}")
 
         return winning_red_apple
 
@@ -993,6 +1032,17 @@ class NNModel(Model):
     def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
                  use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
         super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
+
+        # Initialize the slope and bias vectors
+        if pretrained_archetype == "Literalist":
+            self.slope = np.ones((vector_size,))
+            self.bias = np.zeros((vector_size,))
+        elif pretrained_archetype == "Contrarian":
+            self.slope = -1.0 * np.ones((vector_size,))
+            self.bias = np.zeros((vector_size,))
+        else:
+            self.slope, self.bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
+
         # Initialize the target slope and bias vectors, if not in training mode
         if not self._training_mode:
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
@@ -1060,76 +1110,29 @@ class NNModel(Model):
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
         Choose a red apple from the agent's hand to play (when the agent is a regular player).
-        This method applies the private neural network methods to predict the best red apple.
+        The score is calculated by summing all the elements in the score_vec.
+        For any two words, the product of two similar elements will be positive, and the product of two dissimilar elements will be smaller or negative.
         """
-        # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
-        if len(self._chosen_apple_vectors) > 1:
-            # Calculate the x_predict_base and y_predict_base vectors from the chosen apple vectors
-            x_predict_base, y_predict_base = self._calculate_x_and_y_vectors(self._chosen_apple_vectors)
-        else:
-            x_pretrain: np.ndarray = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].winning_red_apple_vector)
-            y_pretrain: np.ndarray = self._initialize_y_vectors(x_pretrain, winning_apple=True)
-
-            # Process the losing apple pairs, if applicable
-            if self._use_losing_red_apples:
-                x_pretrain_losing = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].losing_red_apple_vectors[0])
-                y_pretrain_losing = self._initialize_y_vectors(x_pretrain_losing, winning_apple=False)
-
-                # Stack the losing x_predict and y_predict vectors
-                x_pretrain = np.vstack([x_pretrain, x_pretrain_losing])
-                y_pretrain = np.vstack([y_pretrain, y_pretrain_losing])
-
-            # Stack the base vectors with the new vectors
-            x_predict_base: np.ndarray = x_pretrain
-            y_predict_base: np.ndarray = y_pretrain
-
-        logging.debug(f"x_predict_base: {x_predict_base}")
-        logging.debug(f"y_predict_base: {y_predict_base}")
-
         # Initialize the best score and best red apple
+        best_score = -np.inf
         best_red_apple: RedApple | None = None
-        best_score: float = np.inf
 
         # Iterate through the red apples to find the best one
         for red_apple in red_apples_in_hand:
-            # Calculate the winning x_predict vector
-            x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple)
-            logging.debug(f"x_predict before: {x_predict}")
+            # Calculate the x vector
+            x_vec = self._calculate_x_vector_from_apples(green_apple, red_apple)
+            logging.debug(f"x_vec: {x_vec}")
 
-            # Initialize the winning y_predict vector
-            y_predict: np.ndarray = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_predict before: {y_predict}")
-
-            # Process the losing apple pairs, if applicable
-            if self._use_losing_red_apples:
-                if len(self._chosen_apple_vectors) > 1:
-                    # Calculate the losing x_predict and y_predict vectors from the chosen apple vectors
-                    losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors(self._chosen_apple_vectors)
-                else:
-                    # Calculate the first losing x_predict and y_predict vectors from the pretrained data
-                    losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors([self._pretrained_vectors[0]])
-
-                # Stack the losing x_predict and y_predict vectors
-                x_predict = np.vstack([x_predict, losing_x_predict])
-                y_predict = np.vstack([y_predict, losing_y_predict])
-
-            # Stack the base vectors with the new vectors
-            x_predict = np.vstack([x_predict_base, x_predict])
-            y_predict = np.vstack([y_predict_base, y_predict])
-            logging.debug(f"x_predict after stacking: {x_predict}")
-            logging.debug(f"y_predict after stacking: {y_predict}")
-
-            # Use linear regression to predict the preference output
-            self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
-            logging.debug(f"self._slope_predict: {self._slope_predict}")
-            logging.debug(f"self._bias_predict: {self._bias_predict}")
+            # Calculate the score vector
+            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
-            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            score = np.sum(y_vec)
             logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
-            if score < best_score:
+            if score > best_score:
                 best_score = score
                 best_red_apple = red_apple
                 logging.debug(f"New best score: {best_score}")
@@ -1144,55 +1147,35 @@ class NNModel(Model):
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
-        This method applies the private neural network methods to predict the winning red apple.
+        This method is only used by the self model.
         """
         # If in training mode, choose the only red apple and return early
+        winning_red_apple: dict["Agent", RedApple] = apples_in_play.red_apples[0]
         if self._training_mode:
-            winning_red_apple: dict["Agent", RedApple] = apples_in_play.red_apples[0]
             return winning_red_apple
 
-        # Initialize the x_predict_base and _base arrays
-        x_predict_base: np.ndarray = np.zeros((0, self._vector_size))
-        y_predict_base: np.ndarray = np.zeros((0, self._vector_size))
-
-        # Calculate the x and y vectors from the pretrained data
-        x_predict_base, y_predict_base = self._calculate_x_and_y_vectors(self._pretrained_vectors)
-        logging.debug(f"x_predict_base: {x_predict_base}")
-        logging.debug(f"y_predict_base: {y_predict_base}")
-
         # Initialize the best score
-        best_score = np.inf
+        best_score = -np.inf
 
         # Iterate through the red apples to find the best one
         for red_apple_dict in apples_in_play.red_apples:
             # Extract the red apple from the dictionary
-            red_apple: RedApple = list(red_apple_dict.values())[0]
+            red_apple: RedApple = list(red_apple_dict.values())[0] # "values()" returns a single RedApple object but need to convert it to a list and extract the first element
 
-            # Calculate the winning x_predict vector
-            x_predict: np.ndarray = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), red_apple)
-            logging.debug(f"x_predict: {x_predict}")
+            # Calculate the winning x_vec
+            x_vec = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), red_apple)
+            logging.debug(f"x_vec: {x_vec}")
 
-            # Initialize the winning y_predict vector
-            y_predict: np.ndarray = self._initialize_y_vectors(x_predict, winning_apple=True)
-            logging.debug(f"y_predict: {y_predict}")
-
-            # Stack the base vectors with the new vectors
-            x_predict = np.vstack([x_predict_base, x_predict])
-            y_predict = np.vstack([y_predict_base, y_predict])
-            logging.debug(f"x_predict after stacking: {x_predict}")
-            logging.debug(f"y_predict after stacking: {y_predict}")
-
-            # Use linear regression to predict the preference output
-            self._slope_predict, self._bias_predict = self.__forward_propagation(x_predict, y_predict)
-            logging.debug(f"self._slope_predict: {self._slope_predict}")
-            logging.debug(f"self._bias_predict: {self._bias_predict}")
+            # Calculate the score vector
+            y_vec = np.add(np.multiply(self.slope, x_vec), self.bias)
+            logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
-            score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
+            score = np.sum(y_vec)
             logging.debug(f"score: {score}")
 
             # Update the best score and accompanying red apple
-            if score < best_score:
+            if score > best_score:
                 best_score = score
                 winning_red_apple = red_apple_dict
                 logging.debug(f"New best score: {best_score}")

@@ -106,7 +106,6 @@ class ApplesToApples:
                         player.reset_red_apples()
                         player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
 
-
         # Start the game loop
         self.__game_loop()
 
