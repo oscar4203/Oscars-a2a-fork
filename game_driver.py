@@ -106,7 +106,6 @@ def main() -> None:
     game_driver = GameDriver(args.training_mode, args.number_of_players, args.points_to_win, args.total_games, args.green_expansion, args.red_expansion)
 
     # Load the keyed vectors
-
     game_driver.load_keyed_vectors(args.vector_loader)
 
     
