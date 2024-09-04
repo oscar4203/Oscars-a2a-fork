@@ -114,7 +114,6 @@ def main() -> None:
     cycle_starting_judges = "n"
     reset_models_between_games = "n"
     use_extra_vectors = "y"
-    use_losing_red_apples = "y" # TODO - make this always active for comedian
     reset_cards_between_games = "n"
     print_in_terminal = "y"
 
@@ -132,9 +131,6 @@ def main() -> None:
         # Prompt the user on whether they want to include the synonym and description vectors inthe model
         use_extra_vectors = get_user_input_y_or_n("Do you want to include the extra synonym and description vectors in the model training? (y/n): ")
 
-        # Prompt the user on whether they want to include the losing red apples in the model training
-        use_losing_red_apples = get_user_input_y_or_n("Do you want to include the losing red apples in the model training? (y/n): ")
-
         # Prompt the user on whether they want to print the game info and results in the terminal
         print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
 
@@ -148,7 +144,6 @@ def main() -> None:
         cycle_starting_judges == 'y',
         reset_models_between_games == 'y',
         use_extra_vectors == 'y',
-        use_losing_red_apples == 'y',
         reset_cards_between_games == 'y',
         print_in_terminal == 'y'
     )
@@ -158,7 +153,6 @@ def main() -> None:
     logging.info(f"Cycle starting judges: {cycle_starting_judges == 'y'}")
     logging.info(f"Reset models between games: {reset_models_between_games == 'y'}")
     logging.info(f"Use extra vectors: {use_extra_vectors == 'y'}")
-    logging.info(f"Use losing red apples: {use_losing_red_apples == 'y'}")
     logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
     logging.info(f"Print in terminal: {print_in_terminal == 'y'}")
 
@@ -187,8 +181,7 @@ def main() -> None:
             change_players_between_games == 'y',
             cycle_starting_judges == 'y',
             reset_models_between_games == 'y',
-            use_extra_vectors == 'y',
-            use_losing_red_apples == 'y'
+            use_extra_vectors == 'y'
         )
 
 if __name__ == "__main__":

@@ -139,8 +139,7 @@ def create_legend(ax: Axes, colors: list[str], labels: list[str]) -> None:
 
 def create_game_settings_box(ax: Axes, points_to_win: int, total_games: int,
                              change_players_between_games: bool, cycle_starting_judges: bool,
-                             reset_models_between_games: bool, use_extra_vectors: bool,
-                             use_losing_red_apples: bool) -> None:
+                             reset_models_between_games: bool, use_extra_vectors: bool) -> None:
     # Remove the axis borders
     ax.axis("off")
 
@@ -153,8 +152,7 @@ def create_game_settings_box(ax: Axes, points_to_win: int, total_games: int,
                     f"change_players_between_games = {change_players_between_games}\n"
                     f"cycle_starting_judges = {cycle_starting_judges}\n"
                     f"reset_models_between_games = {reset_models_between_games}\n"
-                    f"use_extra_vectors = {use_extra_vectors}\n"
-                    f"use_losing_red_apples = {use_losing_red_apples}")
+                    f"use_extra_vectors = {use_extra_vectors}")
 
     # Add the settings text closer to the title
     ax.text(0.5, 0.45, settings_text, fontsize=12, fontweight="bold",
@@ -259,7 +257,7 @@ def create_line_graph(ax: Axes, rounds_per_game: list[int], game_labels: list[st
 
 
 def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: GameLog, change_players_between_games: bool,
-                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool, use_losing_red_apples: bool) -> Figure:
+                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool) -> Figure:
     # Check if there are any winners
     if not round_winners_dict:
         print("No winners found")
@@ -307,7 +305,7 @@ def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: Game
     game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
     create_game_settings_box(game_settings_ax, game_log.points_to_win, game_log.total_games,
                              change_players_between_games, cycle_starting_judges, reset_models_between_games,
-                             use_extra_vectors, use_losing_red_apples)
+                             use_extra_vectors)
 
     # Create subplots for the bar, pie, and box plots
     bar_ax = fig.add_subplot(gs[0, 0])
@@ -326,7 +324,7 @@ def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: Game
 
 
 def create_game_winners_plot(game_winners_dict: dict[str, int], game_log: GameLog, change_players_between_games: bool,
-                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool, use_losing_red_apples: bool) -> Figure:
+                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool) -> Figure:
     # Check if there are any winners
     if not game_winners_dict:
         print("No winners found")
@@ -374,7 +372,7 @@ def create_game_winners_plot(game_winners_dict: dict[str, int], game_log: GameLo
     game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
     create_game_settings_box(game_settings_ax, game_log.points_to_win, game_log.total_games,
                              change_players_between_games, cycle_starting_judges, reset_models_between_games,
-                             use_extra_vectors, use_losing_red_apples)
+                             use_extra_vectors)
 
     # Create subplots for the bar, pie, and line plots
     bar_ax = fig.add_subplot(gs[0, 0])
@@ -459,7 +457,7 @@ def save_plot(plot_figure: Figure, output_filepath: str) -> None:
 
 def main(game_log: GameLog, change_players_between_games: bool,
             cycle_starting_judges: bool, reset_models_between_games: bool,
-            use_extra_vectors: bool, use_losing_red_apples: bool) -> None:
+            use_extra_vectors: bool) -> None:
     # Get the winners dictionary
     try:
         round_winners = count_winners(game_log.round_winners_csv_filepath, "round_winner")
@@ -483,8 +481,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
             change_players_between_games,
             cycle_starting_judges,
             reset_models_between_games,
-            use_extra_vectors,
-            use_losing_red_apples
+            use_extra_vectors
             )
 
         # Save the plot to a file
@@ -503,8 +500,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
             change_players_between_games,
             cycle_starting_judges,
             reset_models_between_games,
-            use_extra_vectors,
-            use_losing_red_apples
+            use_extra_vectors
             )
 
         # Save the plot to a file
@@ -544,7 +540,6 @@ if __name__ == "__main__":
     parser.add_argument("cycle_starting_judges", help="Cycle starting judges between games (y/n).")
     parser.add_argument("reset_models_between_games", help="Reset models between games (y/n).")
     parser.add_argument("use_extra_vectors", help="Use extra vectors (y/n).")
-    parser.add_argument("use_losing_red_apples", help="Use losing red apples (y/n).")
 
     # Parse the arguments and call the main function
     args = parser.parse_args()
@@ -553,6 +548,5 @@ if __name__ == "__main__":
         args.change_players_between_games,
         args.cycle_starting_judges,
         args.reset_models_between_games,
-        args.use_extra_vectors,
-        args.use_losing_red_apples
+        args.use_extra_vectors
     )

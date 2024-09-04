@@ -28,12 +28,11 @@ class ApplesToApples:
         self.__game_log = game_log
 
     def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, use_extra_vectors: bool,
-                         use_losing_red_apples: bool, reset_cards_between_games: bool, print_in_terminal: bool) -> None:
+                         reset_cards_between_games: bool, print_in_terminal: bool) -> None:
         self.__change_players_between_games = change_players
         self.__cycle_starting_judges_between_games = cycle_starting_judges
         self.__reset_models_between_games = reset_models
         self.__use_extra_vectors = use_extra_vectors
-        self.__use_losing_red_apples = use_losing_red_apples
         self.__reset_cards_between_games = reset_cards_between_games
         self.__print_in_terminal = print_in_terminal
 
@@ -204,7 +203,7 @@ class ApplesToApples:
 
             # Create a new AI agent
             new_agent_name = f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}"
-            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, self.__use_extra_vectors, self.__use_losing_red_apples, True)
+            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, self.__use_extra_vectors, True)
 
             # Create the human agent
             human_agent = HumanAgent("Human Agent", self.__print_in_terminal)
@@ -278,7 +277,7 @@ class ApplesToApples:
 
                     # Create the AI agent
                     new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
-                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors, self.__use_losing_red_apples,
+                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors,
                                         training_mode=False, print_in_terminal=self.__print_in_terminal)
 
                 # Append the player object to the current game and game log
@@ -433,7 +432,7 @@ class ApplesToApples:
             logging.info(f"Chosen red apple: {red_apple_dict[player]}")
 
             # Prompt the player to select a bad red apple, if applicable
-            if self.__training_mode and self.__use_losing_red_apples:
+            if self.__training_mode:
                 message = f"\nThe green apple is '{self.__game_log.get_apples_in_play().get_green_apple()}'."
                 if self.__print_in_terminal:
                     print(message)

@@ -26,19 +26,12 @@ from source.apples import GreenApple, RedApple
 from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
 
 
-# # Define the mapping from user input to score type
-# class ScoreType(Enum):
-#     EUCLIDEAN = 1
-#     MSE = 2
-#     MAE = 3
-
-
 class Model():
     """
     Base class for the AI models.
     """
     def __init__(self, self_agent: "Agent", judge_to_model: "Agent", vector_size: int, pretrained_archetype: str,
-                 use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
+                 use_extra_vectors: bool = False, training_mode: bool = False) -> None:
         # Initialize the model attributes
         self._vector_base_directory = "./agent_archetypes/"
         self._self_agent: "Agent" = self_agent
@@ -46,7 +39,6 @@ class Model():
         self._vector_size = vector_size
         self._pretrained_archetype: str = pretrained_archetype # The name of the pretrained model archetype (e.g., Literalist, Contrarian, Comedian)
         self._use_extra_vectors: bool = use_extra_vectors
-        self._use_losing_red_apples: bool = use_losing_red_apples
         self._training_mode: bool = training_mode
 
         # Load the pretrained vectors
@@ -55,7 +47,7 @@ class Model():
         # Check that the pretrained vectors have at least 2 vectors
         if not self._training_mode and len(self._pretrained_vectors) < 2:
             message = f"Pretrained vectors must have at least 2 vectors."\
-                f"\nPlease train the {self._pretrained_archetype} with 'use_losing_red_apples' set to {self._use_losing_red_apples}."
+                f"\nPlease train the {self._pretrained_archetype}."
             logging.error(message)
             raise ValueError(message)
 
@@ -444,89 +436,6 @@ class Model():
 
         return y_vectors
 
-    def _calculate_x_and_y_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors]) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Calculate the x and y vectors from the chosen apple vectors.
-        This will include the winning apple pairs, the losing if applicable, and the extra vectors for both if applicable.
-        """
-        # Initialize x_vectors and losing_x_vectors lists
-        winning_x_vectors_list = []
-        losing_x_vectors_list = []
-
-        # Assemble the chosen apple vectors into python lists
-        for chosen_apple in chosen_apple_vectors:
-            # Calculate the x vectors for the winning apple pairs
-            winning_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector, chosen_apple.winning_red_apple_vector))
-
-            # Include the extra vectors, if applicable
-            if self._use_extra_vectors:
-                # Calculate the x vectors for the winning apple pairs
-                winning_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector_extra, chosen_apple.winning_red_apple_vector_extra))
-
-            # Process the losing apple pairs, if applicable
-            if self._use_losing_red_apples:
-                for losing_red_apple in chosen_apple.losing_red_apple_vectors:
-                    # Calculate the x vectors for the losing apple pairs
-                    losing_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector, losing_red_apple))
-
-                    # Include the extra vectors, if applicable
-                    if self._use_extra_vectors:
-                        # Calculate the x vectors for the losing apple pairs
-                        losing_x_vectors_list.append(self._calculate_x_vector(chosen_apple.green_apple_vector_extra, losing_red_apple))
-
-        # Initialize the x and y vectors
-        x_vectors: np.ndarray = np.zeros((0, self._vector_size))
-        y_vectors: np.ndarray = np.zeros((0, self._vector_size))
-
-        # Convert the winning list to a numpy array
-        x_vectors = np.vstack(winning_x_vectors_list)
-
-        # Initialize the winning y_vectors
-        y_vectors = self._initialize_y_vectors(x_vectors, winning_apple=True)
-
-        # Finish processing the losing apple pairs, if applicable
-        if self._use_losing_red_apples:
-            # Convert the losing list to a numpy array
-            losing_x_vectors = np.vstack(losing_x_vectors_list)
-
-            # Initialize the losing y_vectors
-            losing_y_vectors = self._initialize_y_vectors(losing_x_vectors, winning_apple=False)
-
-            # Stack the losing x_vectors and y_vectors
-            x_vectors = np.vstack([x_vectors, losing_x_vectors])
-            y_vectors = np.vstack([y_vectors, losing_y_vectors])
-
-        return x_vectors, y_vectors
-
-    def _calculate_losing_x_and_y_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors]) -> tuple[np.ndarray, np.ndarray]:
-        """
-        Calculate the losing x and y vectors from the chosen apple vectors.
-        This is a more specialized version of the _calculate_x_and_y_vectors method.
-        This method is only used in the choose_red_apple method.
-        """
-        # Initialize the losing x_vectors and y_vectors
-        x_vectors = np.zeros((0, self._vector_size))
-        y_vectors = np.zeros((0, self._vector_size))
-
-        # Process the losing red apple vectors
-        for vector_pairs in chosen_apple_vectors:
-            # Process the losing red apple vectors
-            for losing_red_apple_vector in vector_pairs.losing_red_apple_vectors:
-                # Calculate the x vectors for the losing apple pairs
-                x_vectors = np.vstack([x_vectors, self._calculate_x_vector(vector_pairs.green_apple_vector, losing_red_apple_vector)])
-
-        # Process the losing red apple vectors, if applicable
-        if self._use_extra_vectors:
-            for vector_pairs in chosen_apple_vectors:
-                for losing_red_apple_vector_extra in vector_pairs.losing_red_apple_vectors_extra:
-                    # Calculate the x vectors for the losing apple pairs
-                    x_vectors = np.vstack([x_vectors, self._calculate_x_vector(vector_pairs.green_apple_vector_extra, losing_red_apple_vector_extra)])
-
-        # Initialize the losing y_vectors
-        y_vectors = self._initialize_y_vectors(x_vectors, winning_apple=False)
-
-        return x_vectors, y_vectors
-
     def _calculate_slope_and_bias_vectors(self, chosen_apple_vectors: list[ChosenAppleVectors],
                                           model_function: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]) -> tuple[np.ndarray, np.ndarray]:
         """
@@ -545,17 +454,18 @@ class Model():
         # Initialize the winning y_vectors
         y_vectors = self._initialize_y_vectors(x_vectors, winning_apple=True)
 
-        # Process the losing apple pairs, if applicable
-        if self._use_losing_red_apples:
-            # Initialize the losing x_vectors
-            losing_x_vectors = np.zeros((0, self._vector_size))
-            for chosen_apples in chosen_apple_vectors:
-                for losing_red_apple_vector in chosen_apples.losing_red_apple_vectors:
-                    # Calculate the x vectors for the losing apple pairs
-                    losing_x_vectors = np.vstack([losing_x_vectors, self._calculate_x_vector(chosen_apples.green_apple_vector, losing_red_apple_vector)])
-            # Stack the losing x_vectors
-            x_vectors = np.vstack([x_vectors, losing_x_vectors])
-            y_vectors = np.vstack([y_vectors, self._initialize_y_vectors(losing_x_vectors, winning_apple=False)])
+        # Initialize the losing x_vectors
+        losing_x_vectors = np.zeros((0, self._vector_size))
+
+        # Process the losing apple pairs
+        for chosen_apples in chosen_apple_vectors:
+            for losing_red_apple_vector in chosen_apples.losing_red_apple_vectors:
+                # Calculate the x vectors for the losing apple pairs
+                losing_x_vectors = np.vstack([losing_x_vectors, self._calculate_x_vector(chosen_apples.green_apple_vector, losing_red_apple_vector)])
+
+        # Stack the losing x_vectors
+        x_vectors = np.vstack([x_vectors, losing_x_vectors])
+        y_vectors = np.vstack([y_vectors, self._initialize_y_vectors(losing_x_vectors, winning_apple=False)])
 
         # Use linear regression or neural network function to calculate the slope and bias vectors
         slope, bias = model_function(x_vectors, y_vectors)
@@ -580,123 +490,6 @@ class Model():
 
         return slope, bias
 
-    # def _calculate_score(self, y_predict: np.ndarray, x_vector: np.ndarray, score_type: ScoreType) -> float:
-    #     """
-    #     Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
-    #     The output is always non-negative.
-
-    #     Parameters:
-    #     slope_predict (np.ndarray): Predicted slope vectors.
-    #     bias_predict (np.ndarray): Predicted bias vectors.
-    #     slope_target (np.ndarray): Target slope vectors.
-    #     bias_target (np.ndarray): Target bias vectors.
-    #     use_euclidean (bool): If True, use Euclidean distance; otherwise, use MSE. Default is False.
-
-    #     Returns:
-    #     float: The calculated score.
-    #     """
-    #     # Check for NaN values in the vectors
-    #     if np.isnan(y_predict).any() or np.isnan(x_vector).any():
-    #         logging.error("NaN values found in input vectors.")
-    #         return float('nan')
-
-    #     if score_type == ScoreType.EUCLIDEAN:
-    #         # Calculate the Euclidean distance
-    #         euclidean_distance = np.linalg.norm(y_predict - x_vector)
-    #         logging.debug(f"euclidean_distance: {euclidean_distance}")
-
-    #         return float(euclidean_distance)
-
-    #     elif score_type == ScoreType.MSE:
-    #         # Calculate the MSE
-    #         mse = np.mean((y_predict - x_vector) ** 2)
-    #         logging.debug(f"mse: {mse}")
-
-    #         return float(mse)
-
-    #     elif score_type == ScoreType.MAE:
-    #         # Calculate the MAE
-    #         mae = np.mean(np.abs(y_predict - x_vector))
-    #         logging.debug(f"mae: {mae}")
-
-    #         return float(mae)
-
-    #     else:
-    #         logging.error("Invalid score type.")
-    #         return float("nan")
-
-    # def _calculate_score_old(self, slope_predict: np.ndarray, bias_predict: np.ndarray, slope_target: np.ndarray, bias_target: np.ndarray, score_type: ScoreType) -> float:
-    #     """
-    #     Calculates the score using either Mean Squared Error (MSE) or Euclidean distance given the predicted slope and bias vectors.
-    #     The output is always non-negative.
-
-    #     Parameters:
-    #     slope_predict (np.ndarray): Predicted slope vectors.
-    #     bias_predict (np.ndarray): Predicted bias vectors.
-    #     slope_target (np.ndarray): Target slope vectors.
-    #     bias_target (np.ndarray): Target bias vectors.
-    #     use_euclidean (bool): If True, use Euclidean distance; otherwise, use MSE. Default is False.
-
-    #     Returns:
-    #     float: The calculated score.
-    #     """
-    #     logging.debug(f"slope_predict: {slope_predict}")
-    #     logging.debug(f"bias_predict: {bias_predict}")
-    #     logging.debug(f"slope_target: {slope_target}")
-    #     logging.debug(f"bias_target: {bias_target}")
-
-    #     # Check for NaN values in the vectors
-    #     if np.isnan(slope_predict).any() or np.isnan(slope_target).any() or \
-    #     np.isnan(bias_predict).any() or np.isnan(bias_target).any():
-    #         logging.error("NaN values found in input vectors.")
-    #         return float('nan')
-
-    #     if score_type == ScoreType.EUCLIDEAN:
-    #         # Calculate the Euclidean distance for slope and bias
-    #         euclidean_slope = np.linalg.norm(slope_predict - slope_target)
-    #         euclidean_bias = np.linalg.norm(bias_predict - bias_target)
-
-    #         logging.debug(f"euclidean_slope: {euclidean_slope}")
-    #         logging.debug(f"euclidean_bias: {euclidean_bias}")
-
-    #         # Combine the Euclidean distances for slope and bias
-    #         total_distance = euclidean_slope + euclidean_bias
-    #         logging.debug(f"total_distance: {total_distance}")
-
-    #         return float(total_distance)
-
-    #     elif score_type == ScoreType.MSE:
-    #         # Calculate the MSE for slope and bias
-    #         mse_slope = np.mean((slope_predict - slope_target) ** 2)
-    #         mse_bias = np.mean((bias_predict - bias_target) ** 2)
-
-    #         logging.debug(f"mse_slope: {mse_slope}")
-    #         logging.debug(f"mse_bias: {mse_bias}")
-
-    #         # Combine the MSE for slope and bias
-    #         mse_total = mse_slope + mse_bias
-    #         logging.debug(f"mse_total: {mse_total}")
-
-    #         return float(mse_total)
-
-    #     elif score_type == ScoreType.MAE:
-    #         # Calculate the MAE for slope and bias
-    #         mae_slope = np.mean(np.abs(slope_predict - slope_target))
-    #         mae_bias = np.mean(np.abs(bias_predict - bias_target))
-
-    #         logging.debug(f"mae_slope: {mae_slope}")
-    #         logging.debug(f"mae_bias: {mae_bias}")
-
-    #         # Combine the MAE for slope and bias
-    #         mae_total = mae_slope + mae_bias
-    #         logging.debug(f"mae_total: {mae_total}")
-
-    #         return float(mae_total)
-
-    #     else:
-    #         logging.error("Invalid score type.")
-    #         return float("nan")
-
     def choose_red_apple(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
         """
         Choose a red apple from the agent's hand to play (when the agent is a regular player).
@@ -720,8 +513,8 @@ class LRModel(Model):
     Linear Regression model for the AI agent.
     """
     def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
-                 use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
-        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
+                 use_extra_vectors: bool = False, training_mode: bool = False) -> None:
+        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, training_mode)
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
@@ -873,91 +666,6 @@ class LRModel(Model):
 
         return best_red_apple
 
-
-    # def choose_red_apple_old(self, green_apple: GreenApple, red_apples_in_hand: list[RedApple]) -> RedApple:
-    #     """
-    #     Choose a red apple from the agent's hand to play (when the agent is a regular player).
-    #     This method applies the private linear regression methods to predict the best red apple.
-    #     """
-    #     # Ensure there are at least 1 chosen_apple_vectors to calculate linear regression
-    #     if len(self._chosen_apple_vectors) > 1:
-    #         # Calculate the x_predict_base and y_predict_base vectors from the chosen apple vectors
-    #         x_predict_base, y_predict_base = self._calculate_x_and_y_vectors(self._chosen_apple_vectors)
-    #     else:
-    #         x_pretrain: np.ndarray = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].winning_red_apple_vector)
-    #         y_pretrain: np.ndarray = self._initialize_y_vectors(x_pretrain, winning_apple=True)
-
-    #         # Process the losing apple pairs, if applicable
-    #         if self._use_losing_red_apples:
-    #             x_pretrain_losing = self._calculate_x_vector(self._pretrained_vectors[0].green_apple_vector, self._pretrained_vectors[0].losing_red_apple_vectors[0])
-    #             y_pretrain_losing = self._initialize_y_vectors(x_pretrain_losing, winning_apple=False)
-
-    #             # Stack the losing x_predict and y_predict vectors
-    #             x_pretrain = np.vstack([x_pretrain, x_pretrain_losing])
-    #             y_pretrain = np.vstack([y_pretrain, y_pretrain_losing])
-
-    #         # Stack the base vectors with the new vectors
-    #         x_predict_base: np.ndarray = x_pretrain
-    #         y_predict_base: np.ndarray = y_pretrain
-
-    #     logging.debug(f"x_predict_base: {x_predict_base}")
-    #     logging.debug(f"y_predict_base: {y_predict_base}")
-
-    #     # Initialize the best score and best red apple
-    #     best_red_apple: RedApple | None = None
-    #     best_score: float = np.inf
-
-    #     # Iterate through the red apples to find the best one
-    #     for red_apple in red_apples_in_hand:
-    #         # Calculate the winning x_predict vector
-    #         x_predict: np.ndarray = self._calculate_x_vector_from_apples(green_apple, red_apple)
-    #         logging.debug(f"x_predict before: {x_predict}")
-
-    #         # Initialize the winning y_predict vector
-    #         y_predict: np.ndarray = self._initialize_y_vectors(x_predict, winning_apple=True)
-    #         logging.debug(f"y_predict before: {y_predict}")
-
-    #         # Process the losing apple pairs, if applicable
-    #         if self._use_losing_red_apples:
-    #             if len(self._chosen_apple_vectors) > 1:
-    #                 # Calculate the losing x_predict and y_predict vectors from the chosen apple vectors
-    #                 losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors(self._chosen_apple_vectors)
-    #             else:
-    #                 # Calculate the first losing x_predict and y_predict vectors from the pretrained data
-    #                 losing_x_predict, losing_y_predict = self._calculate_losing_x_and_y_vectors([self._pretrained_vectors[0]])
-
-    #             # Stack the losing x_predict and y_predict vectors
-    #             x_predict = np.vstack([x_predict, losing_x_predict])
-    #             y_predict = np.vstack([y_predict, losing_y_predict])
-
-    #         # Stack the base vectors with the new vectors
-    #         x_predict = np.vstack([x_predict_base, x_predict])
-    #         y_predict = np.vstack([y_predict_base, y_predict])
-    #         logging.debug(f"x_predict after stacking: {x_predict}")
-    #         logging.debug(f"y_predict after stacking: {y_predict}")
-
-    #         # Use linear regression to predict the preference output
-    #         self._slope_predict, self._bias_predict = self.__linear_regression(x_predict, y_predict)
-    #         logging.debug(f"self._slope_predict: {self._slope_predict}")
-    #         logging.debug(f"self._bias_predict: {self._bias_predict}")
-
-    #         # Evaluate the score
-    #         score = self._calculate_score(self._slope_predict, self._bias_predict, self._slope_target, self._bias_target, ScoreType.EUCLIDEAN)
-    #         logging.debug(f"score: {score}")
-
-    #         # Update the best score and accompanying red apple
-    #         if score < best_score:
-    #             best_score = score
-    #             best_red_apple = red_apple
-    #             logging.debug(f"New best score: {best_score}")
-    #             logging.debug(f"New best red apple: {best_red_apple}")
-
-    #     # Check if the best red apple was chosen
-    #     if best_red_apple is None:
-    #         raise ValueError("No red apple was chosen.")
-
-    #     return best_red_apple
-
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict["Agent", RedApple]:
         """
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
@@ -1032,8 +740,8 @@ class NNModel(Model):
     Neural Network model for the AI agent.
     """
     def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
-                 use_extra_vectors: bool = False, use_losing_red_apples : bool = False, training_mode: bool = False) -> None:
-        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, use_losing_red_apples, training_mode)
+                 use_extra_vectors: bool = False, training_mode: bool = False) -> None:
+        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, training_mode)
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
