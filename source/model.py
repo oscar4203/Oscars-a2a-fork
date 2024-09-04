@@ -34,7 +34,7 @@ class ScoreType(Enum):
 
 
 class Model():
-    """   
+    """
     Base class for the AI models.
     """
     def __init__(self, self_agent: "Agent", judge_to_model: "Agent", vector_size: int, pretrained_archetype: str,
@@ -687,7 +687,7 @@ class LRModel(Model):
             self.bias = np.zeros((vector_size,))
         else:
             self.slope, self.bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
-        
+
         if not self._training_mode:
             self._slope_target, self._bias_target = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
 
@@ -794,15 +794,21 @@ class LRModel(Model):
         Choose a red apple from the agent's hand to play (when the agent is a regular player).
         This method applies the private linear regression methods to predict the best red apple.
         """
-        best_score = -np.inf 
+        best_score = -np.inf
         best_red_apple: RedApple | None = None
 
-        g_vec = green_apple.get_adjective_vector()
+        g_vec: np.ndarray | None = green_apple.get_adjective_vector()
 
-
+        if g_vec is None:
+            logging.error(f"Green apple vector is None.")
+            raise ValueError("Green apple vector is None.")
 
         for red_apple in red_apples_in_hand:
-            r_vec  = red_apple.get_noun_vector()
+            r_vec: np.ndarray | None = red_apple.get_noun_vector()
+
+            if r_vec is None:
+                logging.error(f"Red apple vector is None.")
+                raise ValueError("Red apple vector is None.")
 
             combine_vec = np.multiply(g_vec, r_vec)
 
@@ -911,7 +917,7 @@ class LRModel(Model):
         Choose the winning red apple from the red cards submitted by the other agents (when the agent is the judge).
         This method is only used by the self model and applies the private linear regression methods to predict the winning red apple.
         """
-        
+
         # If in training mode, choose the only red apple and return early
         winning_red_apple: dict["Agent", RedApple] = apples_in_play.red_apples[0]
         if self._training_mode:
@@ -919,16 +925,23 @@ class LRModel(Model):
 
 
         green_apple = apples_in_play.get_green_apple()
-        
-        g_vec = green_apple.get_adjective_vector()
 
+        g_vec: np.ndarray | None = green_apple.get_adjective_vector()
+
+        if g_vec is None:
+            logging.error(f"Green apple vector is None.")
+            raise ValueError("Green apple vector is None.")
 
         winning_score = -np.inf
 
         for red_apple_dict in apples_in_play.red_apples:
             red_apple: RedApple = list(red_apple_dict.values())[0]
 
-            r_vec  = red_apple.get_noun_vector()
+            r_vec: np.ndarray | None = red_apple.get_noun_vector()
+
+            if r_vec is None:
+                logging.error(f"Red apple vector is None.")
+                raise ValueError("Red apple vector is None.")
 
             similar_vec = np.multiply(g_vec, r_vec)
 
