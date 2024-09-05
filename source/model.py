@@ -518,11 +518,11 @@ class LRModel(Model):
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
-            self._slope = np.ones((vector_size,))
-            self._bias = np.zeros((vector_size,))
+            self._slope: np.ndarray = np.ones((vector_size,))
+            self._bias: np.ndarray = np.zeros((vector_size,))
         elif pretrained_archetype == "Contrarian":
-            self._slope = -1.0 * np.ones((vector_size,))
-            self._bias = np.zeros((vector_size,))
+            self._slope: np.ndarray = -1.0 * np.ones((vector_size,))
+            self._bias: np.ndarray = np.zeros((vector_size,))
         else:
             self._slope, self._bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__linear_regression)
 
@@ -646,7 +646,7 @@ class LRModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
+            y_vec = np.add(np.multiply(self._slope[-1], x_vec), self._bias[-1])
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -689,7 +689,7 @@ class LRModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
+            y_vec = np.add(np.multiply(self._slope[-1], x_vec), self._bias[-1])
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -745,11 +745,11 @@ class NNModel(Model):
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
-            self._slope = np.ones((vector_size,))
-            self._bias = np.zeros((vector_size,))
+            self._slope: np.ndarray = np.ones((vector_size,))
+            self._bias: np.ndarray = np.zeros((vector_size,))
         elif pretrained_archetype == "Contrarian":
-            self._slope = -1.0 * np.ones((vector_size,))
-            self._bias = np.zeros((vector_size,))
+            self._slope: np.ndarray = -1.0 * np.ones((vector_size,))
+            self._bias: np.ndarray = np.zeros((vector_size,))
         else:
             self._slope, self._bias = self._calculate_slope_and_bias_vectors(self._pretrained_vectors, self.__forward_propagation)
 
@@ -827,7 +827,7 @@ class NNModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
+            y_vec = np.add(np.multiply(self._slope[-1], x_vec), self._bias[-1])
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -870,7 +870,7 @@ class NNModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
+            y_vec = np.add(np.multiply(self._slope[-1], x_vec), self._bias[-1])
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -911,7 +911,7 @@ class NNModel(Model):
             self._save_chosen_apple_vectors(self._chosen_apple_vectors, self._training_mode)
             # Extract and update the slope and bias vectors, but only if there are at least 2 chosen apple vectors
             if len(self._chosen_apple_vectors) >= 2:
-                self._slope_predict, self._bias_predict = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__forward_propagation)
+                self._slope, self._bias = self._calculate_slope_and_bias_vectors(self._chosen_apple_vectors, self.__forward_propagation)
 
         logging.info(f"Trained the model using the chosen apple vectors.")
 

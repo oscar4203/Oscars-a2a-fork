@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import logging
+import time
 
 # Third-party Libraries
 
@@ -45,6 +46,11 @@ class ApplesToApples:
         if self.__print_in_terminal:
             print(message)
         logging.info(message)
+
+        # Start the game timer
+        logging.info("Starting the game timer.")
+        start = time.perf_counter()
+
 
         # Initialize the GameState and add the game
         game_state = GameState()
@@ -106,6 +112,19 @@ class ApplesToApples:
         # Start the game loop
         self.__game_loop()
 
+        # Stop the game timer
+        end = time.perf_counter()
+
+        # Format the total elapsed time
+        total_time = end - start
+        minutes = int(total_time // 60)
+        seconds = int(total_time % 60)
+
+        # Print and log the total time elapsed
+        print(f"Total game time: {minutes} minute(s), {seconds} second(s)")
+        logging.info(f"Total game time: {minutes} minute(s), {seconds} second(s)")
+
+
     def __reset_player_points_and_judge_status(self) -> None:
         # TODO - check if need to skip for training mode
         # Reset the player points and judge status
@@ -120,15 +139,22 @@ class ApplesToApples:
             print(message)
         logging.info(message)
 
-        # Shuffle the decks
+        # Clear the decks
+        self.__green_apples_deck.clear_deck()
+        self.__red_apples_deck.clear_deck()
+
+        # Load and shuffle the decks
         if self.__load_all_packs:
             self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-all.csv")
             self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-all.csv")
         else:
             self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-basic_set_party_set.csv", self.__green_expansion_filename)
             self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-basic_set_party_set.csv", self.__red_expansion_filename)
-        print(f"size of green apples deck: {len(self.__green_apples_deck.get_apples())}")
-        print(f"size of red apples deck: {len(self.__red_apples_deck.get_apples())}")
+
+        # Print and log the deck sizes, if applicable
+        if self.__print_in_terminal:
+            print(f"size of green apples deck: {len(self.__green_apples_deck.get_apples())}")
+            print(f"size of red apples deck: {len(self.__red_apples_deck.get_apples())}")
 
     def __load_and_shuffle_deck(self, deck: Deck, deck_name: str, base_file: str, expansion_file: str = '') -> None:
         # Load the base deck
@@ -287,6 +313,9 @@ class ApplesToApples:
 
                 # Have each player pick up max red apples in hand
                 self.__game_log.get_game_players()[i].draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+
+        # Sort the players alphabetically by name
+        self.__game_log.sort_players_by_name()
 
         # Initialize the models for the AI agents
         for player in self.__game_log.get_game_players():
@@ -533,6 +562,9 @@ class ApplesToApples:
 
                             slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
                             log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
+
+                            # Add the slope and bias to the game log
+                            self.__game_log.get_current_game_state().add_slope_and_bias(player, self.__game_log.get_current_judge(), slope, bias)
                 else:
                     # If not in training mode, train only if the player is not the current judge
                     if player != self.__game_log.get_current_judge():
@@ -551,6 +583,9 @@ class ApplesToApples:
 
                         slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
                         log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
+
+                        # Add the slope and bias to the game log
+                        self.__game_log.get_current_game_state().add_slope_and_bias(player, self.__game_log.get_current_judge(), slope, bias)
 
     def __reset_opponent_models(self) -> None:
         # TODO - check if need to skip for training mode
