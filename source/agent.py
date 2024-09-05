@@ -342,11 +342,17 @@ class AIAgent(Agent):
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 
-    def get_current_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
+    def get_self_slope_and_bias_vectors(self) -> tuple[np.ndarray, np.ndarray]:
         """
-        Get the current slope and bias vectors for the AI self model.
+        Get the slope and bias vectors lists for the AI self model.
         """
         return self.__self_ml_model.get_slope_and_bias_vectors()
+
+    def get_opponent_slope_and_bias_vectors(self, opponent: Agent) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Get the slope and bias vectors lists for the AI opponent model.
+        """
+        return self.__opponent_ml_models[opponent].get_slope_and_bias_vectors()
 
     def reset_opponent_models(self) -> None:
         """

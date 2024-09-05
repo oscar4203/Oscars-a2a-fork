@@ -182,6 +182,7 @@ class GameState:
     game_winner: "Agent | None" = None
     round_states: list[RoundState] = field(default_factory=list)
     discard_pile: list[ChosenApples] = field(default_factory=list)
+    slope_and_bias_history: dict["Agent", dict["Agent", dict[str, np.ndarray]]] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         logging.debug(f"Created GameState object: {self}")
@@ -193,7 +194,8 @@ class GameState:
                 f"game_players={[player.get_name() for player in self.game_players]}, "\
                 f"game_winner={self.game_winner.get_name() if self.game_winner is not None else None}, "\
                 f"round_states={[round_state for round_state in self.round_states]}, "\
-                f"discard_pile={[discard.to_dict() for discard in self.discard_pile]})"
+                f"discard_pile={[discard.to_dict() for discard in self.discard_pile]}), "\
+                f"slope_and_bias_history={[slope_and_bias for slope_and_bias in self.slope_and_bias_history]}"
 
     def to_dict(self) -> dict[str, list[str] | list[dict] | str | int | ApplesInPlay | None]:
         return {
@@ -290,6 +292,14 @@ class GameState:
     def get_discard_pile(self) -> list[ChosenApples]:
         return self.discard_pile
 
+    def add_slope_and_bias(self, player: "Agent", judge: "Agent", slope: np.ndarray, bias: np.ndarray) -> None:
+        if player not in self.slope_and_bias_history:
+            self.slope_and_bias_history[player] = {}
+        self.slope_and_bias_history[player][judge] = {"slope": slope, "bias": bias}
+
+    def get_slope_and_bias_history_by_player(self, player: "Agent") -> dict["Agent", dict[str, np.ndarray]]:
+        return self.slope_and_bias_history[player]
+
 
 @dataclass
 class GameLog:
@@ -297,6 +307,7 @@ class GameLog:
     round_winners_csv_filepath: str = ""
     game_winners_csv_filepath: str = ""
     judge_heatmap_filepath: str = ""
+    vector_history_filepath: str = ""
     total_number_of_players: int = 0
     max_cards_in_hand: int = 0
     points_to_win: int = 0
@@ -313,6 +324,7 @@ class GameLog:
                 f"round_winners_csv_filepath={self.round_winners_csv_filepath}, "\
                 f"game_winners_csv_filepath={self.game_winners_csv_filepath}, "\
                 f"judge_heatmap_filepath={self.judge_heatmap_filepath}, "\
+                f"vector_history_filepath={self.vector_history_filepath}, "\
                 f"total_number_of_players={self.total_number_of_players}, "\
                 f"all_game_players={[player.get_name() for player in self.all_game_players]}, "\
                 f"max_cards_in_hand={self.max_cards_in_hand}, "\
@@ -365,6 +377,7 @@ class GameLog:
         self.round_winners_csv_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/round_winners-{self.naming_scheme}.csv"
         self.game_winners_csv_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/game_winners-{self.naming_scheme}.csv"
         self.judge_heatmap_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/judge_heatmap-{self.naming_scheme}.png"
+        self.vector_history_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/vector_history-{self.naming_scheme}.png"
 
     def add_game(self, game_state: GameState) -> None:
         # Automatically increment the current game number
@@ -400,6 +413,10 @@ class GameLog:
 
     def add_player_to_current_game(self, player: "Agent") -> None:
         self.get_current_game_state().add_player(player)
+
+    def sort_players_by_name(self) -> None:
+        self.all_game_players.sort(key=lambda x: x.get_name())
+        self.get_current_game_state().game_players.sort(key=lambda x: x.get_name())
 
     def copy_players_to_new_game(self) -> None:
         self.get_current_game_state().game_players = self.get_previous_game_state().game_players.copy()
@@ -489,6 +506,17 @@ class GameLog:
             total_rounds = game.get_current_round_number()
             rounds_per_game[current_game] = total_rounds
         return rounds_per_game
+
+    def get_slope_and_bias_history_by_player(self, player: "Agent") -> dict["Agent", dict[str, list[np.ndarray]]]:
+        slope_and_bias_history_by_player: dict["Agent", dict[str, list[np.ndarray]]] = {}
+        for game in self.game_states:
+            tmp_slope_and_bias_history = game.get_slope_and_bias_history_by_player(player)
+            for judge, slope_and_bias in tmp_slope_and_bias_history.items():
+                if judge not in slope_and_bias_history_by_player:
+                    slope_and_bias_history_by_player[judge] = {"slope": [], "bias": []}
+                slope_and_bias_history_by_player[judge]["slope"].append(slope_and_bias["slope"])
+                slope_and_bias_history_by_player[judge]["bias"].append(slope_and_bias["bias"])
+        return slope_and_bias_history_by_player
 
 
 @dataclass

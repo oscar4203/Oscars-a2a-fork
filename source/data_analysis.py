@@ -5,20 +5,21 @@ import os
 import csv
 import argparse
 import numpy as np
+from typing import cast
 
 # Third-party Libraries
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.axes import Axes
+from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Rectangle
 from matplotlib.ticker import MaxNLocator
-from matplotlib.gridspec import GridSpec
-from matplotlib.axes import Axes
 from matplotlib.colors import to_rgba
 import matplotlib.patheffects as path_effects
 
 # Local Modules
-from source.agent import Agent
+from source.agent import Agent, AIAgent
 from source.data_classes import GameLog
 
 
@@ -61,7 +62,11 @@ def count_winners(filename: str, header: str) -> dict[str, int]:
     return winners
 
 
-def print_winners_table(game_log: GameLog, game_winners: dict[str, int], round_winners: dict[str, int]) -> None:
+def print_winners_table(game_log: GameLog) -> None:
+    # Get the winners dictionary
+    round_winners: dict[str, int] = count_winners(game_log.round_winners_csv_filepath, "round_winner")
+    game_winners: dict[str, int] = count_winners(game_log.game_winners_csv_filepath, "game_winner")
+
     # Prepare the data for the table
     table_data = []
     for player in game_log.all_game_players:
@@ -69,6 +74,9 @@ def print_winners_table(game_log: GameLog, game_winners: dict[str, int], round_w
         game_wins = game_winners.get(player_name, 0)
         round_wins = round_winners.get(player_name, 0)
         table_data.append([player_name, game_wins, round_wins])
+
+    # Sort the table data by player name alphabetically
+    table_data = sorted(table_data, key=lambda x: x[0])
 
     # Define the headers
     headers = ["Player", "Game Wins", "Round Wins"]
@@ -109,9 +117,10 @@ def abbreviate_name(name: str) -> str:
 
 
 def prepare_plot_data(game_log: GameLog) -> tuple[list[str], list[str], list[str], list[str]]:
-    # Get the players and wins
+    # Get all the players and sort them alphabetically
     players: list[Agent] = [player for player in game_log.all_game_players]
     players_string: list[str] = [player.get_name() for player in players]
+    players_string.sort()
 
     # Abbreviate player names for x-axis
     abbreviated_names = [abbreviate_name(player) for player in players_string]
@@ -256,8 +265,56 @@ def create_line_graph(ax: Axes, rounds_per_game: list[int], game_labels: list[st
     ax.grid(True)
 
 
-def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: GameLog, change_players_between_games: bool,
-                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool) -> Figure:
+def create_vector_line_graph(ax: Axes, ai_agent: AIAgent, opponents: list[AIAgent], game_log: GameLog) -> None:
+    # Initialize the dictionary
+    vector_dict: dict["Agent", dict[str, list[np.ndarray]]] = game_log.get_slope_and_bias_history_by_player(ai_agent)
+
+    # Create a secondary y-axis for bias
+    ax_bias: Axes = cast(Axes, ax.twinx())
+
+    # Sort the opponents alphabetically by name
+    opponents.sort(key=lambda x: x.get_name())
+
+    # Collect data points for the line graph and plot them
+    for opponent in opponents:
+        # Get the slope and bias vectors
+        slope_target, bias_target = opponent.get_self_slope_and_bias_vectors()
+        slope_predict, bias_predict = vector_dict[opponent]["slope"], vector_dict[opponent]["bias"]
+
+        # Calculate Euclidean distances for slope and bias
+        eucledian_distance_slope: list[float] = [float(np.linalg.norm(sp - st)) for sp, st in zip(slope_predict, slope_target)]
+        eucledian_distance_bias: list[float] = [float(np.linalg.norm(bp - bt)) for bp, bt in zip(bias_predict, bias_target)]
+
+        # Plot the slope data points
+        x_data = range(len(vector_dict[opponent]["slope"]))
+        y_data_slope = eucledian_distance_slope
+        ax.plot(x_data, y_data_slope, label=f"Slope - {opponent.get_name()}", linestyle='-', marker='o')
+
+        # Plot the bias data points
+        y_data_bias = eucledian_distance_bias
+        ax_bias.plot(x_data, y_data_bias, label=f"Bias - {opponent.get_name()}", linestyle='--', marker='x')
+
+    # Set titles and labels
+    ax.set_title(f"AI Agent: {ai_agent.get_name()} - Slope and Bias")
+    ax.set_xlabel("Game Round")
+    ax.set_ylabel("Euclidean Distance (Slope)")
+    ax_bias.set_ylabel("Euclidean Distance (Bias)")
+
+    # Add legends
+    lines, labels = ax.get_legend_handles_labels()
+    lines2, labels2 = ax_bias.get_legend_handles_labels()
+    ax.legend(lines + lines2, labels + labels2, loc='upper left')
+
+    # Add grid for better readability
+    ax.grid(True)
+
+
+def create_round_winners_plot(game_log: GameLog, change_players_between_games: bool,
+                            cycle_starting_judges: bool, reset_models_between_games: bool,
+                            use_extra_vectors: bool) -> Figure:
+     # Get the winners dictionary
+    round_winners_dict: dict[str, int] = count_winners(game_log.round_winners_csv_filepath, "round_winner")
+
     # Check if there are any winners
     if not round_winners_dict:
         print("No winners found")
@@ -323,8 +380,11 @@ def create_round_winners_plot(round_winners_dict: dict[str, int], game_log: Game
     return fig
 
 
-def create_game_winners_plot(game_winners_dict: dict[str, int], game_log: GameLog, change_players_between_games: bool,
+def create_game_winners_plot(game_log: GameLog, change_players_between_games: bool,
                             cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool) -> Figure:
+    # Get the winners dictionary
+    game_winners_dict: dict[str, int] = count_winners(game_log.game_winners_csv_filepath, "game_winner")
+
     # Check if there are any winners
     if not game_winners_dict:
         print("No winners found")
@@ -450,84 +510,125 @@ def create_heatmap(game_log: GameLog) -> Figure:
     return fig
 
 
+def create_vector_history_plot(game_log: GameLog) -> Figure:
+    # Identify all AI agents and sort them alphabetically
+    ai_agents = [player for player in game_log.all_game_players if isinstance(player, AIAgent)]
+    ai_agents.sort(key=lambda agent: agent.get_name())
+    num_ai_agents = len(ai_agents)
+
+    # Determine the number of rows and columns for the GridSpec
+    num_cols = 2
+    num_rows = (num_ai_agents + num_cols - 1) // num_cols
+
+    # Create a figure with GridSpec
+    fig = plt.figure(figsize=(18, 14))
+    gs = GridSpec(nrows=num_rows, ncols=num_cols, figure=fig)
+
+    # Add a custom title with underlining
+    title = "Apples to Apples - Vector History"
+    custom_title = f"{title}\n{'_' * len(title)}\n"
+    fig.suptitle(custom_title, fontsize=24, fontweight="bold")
+
+    # Create subplots for each AI agent
+    for i, ai_agent in enumerate(ai_agents):
+        row = i // num_cols
+        col = i % num_cols
+        ax = fig.add_subplot(gs[row, col])
+
+        # Get the opponents for the AI agent
+        opponents = [player for player in ai_agents if player != ai_agent]
+        create_vector_line_graph(ax, ai_agent, opponents, game_log)
+
+    # Adjust layout
+    plt.tight_layout()
+
+    return fig
+
+
 def save_plot(plot_figure: Figure, output_filepath: str) -> None:
-    # Save the plot to a file
-    plot_figure.savefig(output_filepath)
+    try:
+        # Save the plot to a file
+        plot_figure.savefig(output_filepath)
+    except Exception as e:
+        print(f"An error occurred while saving the plot: {e}")
+        raise e
 
 
 def main(game_log: GameLog, change_players_between_games: bool,
             cycle_starting_judges: bool, reset_models_between_games: bool,
             use_extra_vectors: bool) -> None:
+    # Get a list of all players and sort them alphabetically
+    all_players = game_log.all_game_players
+    all_players.sort(key=lambda player: player.get_name())
+
     # Get the winners dictionary
-    try:
-        round_winners = count_winners(game_log.round_winners_csv_filepath, "round_winner")
-        game_winners = count_winners(game_log.game_winners_csv_filepath, "game_winner")
+    game_winners: dict[str, int] = count_winners(game_log.game_winners_csv_filepath, "game_winner")
 
-        # Print the game info
-        print(f"\n|| DATA ANALYSIS ||")
-        print(f"\nPoints to win: {game_log.points_to_win}")
-        print(f"Total games: {game_log.total_games}", end="\n\n")
+    # Print the game info
+    print(f"\n|| DATA ANALYSIS ||")
+    print(f"\nPoints to win: {game_log.points_to_win}")
+    print(f"Total games: {game_log.total_games}", end="\n\n")
 
-        # Print the winners table
-        print_winners_table(game_log, game_winners, round_winners)
+    # Print the winners table
+    print_winners_table(game_log)
 
-        # Generate round winners output filename
-        round_winners_base_name = os.path.splitext(game_log.round_winners_csv_filepath)[0]
-        round_winners_output_filepath = f"{round_winners_base_name}.png"
+    # Generate round winners output filename
+    round_winners_base_name = os.path.splitext(game_log.round_winners_csv_filepath)[0]
+    round_winners_output_filepath = f"{round_winners_base_name}.png"
 
-        # Create a plot of the round winners
-        round_winners_plot = create_round_winners_plot(
-            round_winners, game_log,
-            change_players_between_games,
-            cycle_starting_judges,
-            reset_models_between_games,
-            use_extra_vectors
-            )
+    # Create a plot of the round winners
+    round_winners_plot = create_round_winners_plot(
+        game_log, change_players_between_games, cycle_starting_judges,
+        reset_models_between_games,use_extra_vectors
+        )
 
-        # Save the plot to a file
-        save_plot(round_winners_plot, round_winners_output_filepath)
+    # Save the plot to a file
+    save_plot(round_winners_plot, round_winners_output_filepath)
 
-        # Display the plot
-        plt.show()
+    # Display the plot
+    plt.show()
 
-        # Generate game winners output filename
-        game_winners_base_name = os.path.splitext(game_log.game_winners_csv_filepath)[0]
-        game_winners_output_filepath = f"{game_winners_base_name}.png"
+    # Generate game winners output filename
+    game_winners_base_name = os.path.splitext(game_log.game_winners_csv_filepath)[0]
+    game_winners_output_filepath = f"{game_winners_base_name}.png"
 
-        # Create a plot of the game winners
-        game_winners_plot = create_game_winners_plot(
-            game_winners, game_log,
-            change_players_between_games,
-            cycle_starting_judges,
-            reset_models_between_games,
-            use_extra_vectors
-            )
+    # Create a plot of the game winners
+    game_winners_plot = create_game_winners_plot(
+        game_log, change_players_between_games, cycle_starting_judges,
+        reset_models_between_games, use_extra_vectors
+        )
 
-        # Save the plot to a file
-        save_plot(game_winners_plot, game_winners_output_filepath)
+    # Save the plot to a file
+    save_plot(game_winners_plot, game_winners_output_filepath)
 
-        # Display the plot
-        plt.show()
+    # Display the plot
+    plt.show()
 
-        # Generate judge heatmap output filename
-        judge_heatmap_base_name = os.path.splitext(game_log.judge_heatmap_filepath)[0]
-        judge_heatmap_output_filepath = f"{judge_heatmap_base_name}.png"
+    # Generate judge heatmap output filename
+    judge_heatmap_base_name = os.path.splitext(game_log.judge_heatmap_filepath)[0]
+    judge_heatmap_output_filepath = f"{judge_heatmap_base_name}.png"
 
-        # Create a plot of the judge heatmap
-        judge_heatmap_plot = create_heatmap(game_log)
+    # Create a plot of the judge heatmap
+    judge_heatmap_plot = create_heatmap(game_log)
 
-        # Save the plot to a file
-        save_plot(judge_heatmap_plot, judge_heatmap_output_filepath)
+    # Save the plot to a file
+    save_plot(judge_heatmap_plot, judge_heatmap_output_filepath)
 
-        # Display the plot
-        plt.show()
+    # Display the plot
+    plt.show()
 
-    except csv.Error:
-        print("Error reading CSV file")
-        raise csv.Error
-    except Exception as e:
-        print(f"An error occurred in main: {e}")
-        raise e
+    # Generate vector history output filename
+    vector_history_base_name = os.path.splitext(game_log.vector_history_filepath)[0]
+    vector_history_output_filepath = f"{vector_history_base_name}.png"
+
+    # Create a plot of the vector history
+    vector_history_plot = create_vector_history_plot(game_log)
+
+    # Save the plot to a file
+    save_plot(vector_history_plot, vector_history_output_filepath)
+
+    # Display the plot
+    plt.show()
 
 
 if __name__ == "__main__":
