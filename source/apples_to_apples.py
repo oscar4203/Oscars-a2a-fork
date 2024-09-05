@@ -120,15 +120,22 @@ class ApplesToApples:
             print(message)
         logging.info(message)
 
-        # Shuffle the decks
+        # Clear the decks
+        self.__green_apples_deck.clear_deck()
+        self.__red_apples_deck.clear_deck()
+
+        # Load and shuffle the decks
         if self.__load_all_packs:
             self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-all.csv")
             self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-all.csv")
         else:
             self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-basic_set_party_set.csv", self.__green_expansion_filename)
             self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-basic_set_party_set.csv", self.__red_expansion_filename)
-        print(f"size of green apples deck: {len(self.__green_apples_deck.get_apples())}")
-        print(f"size of red apples deck: {len(self.__red_apples_deck.get_apples())}")
+
+        # Print and log the deck sizes, if applicable
+        if self.__print_in_terminal:
+            print(f"size of green apples deck: {len(self.__green_apples_deck.get_apples())}")
+            print(f"size of red apples deck: {len(self.__red_apples_deck.get_apples())}")
 
     def __load_and_shuffle_deck(self, deck: Deck, deck_name: str, base_file: str, expansion_file: str = '') -> None:
         # Load the base deck

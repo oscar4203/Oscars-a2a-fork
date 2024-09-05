@@ -24,13 +24,15 @@ class VectorsW2V():
     system = platform.system()
     if system == "Windows":
       extension = "dll"
+      print("System detected as Windows")
     elif system == "Linux":
       extension = "so"
+      print("System detected as Linux")
     else:
       raise OSError(f"Unsupported operating system: {system}")
 
     # Construct the full path to the shared object file
-    fullpath = os.path.join(os.getcwd(), f"w2vloader.{extension}")
+    fullpath: str = os.path.join(os.getcwd(), f"w2vloader.{extension}")
     print("Full path", fullpath)
     self.dll = ctypes.CDLL(fullpath)
     c_path = ctypes.create_string_buffer(path.encode())

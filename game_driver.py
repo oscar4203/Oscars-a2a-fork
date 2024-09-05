@@ -57,7 +57,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="'Apples to Apples' card game",
         usage="python apples_to_apples.py <number_of_players> <points_to_win> <total_games> "\
-              "[green_expansion] [red_expansion] [-A] [-V] [-T] [-D]",
+              "[green_expansion] [red_expansion] [-A] [-V] [-T] [-D]"\
+              "\n\nExample: python apples_to_apples.py 4 5 10 green_apples_extension.csv red_apples_extension.csv -A -V -T -D"\
+              "\nFor help: python apples_to_apples.py -h",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
                     "points to win, and total games to play. Include optional green and red apple expansions. "\
                     "Use the -A flag to load all available card packs. "\

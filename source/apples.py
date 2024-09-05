@@ -12,6 +12,7 @@ import re
 # Local Modules
 from source.embeddings import Embedding
 
+
 class Apple:
     def __init__(self, set: str) -> None:
         self._set: str = set
@@ -64,7 +65,7 @@ class Apple:
                 # Add the vector of the word to the average vector
                 vec = embedding[word]
                 np.add(avg_vector, vec, out=avg_vector, casting='unsafe')
-                
+
             except KeyError:
                 # If the word is not found, try converting it to lowercase
                 try:
@@ -94,7 +95,7 @@ class GreenApple(Apple):
     def __str__(self) -> str:
         synonyms_str = ', '.join(self.__synonyms) if self.__synonyms is not None else None
         return f"{self.__adjective} | Synonyms: {synonyms_str}"
-    
+
     def __repr__(self) -> str:
         synonyms_str = ', '.join(self.__synonyms) if self.__synonyms is not None else None
         return f"{self.__class__.__name__}(set={self._set}, adjective={self.__adjective}, synonyms={synonyms_str})"
@@ -143,7 +144,7 @@ class RedApple(Apple):
 
     def __str__(self) -> str:
         return f"{self.__noun} | Description: {self.__description}"
-    
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(set={self._set}, noun={self.__noun}, description={self.__description})"
 
@@ -223,6 +224,9 @@ class Deck:
 
     def shuffle(self) -> None:
         random.shuffle(self.__apples)
+
+    def clear_deck(self) -> None:
+        self.__apples.clear()
 
 
 if __name__ == "__main__":
