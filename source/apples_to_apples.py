@@ -2,6 +2,7 @@
 
 # Standard Libraries
 import logging
+import time
 
 # Third-party Libraries
 
@@ -45,6 +46,11 @@ class ApplesToApples:
         if self.__print_in_terminal:
             print(message)
         logging.info(message)
+
+        # Start the game timer
+        logging.info("Starting the game timer.")
+        start = time.perf_counter()
+
 
         # Initialize the GameState and add the game
         game_state = GameState()
@@ -105,6 +111,19 @@ class ApplesToApples:
 
         # Start the game loop
         self.__game_loop()
+
+        # Stop the game timer
+        end = time.perf_counter()
+
+        # Format the total elapsed time
+        total_time = end - start
+        minutes = int(total_time // 60)
+        seconds = int(total_time % 60)
+
+        # Print and log the total time elapsed
+        print(f"Total game time: {minutes} minute(s), {seconds} second(s)")
+        logging.info(f"Total game time: {minutes} minute(s), {seconds} second(s)")
+
 
     def __reset_player_points_and_judge_status(self) -> None:
         # TODO - check if need to skip for training mode
@@ -294,6 +313,9 @@ class ApplesToApples:
 
                 # Have each player pick up max red apples in hand
                 self.__game_log.get_game_players()[i].draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+
+        # Sort the players alphabetically by name
+        self.__game_log.sort_players_by_name()
 
         # Initialize the models for the AI agents
         for player in self.__game_log.get_game_players():
@@ -540,6 +562,9 @@ class ApplesToApples:
 
                             slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
                             log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
+
+                            # Add the slope and bias to the game log
+                            self.__game_log.get_current_game_state().add_slope_and_bias(player, self.__game_log.get_current_judge(), slope, bias)
                 else:
                     # If not in training mode, train only if the player is not the current judge
                     if player != self.__game_log.get_current_judge():
@@ -558,6 +583,9 @@ class ApplesToApples:
 
                         slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
                         log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
+
+                        # Add the slope and bias to the game log
+                        self.__game_log.get_current_game_state().add_slope_and_bias(player, self.__game_log.get_current_judge(), slope, bias)
 
     def __reset_opponent_models(self) -> None:
         # TODO - check if need to skip for training mode

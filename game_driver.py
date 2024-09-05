@@ -158,11 +158,11 @@ def main() -> None:
     logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
     logging.info(f"Print in terminal: {print_in_terminal == 'y'}")
 
-    # Start the first game
-    a2a_game.new_game()
-
     # Start the game timer
     start = time.perf_counter()
+
+    # Start the first game
+    a2a_game.new_game()
 
     # Continue playing games until the total number of games is reached
     while game_driver.game_log.get_current_game_number() < game_driver.game_log.total_games:
@@ -172,9 +172,15 @@ def main() -> None:
     # End the game timer
     end = time.perf_counter()
 
+    # Format the total elapsed time
+    total_time = end - start
+    hours = int(total_time // 3600)
+    minutes = int(total_time // 60)
+    seconds = int(total_time % 60)
+
     # Print and log the total time elapsed
-    print(f"Total time elapsed: {end - start} seconds")
-    logging.info(f"Total time elapsed: {end - start} seconds")
+    print(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
+    logging.info(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
 
     # Run the winner counter and plot the results, if not in training mode
     if not args.training_mode:
