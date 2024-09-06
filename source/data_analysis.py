@@ -117,10 +117,9 @@ def abbreviate_name(name: str) -> str:
 
 
 def prepare_plot_data(game_log: GameLog) -> tuple[list[str], list[str], list[str], list[str]]:
-    # Get all the players and sort them alphabetically
+    # Get all the players
     players: list[Agent] = [player for player in game_log.all_game_players]
     players_string: list[str] = [player.get_name() for player in players]
-    players_string.sort()
 
     # Abbreviate player names for x-axis
     abbreviated_names = [abbreviate_name(player) for player in players_string]
@@ -265,20 +264,22 @@ def create_line_graph(ax: Axes, rounds_per_game: list[int], game_labels: list[st
     ax.grid(True)
 
 
-def create_vector_line_graph(ax: Axes, ai_agent: AIAgent, opponents: list[AIAgent], game_log: GameLog) -> None:
+def create_vector_line_graph(ax: Axes, ai_agent: AIAgent, opponents: list[Agent], game_log: GameLog) -> None:
     # Initialize the dictionary
     vector_dict: dict["Agent", dict[str, list[np.ndarray]]] = game_log.get_slope_and_bias_history_by_player(ai_agent)
 
     # Create a secondary y-axis for bias
     ax_bias: Axes = cast(Axes, ax.twinx())
 
-    # Sort the opponents alphabetically by name
-    opponents.sort(key=lambda x: x.get_name())
-
     # Collect data points for the line graph and plot them
     for opponent in opponents:
         # Get the slope and bias vectors
-        slope_target, bias_target = opponent.get_self_slope_and_bias_vectors()
+        if isinstance(opponent, AIAgent):
+            slope_target, bias_target = opponent.get_self_slope_and_bias_vectors()
+        else:
+            vector_shape = vector_dict[opponent]["slope"][0].shape
+            slope_target = [np.zeros(vector_shape) for _ in range(len(vector_dict[opponent]["slope"]))]
+            bias_target = [np.zeros(vector_shape) for _ in range(len(vector_dict[opponent]["bias"]))]
         slope_predict, bias_predict = vector_dict[opponent]["slope"], vector_dict[opponent]["bias"]
 
         # Calculate Euclidean distances for slope and bias
@@ -511,9 +512,8 @@ def create_heatmap(game_log: GameLog) -> Figure:
 
 
 def create_vector_history_plot(game_log: GameLog) -> Figure:
-    # Identify all AI agents and sort them alphabetically
+    # Identify all AI agents
     ai_agents = [player for player in game_log.all_game_players if isinstance(player, AIAgent)]
-    ai_agents.sort(key=lambda agent: agent.get_name())
     num_ai_agents = len(ai_agents)
 
     # Determine the number of rows and columns for the GridSpec
@@ -536,7 +536,7 @@ def create_vector_history_plot(game_log: GameLog) -> Figure:
         ax = fig.add_subplot(gs[row, col])
 
         # Get the opponents for the AI agent
-        opponents = [player for player in ai_agents if player != ai_agent]
+        opponents = [player for player in game_log.all_game_players if player != ai_agent]
         create_vector_line_graph(ax, ai_agent, opponents, game_log)
 
     # Adjust layout
@@ -557,13 +557,6 @@ def save_plot(plot_figure: Figure, output_filepath: str) -> None:
 def main(game_log: GameLog, change_players_between_games: bool,
             cycle_starting_judges: bool, reset_models_between_games: bool,
             use_extra_vectors: bool) -> None:
-    # Get a list of all players and sort them alphabetically
-    all_players = game_log.all_game_players
-    all_players.sort(key=lambda player: player.get_name())
-
-    # Get the winners dictionary
-    game_winners: dict[str, int] = count_winners(game_log.game_winners_csv_filepath, "game_winner")
-
     # Print the game info
     print(f"\n|| DATA ANALYSIS ||")
     print(f"\nPoints to win: {game_log.points_to_win}")
