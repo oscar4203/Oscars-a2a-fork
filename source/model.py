@@ -646,7 +646,7 @@ class LRModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self._slope[-1], x_vec), self._bias[-1])
+            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
@@ -689,7 +689,7 @@ class LRModel(Model):
             logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
-            y_vec = np.add(np.multiply(self._slope[-1], x_vec), self._bias[-1])
+            y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
             logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score

@@ -186,7 +186,15 @@ void load_binary(const char *filename) {
 
 void unload_binary() {
   for (long long i = 0; i < hash_table.lookup_size; i++) {
-    if (hash_table.lookup[i]) free(hash_table.lookup[i]);
+    if (hash_table.lookup[i]) {
+      struct entry_t *next = hash_table.lookup[i]->next;
+      while (next) {
+        next = next->next;
+        struct entry_t *old = next;
+        free(old);
+      }
+      free(hash_table.lookup[i]);
+    }
   }
 
   free(hash_table.lookup);
