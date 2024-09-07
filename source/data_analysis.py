@@ -2,13 +2,14 @@
 
 # Standard Libraries
 import os
-import csv
 import argparse
 import numpy as np
 from typing import cast
+import logging
 
 # Third-party Libraries
 from tabulate import tabulate
+from scipy.stats import binomtest, norm
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -23,66 +24,224 @@ from source.agent import Agent, AIAgent
 from source.data_classes import GameLog
 
 
-def count_winners(filename: str, header: str) -> dict[str, int]:
-    # Initialize the winners dictionary
-    winners = {}
+def calculate_win_counts(game_log: GameLog) -> tuple[dict, dict]:
+    """
+    Calculate the win counts for each AI agent for both rounds and games.
 
-    # Open the file
-    try:
-        with open(filename, "r") as file:
-            # Create a CSV reader object
-            reader = csv.DictReader(file)
+    Args:
+        game_log (GameLog): The game log containing the results.
 
-            # Check if the file is empty
-            if not reader.fieldnames:
-                print("CSV file is empty or has no header")
-                return winners
+    Returns:
+        tuple: A tuple containing two dictionaries:
+            - The first dictionary has agent names as keys and round win counts as values.
+            - The second dictionary has agent names as keys and game win counts as values.
+    """
+    round_win_counts = {}
+    game_win_counts = {}
 
-            # Iterate through the rows
-            for row in reader:
-                # Get the winning player
-                winner = row[header]
+    for game_state in game_log.game_states:
+        game_winner = game_state.game_winner
 
-                # Check if the 'Winner' column exists
-                if winner is None:
-                    print("No 'Winner' column found in CSV")
-                    return winners
+        if game_winner:
+            game_win_counts[game_winner.get_name()] = game_win_counts.get(game_winner.get_name(), 0) + 1
 
-                # If the player is not in the dictionary, add them
-                if winner not in winners:
-                    winners[winner] = 0
+        for round_state in game_state.round_states:
+            round_winner = round_state.round_winner
+            if round_winner:
+                round_win_counts[round_winner.get_name()] = round_win_counts.get(round_winner.get_name(), 0) + 1
 
-                # Increment the player's win count
-                winners[winner] += 1
-    except FileNotFoundError:
-        print(f"File not found: {filename}")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-
-    return winners
+    return round_win_counts, game_win_counts
 
 
-def print_winners_table(game_log: GameLog) -> None:
-    # Get the winners dictionary
-    round_winners: dict[str, int] = count_winners(game_log.round_winners_csv_filepath, "round_winner")
-    game_winners: dict[str, int] = count_winners(game_log.game_winners_csv_filepath, "game_winner")
+def calculate_win_rates(game_log: GameLog) -> tuple[dict, dict]:
+    """
+    Calculate the win rates for each AI agent for both rounds and games.
 
-    # Prepare the data for the table
-    table_data = []
+    Args:
+        game_log (GameLog): The game log containing the results.
+
+    Returns:
+        tuple: A tuple containing two dictionaries:
+            - The first dictionary has agent names as keys and round win rates as values.
+            - The second dictionary has agent names as keys and game win rates as values.
+    """
+    round_win_counts, game_win_counts = calculate_win_counts(game_log)
+    total_rounds = sum(len(game_state.round_states) for game_state in game_log.game_states)
+    total_games = game_log.total_games
+
+    round_win_rates = {agent: count / total_rounds for agent, count in round_win_counts.items()}
+    game_win_rates = {agent: count / total_games for agent, count in game_win_counts.items()}
+
+    return round_win_rates, game_win_rates
+
+
+def calculate_round_wins_per_game(game_log: GameLog) -> dict[Agent, list[int]]:
+    """
+    Calculate the number of round wins per game for each AI agent.
+
+    Args:
+        game_log (GameLog): The game log containing the results.
+
+    Returns:
+        dict: A dictionary with agent objects as keys and lists of round wins per game as values.
+    """
+    # Initialize the dictionary with each player having a list of zeros for each game
+    round_wins_per_game: dict[Agent, list[int]] = {player: [0] * len(game_log.game_states) for player in game_log.all_game_players}
+
+    # Iterate through each game
+    for game_index, game in enumerate(game_log.game_states):
+        logging.debug(f"Collecting round wins from Game {game.current_game}")
+
+        # Iterate through each round in the game
+        for round_state in game.round_states:
+            round_winner = round_state.round_winner
+            logging.debug(f"Round {round_state.current_round} winner: {round_winner.get_name() if round_winner else None}")
+
+            # If the round has no winner, skip it
+            if round_winner is None:
+                logging.debug(f"Skipping round {round_state.current_round} because it has no winner.")
+                continue
+
+            # Increment the round win count for the winning player
+            round_wins_per_game[round_winner][game_index] += 1
+            for player, wins in round_wins_per_game.items():
+                logging.debug(f"Round wins for {player.get_name()}: {wins}")
+
+    return round_wins_per_game
+
+
+def calculate_standard_deviation(round_wins_per_game: dict[Agent, list[int]]) -> dict:
+    """
+    Calculate the standard deviation for the win rates.
+
+    Args:
+        win_rates (dict): A dictionary with agent names as keys and win rates as values.
+        total_games (int): The total number of games played.
+
+    Returns:
+        dict: A dictionary with agent names as keys and standard deviations as values.
+    """
+    std_devs = {}
+    for agent, win_counts in round_wins_per_game.items():
+        std_dev = np.std(win_counts)
+        std_devs[agent.get_name()] = std_dev
+    return std_devs
+
+
+def calculate_confidence_intervals(win_rates: dict[Agent, float], total_games: int, confidence_level: float = 0.95) -> dict:
+    """
+    Calculate confidence intervals for the win rates.
+
+    Args:
+        win_rates (dict): A dictionary with agent names as keys and win rates as values.
+        total_games (int): The total number of games played.
+        confidence_level (float): The confidence level for the intervals.
+
+    Returns:
+        dict: A dictionary with agent names as keys and confidence intervals as values.
+    """
+    confidence_intervals = {}
+    z = norm.ppf(1 - (1 - confidence_level) / 2)
+    for agent, win_rate in win_rates.items():
+        win_count = win_rate * total_games
+        interval = z * np.sqrt((win_rate * (1 - win_rate)) / total_games)
+        confidence_intervals[agent] = (win_rate - interval, win_rate + interval)
+    return confidence_intervals
+
+
+def perform_statistical_tests(win_rates: dict[Agent, float], total_games: int) -> dict:
+    """
+    Perform statistical tests to determine if the win rates are due to chance.
+
+    Args:
+        win_rates (dict): A dictionary with agent names as keys and win rates as values.
+        total_games (int): The total number of games played.
+
+    Returns:
+        dict: A dictionary with agent names as keys and p-values as values.
+    """
+    p_values = {}
+    for agent, win_rate in win_rates.items():
+        win_count = int(win_rate * total_games)  # Convert win_count to an integer
+        p_value = binomtest(win_count, total_games, 1/len(win_rates), alternative="greater").pvalue
+        p_values[agent] = p_value
+    return p_values
+
+
+def print_winners_tables(game_log: GameLog) -> None:
+    # Calculate win rates
+    round_win_rates, game_win_rates = calculate_win_rates(game_log)
+
+    # Calculate win counts
+    round_win_counts, game_win_counts = calculate_win_counts(game_log)
+
+    # Calculate round wins per game for each player
+    round_wins_per_game_dict = calculate_round_wins_per_game(game_log)
+
+    # Calculate the average number of round wins per game for each player
+    round_wins_per_game_avg = {
+        player.get_name(): sum(wins) / len(wins) if len(wins) > 0 else 0
+        for player, wins in round_wins_per_game_dict.items()
+    }
+
+    # Calculate standard deviations for both round and game win rates
+    round_std_devs = calculate_standard_deviation(round_wins_per_game_dict)
+
+    # Calculate confidence intervals for both round and game win rates
+    round_conf_intervals = calculate_confidence_intervals(round_win_rates, sum(len(game_state.round_states) for game_state in game_log.game_states))
+    game_conf_intervals = calculate_confidence_intervals(game_win_rates, game_log.total_games)
+
+    # Perform statistical tests for both round and game win rates
+    round_p_values = perform_statistical_tests(round_win_rates, sum(len(game_state.round_states) for game_state in game_log.game_states))
+    game_p_values = perform_statistical_tests(game_win_rates, game_log.total_games)
+
+    # Prepare the data for the round winners table
+    round_table_data = []
     for player in game_log.all_game_players:
         player_name = player.get_name()
-        game_wins = game_winners.get(player_name, 0)
-        round_wins = round_winners.get(player_name, 0)
-        table_data.append([player_name, game_wins, round_wins])
+        round_win_count = round_win_counts.get(player_name, 0)
+        round_win_rate = round_win_rates.get(player_name, 0)
+        round_conf_interval = round_conf_intervals.get(player_name, (0, 0))
+        round_p_value = round_p_values.get(player_name, 1)
+        mean_wins_per_game = round_wins_per_game_avg.get(player_name, 0)
+        round_std_dev = round_std_devs.get(player_name, 0)
+        round_table_data.append([
+            player_name,
+            round_win_count, f"{round_win_rate:.2%}", f"{round_conf_interval[0]:.2%} to {round_conf_interval[1]:.2%}", f"{round_p_value:.4f}", f"{mean_wins_per_game:.2f}", f"{round_std_dev:.2f}"
+        ])
 
-    # Sort the table data by player name alphabetically
-    table_data = sorted(table_data, key=lambda x: x[0])
+    # Sort the round table data by player name alphabetically
+    round_table_data = sorted(round_table_data, key=lambda x: x[0])
 
-    # Define the headers
-    headers = ["Player", "Game Wins", "Round Wins"]
+    # Define the headers for the round winners table
+    round_headers = ["Player", "Win Count", "Win Rate", "Confidence Interval", "P-Value", "Mean Wins per Game", "Std Dev"]
 
-    # Print the table
-    print(tabulate(table_data, headers=headers, tablefmt="grid"))
+    # Print the round winners table
+    print("ROUND WINNERS TABLE")
+    print(tabulate(round_table_data, headers=round_headers, tablefmt="grid"))
+
+    # Prepare the data for the game winners table
+    game_table_data = []
+    for player in game_log.all_game_players:
+        player_name = player.get_name()
+        game_win_count = game_win_counts.get(player_name, 0)
+        game_win_rate = game_win_rates.get(player_name, 0)
+        game_conf_interval = game_conf_intervals.get(player_name, (0, 0))
+        game_p_value = game_p_values.get(player_name, 1)
+        game_table_data.append([
+            player_name,
+            game_win_count, f"{game_win_rate:.2%}", f"{game_conf_interval[0]:.2%} to {game_conf_interval[1]:.2%}", f"{game_p_value:.4f}"
+        ])
+
+    # Sort the game table data by player name alphabetically
+    game_table_data = sorted(game_table_data, key=lambda x: x[0])
+
+    # Define the headers for the game winners table
+    game_headers = ["Player", "Win Count", "Win Rate", "Confidence Interval", "P-Value"]
+
+    # Print the game winners table
+    print("\nGAME WINNERS TABLE")
+    print(tabulate(game_table_data, headers=game_headers, tablefmt="grid"))
 
 
 def abbreviate_name(name: str) -> str:
@@ -116,24 +275,50 @@ def abbreviate_name(name: str) -> str:
     return "".join(result)
 
 
-def prepare_plot_data(game_log: GameLog) -> tuple[list[str], list[str], list[str], list[str]]:
+def prepare_players_and_colors(game_log: GameLog) -> tuple[list[Agent], list[str], list[str], list[str]]:
+    """
+    Prepares the plot data including players list, player strings, abbreviated names, and colors.
+
+    Args:
+        game_log (GameLog): GameLog object containing all the game data.
+
+    Returns:
+        Tuple[List[Agent], List[str], List[str], Dict[str, str]]: Tuple containing players list, player strings,
+    """
     # Get all the players
-    players: list[Agent] = [player for player in game_log.all_game_players]
+    players: list[Agent] = game_log.all_game_players
     players_string: list[str] = [player.get_name() for player in players]
 
     # Abbreviate player names for x-axis
     abbreviated_names = [abbreviate_name(player) for player in players_string]
 
     # Define a list of standard, contrasting colors
-    standard_colors = ["red", "cyan", "orange", "purple", "lime", "brown", "pink", "gray"]
+    standard_colors = ["red", "cyan", "orange", "purple", "lime", "brown", "pink", "yellow", "gray", "black"]
 
     # Repeat the colors if there are more players than colors
-    colors = (standard_colors * (len(players_string) // len(standard_colors) + 1))[:len(players_string)]
+    # colors = (standard_colors * (len(players_string) // len(standard_colors) + 1))[:len(players_string)]
+    colors = [standard_colors[i % len(standard_colors)] for i in range(len(players))]
 
-    return players_string, abbreviated_names, standard_colors, colors
+    return players, players_string, abbreviated_names, colors
 
 
-def create_legend(ax: Axes, colors: list[str], labels: list[str]) -> None:
+def prepare_plot_data(game_log: GameLog, win_counts: dict) -> tuple:
+    """
+    Prepare data for plotting.
+
+    Args:
+        game_log (GameLog): The game log containing the results.
+        win_counts (dict): A dictionary with agent names as keys and win counts as values.
+
+    Returns:
+        tuple: Prepared data for plotting.
+    """
+    players, players_string, abbreviated_names, colors = prepare_players_and_colors(game_log)
+    wins = [win_counts.get(player, 0) for player in players_string]
+    return abbreviated_names, wins, colors
+
+
+def create_legend(ax: Axes, full_names: list[str], colors: list[str]) -> None:
     # Remove the axis borders
     ax.axis("off")
 
@@ -142,7 +327,7 @@ def create_legend(ax: Axes, colors: list[str], labels: list[str]) -> None:
 
     # Create a legend for the plot
     handles = [Rectangle((0,0),1,1, color=color) for color in colors]
-    ax.legend(handles, labels, title="Players", loc="upper center", fontsize=12, title_fontsize=14)
+    ax.legend(handles, full_names, title="Players", loc="upper center", fontsize=12, title_fontsize=14)
 
 
 def create_game_settings_box(ax: Axes, points_to_win: int, total_games: int,
@@ -167,9 +352,9 @@ def create_game_settings_box(ax: Axes, points_to_win: int, total_games: int,
             horizontalalignment="center", verticalalignment="top")
 
 
-def create_bar_plot(ax: Axes, names: list[str], values: list[int], colors: list[str], title: str, xlabel: str, ylabel: str) -> None:
+def create_bar_plot(ax: Axes, abbrev_names: list[str], wins: list[int], colors: list[str], title: str, xlabel: str, ylabel: str) -> None:
     # Create bar plot
-    ax.bar(names, values, color=colors)
+    ax.bar(abbrev_names, wins, color=colors)
 
     # Set titles and labels
     ax.set_title(title, fontsize=18, fontweight="bold")
@@ -181,19 +366,19 @@ def create_bar_plot(ax: Axes, names: list[str], values: list[int], colors: list[
     ax.grid(True)
 
 
-def create_pie_chart(ax: Axes, data: list[int], labels: list[str], colors: list[str], title: str, total_rounds_games: int) -> None:
+def create_pie_chart(ax: Axes, abbrev_names: list[str], wins: list[int], colors: list[str], title: str, total_rounds_games: int) -> None:
     # Filter out data and labels that correspond to 0%
-    filtered_data = []
-    filtered_labels = []
+    filtered_wins = []
+    filtered_names = []
     filtered_colors = []
-    for i, value in enumerate(data):
+    for i, value in enumerate(wins):
         if value > 0:
-            filtered_data.append(value)
-            filtered_labels.append(labels[i])
+            filtered_wins.append(value)
+            filtered_names.append(abbrev_names[i])
             filtered_colors.append(colors[i])
 
     # Create pie chart
-    pie_result = ax.pie(filtered_data, labels=filtered_labels, colors=filtered_colors,
+    pie_result = ax.pie(filtered_wins, labels=filtered_names, colors=filtered_colors,
                         autopct="%1.1f%%", startangle=140)
 
     # Set font weight and size for pie chart
@@ -207,22 +392,22 @@ def create_pie_chart(ax: Axes, data: list[int], labels: list[str], colors: list[
     ax.set_title(title, fontsize=18, fontweight="bold")
 
     # Calculate the percentage of games won by AI agents
-    ai_wins = sum(data[i] for i, label in enumerate(labels) if "AI" in label)
+    ai_wins = sum(wins[i] for i, label in enumerate(abbrev_names) if "AI" in label)
     percent_ai = ai_wins / total_rounds_games * 100 if total_rounds_games > 0 else 0
 
     # Add the percentage of games won by AI agents as a title below the pie chart
     ax.text(0.5, -0.1, f"AI Wins: {percent_ai:.2f}%", ha="center", va="center", fontsize=14, transform=ax.transAxes)
 
 
-def create_box_plot(ax: Axes, data: list[list[int]], labels: list[str], colors: list[str], title: str, xlabel: str, ylabel: str) -> None:
+def create_box_plot(ax: Axes, abbrev_names: list[str], wins_per_game: list[list[int]], colors: list[str], title: str, xlabel: str, ylabel: str) -> None:
     # Convert colors to RGBA format if necessary
     rgba_colors = [to_rgba(color) for color in colors]
 
     # Extend colors to match the length of data
-    extended_colors = [rgba_colors[i % len(rgba_colors)] for i in range(len(data))]
+    extended_colors = [rgba_colors[i % len(rgba_colors)] for i in range(len(wins_per_game))]
 
     # Create box plot
-    box = ax.boxplot(data, patch_artist=True)
+    box = ax.boxplot(wins_per_game, patch_artist=True)
 
     # Apply RGBA colors to the box plot
     for patch, color in zip(box["boxes"], extended_colors):
@@ -239,8 +424,8 @@ def create_box_plot(ax: Axes, data: list[list[int]], labels: list[str], colors: 
     ax.set_ylabel(ylabel, fontsize=16, fontweight="bold")
 
     # Ensure the number of ticks matches the number of labels
-    ax.set_xticks(range(1, len(labels) + 1))
-    ax.set_xticklabels(labels, rotation=45, ha="right")
+    ax.set_xticks(range(1, len(abbrev_names) + 1))
+    ax.set_xticklabels(abbrev_names, rotation=45, ha="right")
 
     # Add grid for better readability
     ax.grid(True)
@@ -313,8 +498,21 @@ def create_vector_line_graph(ax: Axes, ai_agent: AIAgent, opponents: list[Agent]
 def create_round_winners_plot(game_log: GameLog, change_players_between_games: bool,
                             cycle_starting_judges: bool, reset_models_between_games: bool,
                             use_extra_vectors: bool) -> Figure:
-     # Get the winners dictionary
-    round_winners_dict: dict[str, int] = count_winners(game_log.round_winners_csv_filepath, "round_winner")
+    """
+    Create a plot for round winners.
+
+    Args:
+        game_log (GameLog): The game log containing the results.
+        change_players_between_games (bool): Whether players change between games.
+        cycle_starting_judges (bool): Whether starting judges cycle.
+        reset_models_between_games (bool): Whether models reset between games.
+        use_extra_vectors (bool): Whether extra vectors are used.
+
+    Returns:
+        Figure: The created plot figure.
+    """
+    # Get the winners dictionary
+    round_winners_dict = calculate_win_counts(game_log)[0]
 
     # Check if there are any winners
     if not round_winners_dict:
@@ -322,7 +520,7 @@ def create_round_winners_plot(game_log: GameLog, change_players_between_games: b
         raise ValueError("No winners found")
 
     # Prepare common plot data
-    players_string, abbreviated_names, standard_colors, colors = prepare_plot_data(game_log)
+    players, players_string, abbreviated_names, colors = prepare_players_and_colors(game_log)
 
     # Create a list of wins for all players, defaulting to 0 if a player has no wins
     round_winners = [round_winners_dict.get(player, 0) for player in players_string]
@@ -333,17 +531,17 @@ def create_round_winners_plot(game_log: GameLog, change_players_between_games: b
 
     # Prepare data and labels for Pie chart
     total_rounds = sum(round_winners)
-    pie_plot_data = (round_winners, abbreviated_names, colors)
+    pie_plot_data = (abbreviated_names, round_winners, colors)
     pie_plot_labels = ("Round Win Rates", total_rounds)
 
     # Prepare the data and labels for Box plot TODO - try to make 0 visible on the box plot, try to make it look better
-    round_wins_per_game_dict: dict["Agent", list[int]] = game_log.get_round_wins_per_game()
+    round_wins_per_game_dict: dict[Agent, list[int]] = calculate_round_wins_per_game(game_log)
     round_wins_per_game: list[list[int]] = [
         round_wins_per_game_dict.get(player, [0] * len(game_log.game_states))
         for player in game_log.all_game_players
     ]
 
-    box_plot_data = (round_wins_per_game, abbreviated_names, colors)
+    box_plot_data = (abbreviated_names, round_wins_per_game, colors)
     box_plot_labels = ("Distribution of Wins Across Games", "Players", "Round Wins")
 
     # Create a figure with GridSpec
@@ -357,7 +555,7 @@ def create_round_winners_plot(game_log: GameLog, change_players_between_games: b
 
     # Legend
     legend_ax = fig.add_subplot(gs[0, 2])
-    create_legend(legend_ax, colors, players_string)
+    create_legend(legend_ax, players_string, colors)
 
     # Game settings box
     game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
@@ -383,8 +581,21 @@ def create_round_winners_plot(game_log: GameLog, change_players_between_games: b
 
 def create_game_winners_plot(game_log: GameLog, change_players_between_games: bool,
                             cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool) -> Figure:
+    """
+    Create a plot for game winners.
+
+    Args:
+        game_log (GameLog): The game log containing the results.
+        change_players_between_games (bool): Whether players change between games.
+        cycle_starting_judges (bool): Whether starting judges cycle.
+        reset_models_between_games (bool): Whether models reset between games.
+        use_extra_vectors (bool): Whether extra vectors are used.
+
+    Returns:
+        Figure: The created plot figure.
+    """
     # Get the winners dictionary
-    game_winners_dict: dict[str, int] = count_winners(game_log.game_winners_csv_filepath, "game_winner")
+    game_winners_dict = calculate_win_counts(game_log)[1]
 
     # Check if there are any winners
     if not game_winners_dict:
@@ -392,7 +603,7 @@ def create_game_winners_plot(game_log: GameLog, change_players_between_games: bo
         raise ValueError("No winners found")
 
     # Prepare common plot data
-    players_string, abbreviated_names, standard_colors, colors = prepare_plot_data(game_log)
+    players, players_string, abbreviated_names, colors = prepare_players_and_colors(game_log)
 
     # Create a list of wins for all players, defaulting to 0 if a player has no wins
     game_winners = [game_winners_dict.get(player, 0) for player in players_string]
@@ -402,7 +613,7 @@ def create_game_winners_plot(game_log: GameLog, change_players_between_games: bo
     bar_plot_labels = ("Total Wins per Player", "Players", "Game Wins")
 
     # Prepare data and labels for Pie chart
-    pie_plot_data = (game_winners, abbreviated_names, colors)
+    pie_plot_data = (abbreviated_names, game_winners, colors)
     pie_plot_labels = ("Game Win Rates", game_log.total_games)
 
     # Prepare the data and labels for Box plot TODO - fix box plot data to be a bar chart with total rounds per game
@@ -427,7 +638,7 @@ def create_game_winners_plot(game_log: GameLog, change_players_between_games: bo
 
     # Legend
     legend_ax = fig.add_subplot(gs[0, 2])
-    create_legend(legend_ax, colors, players_string)
+    create_legend(legend_ax, players_string, colors)
 
     # Game settings box
     game_settings_ax: Axes = fig.add_subplot(gs[1, 2])
@@ -458,7 +669,7 @@ def create_game_winners_plot(game_log: GameLog, change_players_between_games: bo
 
 def create_heatmap(game_log: GameLog) -> Figure:
     # Prepare common plot data
-    players_string, abbreviated_names, _, _ = prepare_plot_data(game_log)
+    players, players_string, abbreviated_names, colors = prepare_players_and_colors(game_log)
 
     # Initialize the heatmap data matrix
     num_players = len(players_string)
@@ -563,7 +774,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
     print(f"Total games: {game_log.total_games}", end="\n\n")
 
     # Print the winners table
-    print_winners_table(game_log)
+    print_winners_tables(game_log)
 
     # Generate round winners output filename
     round_winners_base_name = os.path.splitext(game_log.round_winners_csv_filepath)[0]

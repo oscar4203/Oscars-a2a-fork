@@ -485,20 +485,6 @@ class GameLog:
     def get_round_winner(self) -> "Agent | None":
         return self.get_current_game_state().get_current_round_winner()
 
-    def get_round_wins_per_game(self) -> dict["Agent", list[int]]:
-        round_wins_per_game: dict[Agent, list[int]] = {player: [0] * len(self.game_states) for player in self.all_game_players}
-        for game_index, game in enumerate(self.game_states):
-            logging.debug(f"Collecting round wins from Game {game.current_game}")
-            for round_index, round_state in enumerate(game.round_states):
-                round_winner = round_state.round_winner
-                # If the game has no winner, skip it
-                if round_winner is None:
-                    logging.debug(f"Skipping round {round_state.current_round} because it has no winner.")
-                    continue
-                round_wins_per_game[round_winner][game_index] += 1
-                logging.debug(f"Round wins per game: {round_wins_per_game}")
-        return round_wins_per_game
-
     def get_rounds_per_game(self) -> dict[int, int]:
         rounds_per_game = {}
         for game in self.game_states:
