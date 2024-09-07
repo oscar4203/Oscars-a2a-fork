@@ -29,6 +29,7 @@ class GameDriver:
         self.game_log.intialize_input_args(number_of_players, max_cards_in_hand, points_to_win, total_games)
 
     def load_keyed_vectors(self, use_custom_loader: bool) -> None:
+        print("Loading Vectors...")
         start = time.perf_counter()
         self.embedding = Embedding("./apples/GoogleNews-vectors-negative300.bin", custom=use_custom_loader)
         end = time.perf_counter()

@@ -304,8 +304,7 @@ class AIAgent(Agent):
         self.__training_mode: bool = training_mode
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
-            f"green_apple={self._green_apple}, red_apples={self._red_apples})"
+        return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}"
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
