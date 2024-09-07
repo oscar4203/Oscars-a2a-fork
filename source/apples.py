@@ -77,7 +77,7 @@ class Apple:
         # Divide the average vector by the number of words
         if len(words) > 0:
             avg_vector /= len(words)
-        logging.debug(f"avg_vector: {avg_vector}")
+        # logging.debug(f"avg_vector: {avg_vector}")
 
         return avg_vector
 

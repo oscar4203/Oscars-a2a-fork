@@ -163,7 +163,7 @@ class Model():
                 ))
             logging.info(f"Loaded vectors from {filepath}")
             logging.debug(f"Loaded 'data'. len(data): {len(data)}")
-            logging.debug(f"'data': {data}")
+            # logging.debug(f"'data': {data}")
         except FileNotFoundError as e:
             logging.error(f"File not found: {e}")
             data = [] # Return an empty list if an error occurs
@@ -359,11 +359,11 @@ class Model():
         Calculate the x vector, which is the product of the green and red apple vectors.
         This method normalizes the x vector before returning it.
         """
-        logging.debug(f"green_apple_vector: {green_apple_vector}")
-        logging.debug(f"red_apple_vector: {red_apple_vector}")
+        # logging.debug(f"green_apple_vector: {green_apple_vector}")
+        # logging.debug(f"red_apple_vector: {red_apple_vector}")
         # Calculate the x vector (product of green and red vectors)
         x_vector: np.ndarray = np.multiply(green_apple_vector, red_apple_vector)
-        logging.debug(f"x_vector: {x_vector}")
+        # logging.debug(f"x_vector: {x_vector}")
 
         return x_vector
 
@@ -426,10 +426,10 @@ class Model():
         # Create an ndarray filled with y values
         y_vectors = np.full(x_vectors.shape, y_value)
 
-        logging.debug(f"x_vectors shape: {x_vectors.shape}")
-        logging.debug(f"y_vectors shape: {y_vectors.shape}")
-        logging.debug(f"x_vectors: {x_vectors}")
-        logging.debug(f"y_vectors: {y_vectors}")
+        # logging.debug(f"x_vectors shape: {x_vectors.shape}")
+        # logging.debug(f"y_vectors shape: {y_vectors.shape}")
+        # logging.debug(f"x_vectors: {x_vectors}")
+        # logging.debug(f"y_vectors: {y_vectors}")
 
         # Ensure the x and y target arrays have the same dimensions
         assert x_vectors.shape == y_vectors.shape, "Vector dimensions do not match"
@@ -589,7 +589,7 @@ class LRModel(Model):
             sumy = np.add(sumy, y_vector)
             sumy2 = np.add(sumy2, np.multiply(y_vector, y_vector))
 
-        logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
+        # logging.debug(f"Final sums - sumx:{sumx}, sumx2:{sumx2}, sumxy:{sumxy}, sumy:{sumy}, sumy2:{sumy2}")
 
         # Check for NaN and infinite values in the sums
         assert not np.any(np.isnan(sumx)), "sumx contains NaNs"
@@ -606,7 +606,7 @@ class LRModel(Model):
         # Calculate the denominators
         denoms: np.ndarray = np.full(self._vector_size, n) * sumx2 - np.multiply(sumx, sumx)
 
-        logging.debug(f"denoms: {denoms}")
+        # logging.debug(f"denoms: {denoms}")
 
         # Check for NaN and infinite values in the demons
         assert not np.any(np.isnan(denoms)), "denoms contains NaNs"
@@ -624,8 +624,8 @@ class LRModel(Model):
             slope[i] = (n * sumxy[i] - sumx[i] * sumy[i]) / denom
             bias[i] = (sumy[i] * sumx2[i] - sumx[i] * sumxy[i]) / denom
 
-        logging.debug(f"slope: {slope}")
-        logging.debug(f"bias: {bias}")
+        # logging.debug(f"slope: {slope}")
+        # logging.debug(f"bias: {bias}")
 
         return slope, bias
 
@@ -643,11 +643,11 @@ class LRModel(Model):
         for red_apple in red_apples_in_hand:
             # Calculate the x vector
             x_vec = self._calculate_x_vector_from_apples(green_apple, red_apple)
-            logging.debug(f"x_vec: {x_vec}")
+            # logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
             y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
-            logging.debug(f"score_vec: {y_vec}")
+            # logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
             score = np.sum(y_vec)
@@ -686,11 +686,11 @@ class LRModel(Model):
 
             # Calculate the winning x_vec
             x_vec = self._calculate_x_vector_from_apples(apples_in_play.get_green_apple(), red_apple)
-            logging.debug(f"x_vec: {x_vec}")
+            # logging.debug(f"x_vec: {x_vec}")
 
             # Calculate the score vector
             y_vec = np.add(np.multiply(self._slope, x_vec), self._bias)
-            logging.debug(f"score_vec: {y_vec}")
+            # logging.debug(f"score_vec: {y_vec}")
 
             # Evaluate the score
             score = np.sum(y_vec)

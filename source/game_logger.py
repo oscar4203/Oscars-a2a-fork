@@ -39,9 +39,12 @@ def configure_logging(debug_mode: bool) -> None:
     # Check that the logging file and directory exist
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
+    # Set the logging level
+    logging_level = logging.DEBUG if debug_mode else logging.INFO
+
     # Configure logging
     logging.basicConfig(
-        level=logging.DEBUG if debug_mode else logging.INFO,
+        level=logging_level,
         format=LOGGING_FORMAT,
         datefmt=LOGGING_DATE_FORMAT,
         filename=file_path
