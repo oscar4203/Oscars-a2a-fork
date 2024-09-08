@@ -304,10 +304,6 @@ class GameState:
 @dataclass
 class GameLog:
     naming_scheme: str = ""
-    round_winners_csv_filepath: str = ""
-    game_winners_csv_filepath: str = ""
-    judge_heatmap_filepath: str = ""
-    vector_history_filepath: str = ""
     total_number_of_players: int = 0
     max_cards_in_hand: int = 0
     points_to_win: int = 0
@@ -321,10 +317,6 @@ class GameLog:
     def __str__(self) -> str:
         return f"GameLog("\
                 f"naming_scheme={self.naming_scheme}, "\
-                f"round_winners_csv_filepath={self.round_winners_csv_filepath}, "\
-                f"game_winners_csv_filepath={self.game_winners_csv_filepath}, "\
-                f"judge_heatmap_filepath={self.judge_heatmap_filepath}, "\
-                f"vector_history_filepath={self.vector_history_filepath}, "\
                 f"total_number_of_players={self.total_number_of_players}, "\
                 f"all_game_players={[player.get_name() for player in self.all_game_players]}, "\
                 f"max_cards_in_hand={self.max_cards_in_hand}, "\
@@ -374,10 +366,6 @@ class GameLog:
                 self.total_games,
                 self.points_to_win
             )
-        self.round_winners_csv_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/round_winners-{self.naming_scheme}.csv"
-        self.game_winners_csv_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/game_winners-{self.naming_scheme}.csv"
-        self.judge_heatmap_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/judge_heatmap-{self.naming_scheme}.png"
-        self.vector_history_filepath = f"{LOGGING_BASE_DIRECTORY}{self.naming_scheme}/vector_history-{self.naming_scheme}.png"
 
     def add_game(self, game_state: GameState) -> None:
         # Automatically increment the current game number
