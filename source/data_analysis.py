@@ -1,11 +1,11 @@
 # Description: Script to count the number of times each unique player has won a game
 
 # Standard Libraries
-import os
 import argparse
-import numpy as np
-from typing import cast
 import logging
+from typing import cast
+import numpy as np
+import csv
 
 # Third-party Libraries
 from tabulate import tabulate
@@ -22,6 +22,7 @@ import matplotlib.patheffects as path_effects
 # Local Modules
 from source.agent import Agent, AIAgent
 from source.data_classes import GameLog
+from source.game_logger import LOGGING_BASE_DIRECTORY
 
 
 def calculate_win_counts(game_log: GameLog) -> tuple[dict, dict]:
@@ -168,12 +169,12 @@ def perform_statistical_tests(win_rates: dict[Agent, float], total_games: int) -
     return p_values
 
 
-def print_winners_tables(game_log: GameLog) -> None:
+def prepare_round_win_stats(game_log: GameLog):
     # Calculate win rates
-    round_win_rates, game_win_rates = calculate_win_rates(game_log)
+    round_win_rates, _ = calculate_win_rates(game_log)
 
     # Calculate win counts
-    round_win_counts, game_win_counts = calculate_win_counts(game_log)
+    round_win_counts, _ = calculate_win_counts(game_log)
 
     # Calculate round wins per game for each player
     round_wins_per_game_dict = calculate_round_wins_per_game(game_log)
@@ -184,16 +185,14 @@ def print_winners_tables(game_log: GameLog) -> None:
         for player, wins in round_wins_per_game_dict.items()
     }
 
-    # Calculate standard deviations for both round and game win rates
+    # Calculate standard deviations for round win rates
     round_std_devs = calculate_standard_deviation(round_wins_per_game_dict)
 
-    # Calculate confidence intervals for both round and game win rates
+    # Calculate confidence intervals for round win rates
     round_conf_intervals = calculate_confidence_intervals(round_win_rates, sum(len(game_state.round_states) for game_state in game_log.game_states))
-    game_conf_intervals = calculate_confidence_intervals(game_win_rates, game_log.total_games)
 
-    # Perform statistical tests for both round and game win rates
+    # Perform statistical tests for round win rates
     round_p_values = perform_statistical_tests(round_win_rates, sum(len(game_state.round_states) for game_state in game_log.game_states))
-    game_p_values = perform_statistical_tests(game_win_rates, game_log.total_games)
 
     # Prepare the data for the round winners table
     round_table_data = []
@@ -207,18 +206,27 @@ def print_winners_tables(game_log: GameLog) -> None:
         round_std_dev = round_std_devs.get(player_name, 0)
         round_table_data.append([
             player_name,
-            round_win_count, f"{round_win_rate:.2%}", f"{round_conf_interval[0]:.2%} to {round_conf_interval[1]:.2%}", f"{round_p_value:.4f}", f"{mean_wins_per_game:.2f}", f"{round_std_dev:.2f}"
+            round_win_count, f"{round_win_rate:.2%}", f"{round_conf_interval[0]:.2%} to {round_conf_interval[1]:.2%}", f"{round_p_value:.5f}", f"{mean_wins_per_game:.3f}", f"{round_std_dev:.3f}"
         ])
 
     # Sort the round table data by player name alphabetically
     round_table_data = sorted(round_table_data, key=lambda x: x[0])
 
-    # Define the headers for the round winners table
-    round_headers = ["Player", "Win Count", "Win Rate", "Confidence Interval", "P-Value", "Mean Wins per Game", "Std Dev"]
+    return round_table_data
 
-    # Print the round winners table
-    print("ROUND WINNERS TABLE")
-    print(tabulate(round_table_data, headers=round_headers, tablefmt="grid"))
+
+def prepare_game_win_stats(game_log: GameLog):
+    # Calculate win rates
+    _, game_win_rates = calculate_win_rates(game_log)
+
+    # Calculate win counts
+    _, game_win_counts = calculate_win_counts(game_log)
+
+    # Calculate confidence intervals for game win rates
+    game_conf_intervals = calculate_confidence_intervals(game_win_rates, game_log.total_games)
+
+    # Perform statistical tests for game win rates
+    game_p_values = perform_statistical_tests(game_win_rates, game_log.total_games)
 
     # Prepare the data for the game winners table
     game_table_data = []
@@ -230,18 +238,25 @@ def print_winners_tables(game_log: GameLog) -> None:
         game_p_value = game_p_values.get(player_name, 1)
         game_table_data.append([
             player_name,
-            game_win_count, f"{game_win_rate:.2%}", f"{game_conf_interval[0]:.2%} to {game_conf_interval[1]:.2%}", f"{game_p_value:.4f}"
+            game_win_count, f"{game_win_rate:.2%}", f"{game_conf_interval[0]:.2%} to {game_conf_interval[1]:.2%}", f"{game_p_value:.5f}"
         ])
 
     # Sort the game table data by player name alphabetically
     game_table_data = sorted(game_table_data, key=lambda x: x[0])
 
-    # Define the headers for the game winners table
-    game_headers = ["Player", "Win Count", "Win Rate", "Confidence Interval", "P-Value"]
+    return game_table_data
 
-    # Print the game winners table
-    print("\nGAME WINNERS TABLE")
-    print(tabulate(game_table_data, headers=game_headers, tablefmt="grid"))
+
+def print_table(data, headers, title):
+    print(title)
+    print(tabulate(data, headers=headers, tablefmt="grid"))
+
+
+def save_to_csv(data, headers, filename):
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+        writer.writerows(data)
 
 
 def abbreviate_name(name: str) -> str:
@@ -296,7 +311,6 @@ def prepare_players_and_colors(game_log: GameLog) -> tuple[list[Agent], list[str
     standard_colors = ["red", "cyan", "orange", "purple", "lime", "brown", "pink", "yellow", "gray", "black"]
 
     # Repeat the colors if there are more players than colors
-    # colors = (standard_colors * (len(players_string) // len(standard_colors) + 1))[:len(players_string)]
     colors = [standard_colors[i % len(standard_colors)] for i in range(len(players))]
 
     return players, players_string, abbreviated_names, colors
@@ -773,12 +787,28 @@ def main(game_log: GameLog, change_players_between_games: bool,
     print(f"\nPoints to win: {game_log.points_to_win}")
     print(f"Total games: {game_log.total_games}", end="\n\n")
 
-    # Print the winners table
-    print_winners_tables(game_log)
+    # Prepare stats
+    round_table_data = prepare_round_win_stats(game_log)
+    game_table_data = prepare_game_win_stats(game_log)
 
-    # Generate round winners output filename
-    round_winners_base_name = os.path.splitext(game_log.round_winners_csv_filepath)[0]
-    round_winners_output_filepath = f"{round_winners_base_name}.png"
+    # Define headers
+    round_headers = ["Player", "Win Count", "Win Rate", "Confidence Interval", "P-Value", "Mean Wins per Game", "Std Dev"]
+    game_headers = ["Player", "Win Count", "Win Rate", "Confidence Interval", "P-Value"]
+
+    # Print tables
+    print_table(round_table_data, round_headers, "ROUND WINNERS TABLE")
+    print_table(game_table_data, game_headers, "\nGAME WINNERS TABLE")
+
+    # Generate csv output filepaths
+    round_stats_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/round_win_stats-{game_log.naming_scheme}.csv"
+    game_stats_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/game_win_stats-{game_log.naming_scheme}.csv"
+
+    # Save to CSV
+    save_to_csv(round_table_data, round_headers, round_stats_output_filepath)
+    save_to_csv(game_table_data, game_headers, game_stats_output_filepath)
+
+    # Generate round winners output filepath
+    round_winners_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/round_winners-{game_log.naming_scheme}.png"
 
     # Create a plot of the round winners
     round_winners_plot = create_round_winners_plot(
@@ -792,9 +822,8 @@ def main(game_log: GameLog, change_players_between_games: bool,
     # Display the plot
     plt.show()
 
-    # Generate game winners output filename
-    game_winners_base_name = os.path.splitext(game_log.game_winners_csv_filepath)[0]
-    game_winners_output_filepath = f"{game_winners_base_name}.png"
+    # Generate game winners output filepath
+    game_winners_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/game_winners-{game_log.naming_scheme}.png"
 
     # Create a plot of the game winners
     game_winners_plot = create_game_winners_plot(
@@ -808,9 +837,8 @@ def main(game_log: GameLog, change_players_between_games: bool,
     # Display the plot
     plt.show()
 
-    # Generate judge heatmap output filename
-    judge_heatmap_base_name = os.path.splitext(game_log.judge_heatmap_filepath)[0]
-    judge_heatmap_output_filepath = f"{judge_heatmap_base_name}.png"
+    # Generate judge heatmap output filepath
+    judge_heatmap_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/judge_heatmap-{game_log.naming_scheme}.png"
 
     # Create a plot of the judge heatmap
     judge_heatmap_plot = create_heatmap(game_log)
@@ -821,9 +849,9 @@ def main(game_log: GameLog, change_players_between_games: bool,
     # Display the plot
     plt.show()
 
-    # Generate vector history output filename
-    vector_history_base_name = os.path.splitext(game_log.vector_history_filepath)[0]
-    vector_history_output_filepath = f"{vector_history_base_name}.png"
+    # Generate vector history output filepath
+    vector_history_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/vector_history-{game_log.naming_scheme}.png"
+
 
     # Create a plot of the vector history
     vector_history_plot = create_vector_history_plot(game_log)

@@ -176,7 +176,7 @@ def main() -> None:
     # Format the total elapsed time
     total_time = end - start
     hours = int(total_time // 3600)
-    minutes = int(total_time // 60)
+    minutes = int(total_time % 60)
     seconds = int(total_time % 60)
 
     # Print and log the total time elapsed

@@ -6,7 +6,6 @@ import logging
 import os
 import numpy as np
 from typing import Callable
-from enum import Enum
 import re
 
 # Third-party Libraries
