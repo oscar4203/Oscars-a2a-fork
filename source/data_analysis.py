@@ -4,7 +4,6 @@
 import argparse
 import logging
 from typing import cast
-import os
 import numpy as np
 import csv
 
@@ -312,7 +311,6 @@ def prepare_players_and_colors(game_log: GameLog) -> tuple[list[Agent], list[str
     standard_colors = ["red", "cyan", "orange", "purple", "lime", "brown", "pink", "yellow", "gray", "black"]
 
     # Repeat the colors if there are more players than colors
-    # colors = (standard_colors * (len(players_string) // len(standard_colors) + 1))[:len(players_string)]
     colors = [standard_colors[i % len(standard_colors)] for i in range(len(players))]
 
     return players, players_string, abbreviated_names, colors
