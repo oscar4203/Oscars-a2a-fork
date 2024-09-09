@@ -65,6 +65,7 @@ def main() -> None:
                     "points to win, and total games to play. Include optional green and red apple expansions. "\
                     "Use the -A flag to load all available card packs. "\
                     "Use the -V flag to use the custom vector loader. "\
+                    "Use the -P flag to print the game info and results in the terminal. "\
                     "Use the -T flag to run the program in training mode. "\
                     "Use the -D flag to enable debug mode for detailed logging."
     )
@@ -77,6 +78,7 @@ def main() -> None:
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red apple expansion (optional).")
     parser.add_argument("-A", "--load_all_packs", action="store_true", help="Load all available card packs")
     parser.add_argument("-V", "--vector_loader", action="store_true", help="Use the custom vector loader")
+    parser.add_argument("-P", "--print_in_terminal", action="store_true", help="Print the game info and results in the terminal")
     parser.add_argument("-T", "--training_mode", action="store_true", help="Train a user specified model archetype")
     parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode for detailed logging")
 
@@ -95,6 +97,7 @@ def main() -> None:
     logging.info(f"Red card expansion file: {args.red_expansion}")
     logging.info(f"Load all card packs: {args.load_all_packs}")
     logging.info(f"Use custom vector loader: {args.vector_loader}")
+    logging.info(f"Print in terminal: {args.print_in_terminal}")
     logging.info(f"Training mode: {args.training_mode}")
     logging.info(f"Debug mode: {args.debug}")
 
@@ -107,7 +110,7 @@ def main() -> None:
     game_driver.load_keyed_vectors(args.vector_loader)
 
     # Create the game object
-    a2a_game = ApplesToApples(game_driver.embedding, args.training_mode, args.load_all_packs, args.green_expansion, args.red_expansion)
+    a2a_game = ApplesToApples(game_driver.embedding, args.print_in_terminal, args.training_mode, args.load_all_packs, args.green_expansion, args.red_expansion)
 
     # Set the static game log
     a2a_game.initalize_game_log(game_driver.game_log)
@@ -118,7 +121,6 @@ def main() -> None:
     reset_models_between_games = "n"
     use_extra_vectors = "y"
     reset_cards_between_games = "n"
-    print_in_terminal = "y"
 
     # Prompt the user on whether they want to change players between games
     if not args.training_mode:
@@ -134,9 +136,6 @@ def main() -> None:
         # Prompt the user on whether they want to include the synonym and description vectors inthe model
         use_extra_vectors = get_user_input_y_or_n("Do you want to include the extra synonym and description vectors in the model training? (y/n): ")
 
-        # Prompt the user on whether they want to print the game info and results in the terminal
-        print_in_terminal = get_user_input_y_or_n("Do you want to print the game info and results in the terminal? (y/n): ")
-
     # Prompt the user on whether they want to reset the training cards between games
     if args.training_mode:
         reset_cards_between_games = get_user_input_y_or_n("Do you want to reset the training cards between games? (y/n): ")
@@ -148,7 +147,6 @@ def main() -> None:
         reset_models_between_games == 'y',
         use_extra_vectors == 'y',
         reset_cards_between_games == 'y',
-        print_in_terminal == 'y'
     )
 
     # Log the game options
@@ -157,7 +155,6 @@ def main() -> None:
     logging.info(f"Reset models between games: {reset_models_between_games == 'y'}")
     logging.info(f"Use extra vectors: {use_extra_vectors == 'y'}")
     logging.info(f"Reset training cards between games: {reset_cards_between_games == 'y'}")
-    logging.info(f"Print in terminal: {print_in_terminal == 'y'}")
 
     # Start the game timer
     start = time.perf_counter()
@@ -176,7 +173,7 @@ def main() -> None:
     # Format the total elapsed time
     total_time = end - start
     hours = int(total_time // 3600)
-    minutes = int(total_time % 60)
+    minutes = int((total_time % 3600) // 60)
     seconds = int(total_time % 60)
 
     # Print and log the total time elapsed

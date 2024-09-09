@@ -16,8 +16,10 @@ from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
 class ApplesToApples:
-    def __init__(self, embedding: Embedding, training_mode: bool, load_all_packs: bool = False, green_expansion: str = '', red_expansion: str = '') -> None:
+    def __init__(self, embedding: Embedding, print_in_terminal: bool, training_mode: bool,
+                 load_all_packs: bool = False, green_expansion: str = '', red_expansion: str = '') -> None:
         self.embedding: Embedding = embedding
+        self.__print_in_terminal = print_in_terminal
         self.__training_mode: bool = training_mode
         self.__load_all_packs: bool = load_all_packs
         self.__green_expansion_filename: str = green_expansion
@@ -28,14 +30,13 @@ class ApplesToApples:
     def initalize_game_log(self, game_log: GameLog) -> None:
         self.__game_log = game_log
 
-    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool, use_extra_vectors: bool,
-                         reset_cards_between_games: bool, print_in_terminal: bool) -> None:
+    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool,
+                         use_extra_vectors: bool, reset_cards_between_games: bool) -> None:
         self.__change_players_between_games = change_players
         self.__cycle_starting_judges_between_games = cycle_starting_judges
         self.__reset_models_between_games = reset_models
         self.__use_extra_vectors = use_extra_vectors
         self.__reset_cards_between_games = reset_cards_between_games
-        self.__print_in_terminal = print_in_terminal
 
     def new_game(self) -> None:
         """
@@ -50,7 +51,6 @@ class ApplesToApples:
         # Start the game timer
         logging.info("Starting the game timer.")
         start = time.perf_counter()
-
 
         # Initialize the GameState and add the game
         game_state = GameState()
@@ -123,7 +123,6 @@ class ApplesToApples:
         # Print and log the total time elapsed
         print(f"Total game time: {minutes} minute(s), {seconds} second(s)")
         logging.info(f"Total game time: {minutes} minute(s), {seconds} second(s)")
-
 
     def __reset_player_points_and_judge_status(self) -> None:
         # TODO - check if need to skip for training mode
