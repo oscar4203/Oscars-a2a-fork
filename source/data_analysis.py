@@ -865,7 +865,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
 
 if __name__ == "__main__":
     # Create an argument parser
-    parser = argparse.ArgumentParser(description="Count winners from a CSV file.")
+    parser = argparse.ArgumentParser(description="Count round winners and game winners from the resulting game log.")
 
     # Add an argument for the filename as input
     parser.add_argument("game_log", help="GameLog object with all GameState and RoundState data.")
