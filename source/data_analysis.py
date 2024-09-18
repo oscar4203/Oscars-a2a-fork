@@ -169,7 +169,7 @@ def perform_statistical_tests(win_rates: dict[Agent, float], total_games: int) -
     return p_values
 
 
-def prepare_round_win_stats(game_log: GameLog):
+def prepare_round_win_stats(game_log: GameLog) -> list[list]:
     # Calculate win rates
     round_win_rates, _ = calculate_win_rates(game_log)
 
@@ -215,7 +215,7 @@ def prepare_round_win_stats(game_log: GameLog):
     return round_table_data
 
 
-def prepare_game_win_stats(game_log: GameLog):
+def prepare_game_win_stats(game_log: GameLog) -> list[list]:
     # Calculate win rates
     _, game_win_rates = calculate_win_rates(game_log)
 
@@ -594,7 +594,8 @@ def create_round_winners_plot(game_log: GameLog, change_players_between_games: b
 
 
 def create_game_winners_plot(game_log: GameLog, change_players_between_games: bool,
-                            cycle_starting_judges: bool, reset_models_between_games: bool, use_extra_vectors: bool) -> Figure:
+                            cycle_starting_judges: bool, reset_models_between_games: bool,
+                            use_extra_vectors: bool) -> Figure:
     """
     Create a plot for game winners.
 

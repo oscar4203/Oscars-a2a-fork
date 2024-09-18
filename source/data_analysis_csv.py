@@ -20,7 +20,8 @@ import matplotlib.patheffects as path_effects
 # Local Modules
 from source.data_classes import GameLog
 from source.game_logger import LOGGING_BASE_DIRECTORY
-from source.data_analysis import abbreviate_name, save_plot
+from source.data_analysis import abbreviate_name, save_plot, print_table, create_legend, create_game_settings_box, \
+    create_bar_plot, create_pie_chart, create_box_plot, create_line_graph
 
 
 def prepare_players(round_winners_csv: str) -> tuple[list[str], list[str]]:
@@ -87,9 +88,60 @@ def calculate_round_wins_per_game(round_winners_csv: str) -> dict[str, list[int]
     return round_wins_per_game
 
 
-def create_heatmap(round_winners_csv: str) -> Figure:
+def calculate_confidence_intervals(win_rates: dict[str, float], total_games: int, confidence_level: float = 0.95) -> dict:
+    pass
+
+
+def perform_statistical_tests(win_rates: dict[str, float], total_games: int) -> dict:
+    pass
+
+def create_vector_line_graph(game_state_csv: str) -> Figure:
+    pass
+
+
+def create_round_winners_plot(game_state_csv: str) -> Figure:
+    pass
+
+
+def create_game_winners_plot(game_state_csv: str) -> Figure:
+    pass
+
+
+def prepare_round_win_stats(game_state_csv: str) -> list[list]:
+    pass
+
+
+def prepare_game_win_stats(game_state_csv: str) -> list[list]:
+    pass
+
+
+def prepare_players_and_colors(game_state_csv: str) -> tuple[list[str], list[str], list[str], list[str]]:
+    pass
+
+
+def prepare_plot_data(game_state_csv: str, win_counts: dict) -> tuple:
+    pass
+
+
+def create_vector_line_graph(ax: Axes, ai_agent: str, opponents: list[str], game_state_csv: str) -> None:
+    pass
+
+
+def create_round_winners_plot(game_state_csv: str, change_players_between_games: bool,
+                            cycle_starting_judges: bool, reset_models_between_games: bool,
+                            use_extra_vectors: bool) -> Figure:
+    pass
+
+
+def create_game_winners_plot(game_state_csv: str, change_players_between_games: bool,
+                            cycle_starting_judges: bool, reset_models_between_games: bool,
+                            use_extra_vectors: bool) -> Figure:
+    pass
+
+
+def create_heatmap(game_state_csv: str) -> Figure:
     # Prepare common plot data
-    players_string, abbreviated_names = prepare_players(round_winners_csv)
+    players_string, abbreviated_names = prepare_players(game_state_csv)
 
     # Initialize the heatmap data matrix
     num_players = len(players_string)
@@ -140,6 +192,10 @@ def create_heatmap(round_winners_csv: str) -> Figure:
     plt.tight_layout()
 
     return fig
+
+
+def create_vector_history_plot(game_state_csv: str) -> Figure:
+    pass
 
 
 def main(game_state_csv: str) -> None:
