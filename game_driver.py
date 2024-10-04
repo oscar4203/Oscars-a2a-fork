@@ -58,7 +58,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="'Apples to Apples' card game",
         usage="python apples_to_apples.py <number_of_players> <points_to_win> <total_games> "\
-              "[green_expansion] [red_expansion] [-A] [-V] [-T] [-D]"\
+              "[green_expansion] [red_expansion] [-A] [-V] [-P] [-T] [-D]"\
               "\n\nExample: python apples_to_apples.py 4 5 10 green_apples_extension.csv red_apples_extension.csv -A -V -T -D"\
               "\nFor help: python apples_to_apples.py -h",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
@@ -78,7 +78,7 @@ def main() -> None:
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red apple expansion (optional).")
     parser.add_argument("-A", "--load_all_packs", action="store_true", help="Load all available card packs")
     parser.add_argument("-V", "--vector_loader", action="store_true", help="Use the custom vector loader")
-    parser.add_argument("-P", "--print_in_terminal", action="store_true", help="Print the game info and results in the terminal")
+    parser.add_argument("-P", "--print_in_terminal", action="store_true", help="Print the game info and prompts in the terminal")
     parser.add_argument("-T", "--training_mode", action="store_true", help="Train a user specified model archetype")
     parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode for detailed logging")
 
