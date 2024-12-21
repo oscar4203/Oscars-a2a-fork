@@ -57,14 +57,14 @@ def main() -> None:
     # Define the command line arguments
     parser = argparse.ArgumentParser(
         prog="'Apples to Apples' card game",
-        usage="python apples_to_apples.py <number_of_players> <points_to_win> <total_games> "\
+        usage="python3 game_driver.py <number_of_players> <points_to_win> <total_games> "\
               "[green_expansion] [red_expansion] [-A] [-V] [-P] [-T] [-D]"\
-              "\n\nExample: python apples_to_apples.py 4 5 10 green_apples_extension.csv red_apples_extension.csv -A -V -T -D"\
-              "\nFor help: python apples_to_apples.py -h",
+              "\n\nExample: python3 game_driver.py 4 5 10 green_apples_extension.csv red_apples_extension.csv -A -V -T -D"\
+              "\nFor help: python3 game_driver.py -h",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
                     "points to win, and total games to play. Include optional green and red apple expansions. "\
                     "Use the -A flag to load all available card packs. "\
-                    "Use the -V flag to use the custom vector loader. "\
+                    "Use the -V flag to use the custom vector loader (may not work on all systems). "\
                     "Use the -P flag to print the game info and results in the terminal. "\
                     "Use the -T flag to run the program in training mode. "\
                     "Use the -D flag to enable debug mode for detailed logging."
