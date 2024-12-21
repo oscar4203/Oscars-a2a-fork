@@ -10,6 +10,9 @@ import csv
 # Third-party Libraries
 from tabulate import tabulate
 from scipy.stats import binomtest, norm
+import matplotlib
+# Set the backend to TkAgg (Qt causes issues on WSL2 Ubuntu 24.04 LTS, use Tkinter instead)
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -745,6 +748,10 @@ def create_vector_history_plot(game_log: GameLog) -> Figure:
     # Determine the number of rows and columns for the GridSpec
     num_cols = 2
     num_rows = (num_ai_agents + num_cols - 1) // num_cols
+
+    # Ensure there is at least one row
+    if num_rows == 0:
+        num_rows = 1
 
     # Create a figure with GridSpec
     fig = plt.figure(figsize=(18, 14))
