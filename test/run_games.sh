@@ -10,7 +10,7 @@ if [[ $# -ne 2 ]]; then
     # echo "Usage: $0 <number_of_random_players> <number_of_ai_players> <model_type> <pretrained_models> <number_of_games>"
     echo "Usage: $0 <number_of_random_players> <number_of_ai_players>"
     exit 1
-fi 
+fi
 
 NUM_RAND_PLAYERS=$1
 NUM_AI_PLAYERS=$2
@@ -46,14 +46,14 @@ echo -e "You will now be asked what type of AI each of the $NUM_AI_PLAYERS AI pl
         There are 3 options: Literalist, Contrarian, and Satarist.
         If you do not give an amount summing up to $NUM_AI_PLAYERS, then you will be reprompted once again."
 
-while true; do 
+while true; do
     read -p "Of the $NUM_AI_PLAYERS AI players, How many are Literalists?: " NUM_LITERALIST
     read -p "How many are Contrarians?: " NUM_CONTRARIAN
     read -p "How many are Satarists?: " NUM_SATARIST
     total_num_ai=$(( NUM_LITERALIST + NUM_CONTRARIAN + NUM_SATARIST ))
     if [[ "$total_num_ai" -ne $NUM_AI_PLAYERS ]]; then
         echo "Invalid Reponses. Try again."
-    else    
+    else
         break
     fi
 done
@@ -112,17 +112,24 @@ for (( game=1; game<=NUM_GAMES; game++ )); do
     if [[ "$game" -ne "$NUM_GAMES" ]]; then
         game_inputs+="1\n"
     fi
-    
+
 done
 
-#Ends the session of games. 
+#Ends the session of games.
 game_inputs+="3\n"
 
 # Write the inputs to the temporary file
-echo -e "$game_inputs" > "$temp_file"   
+echo -e "$game_inputs" > "$temp_file"
+
+# Ensure the program is run from root directory
+# Get the directory of the current script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Change to the root directory
+cd "$SCRIPT_DIR/.."
 
 # Run the Python program with the generated inputs
-python apples_to_apples.py $NUM_PLAYERS $NUM_POINTS < "$temp_file"
+python game_driver.py $NUM_PLAYERS $NUM_POINTS < "$temp_file"
 
 #remove the temporary file
 rm -f "$temp_file"
