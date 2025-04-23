@@ -7,12 +7,12 @@ import time
 # Third-party Libraries
 
 # Local Modules
-from source.embeddings import Embedding
-from source.apples import GreenApple, RedApple, Deck
-from source.agent import Agent, HumanAgent, RandomAgent, AIAgent
-from source.model import model_type_mapping, Model
-from source.game_logger import log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
-from source.data_classes import RoundState, GameState, GameLog, ApplesInPlay
+from src.embeddings.embeddings import Embedding
+from src.apples.apples import GreenApple, RedApple, Deck
+from src.agent_model.agent import Agent, HumanAgent, RandomAgent, AIAgent
+from src.agent_model.model import model_type_mapping, Model
+from src.logging.game_logger import log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
+from src.data_classes.data_classes import RoundState, GameState, GameLog, ApplesInPlay
 
 
 class ApplesToApples:
@@ -144,11 +144,11 @@ class ApplesToApples:
 
         # Load and shuffle the decks
         if self.__load_all_packs:
-            self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-all.csv")
-            self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-all.csv")
+            self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./data/apples/green_apples-all.csv")
+            self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./data/apples/red_apples-all.csv")
         else:
-            self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./apples/green_apples-basic_set_party_set.csv", self.__green_expansion_filename)
-            self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./apples/red_apples-basic_set_party_set.csv", self.__red_expansion_filename)
+            self.__load_and_shuffle_deck(self.__green_apples_deck, "Green Apples", "./data/apples/green_apples-basic_set_party_set.csv", self.__green_expansion_filename)
+            self.__load_and_shuffle_deck(self.__red_apples_deck, "Red Apples", "./data/apples/red_apples-basic_set_party_set.csv", self.__red_expansion_filename)
 
         # Print and log the deck sizes, if applicable
         if self.__print_in_terminal:

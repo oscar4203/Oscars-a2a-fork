@@ -1,5 +1,5 @@
 from gensim.models import KeyedVectors
-from source.w2vloader import VectorsW2V
+from src.embeddings.w2vloader import VectorsW2V
 import time
 
 
@@ -28,17 +28,19 @@ class Embedding():
       vector = self.kvectors[string]
 
     return vector
-  
+
   def __getitem__(self, string: str) -> np.ndarray:
-    return self.get_vector(string)
-  
+    vector = self.get_vector(string)
+    if vector is None:
+      raise KeyError(f"Vector for '{string}' not found.")
+    return vector
+
   def deinit(self):
     if self.custom:
       self.cvectors.deinit()
-  
 
 
 
 
 
-  
+

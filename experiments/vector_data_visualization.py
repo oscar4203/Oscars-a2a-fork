@@ -12,7 +12,7 @@ import sys
 sys.path.append("../")
 
 # Local Modules
-from source.apples import Deck
+from src.apples.apples import Deck
 from experiments.pca_exploration import create_green_apple_df, create_red_apple_df
 
 
@@ -31,7 +31,7 @@ def run_tsne(df: pd.DataFrame, n_dimensions: int, random_state: int, n_features:
 
 def main():
     # Load the pre-trained word vectors
-    model = KeyedVectors.load_word2vec_format("../apples/GoogleNews-vectors-negative300.bin", binary=True)
+    model = KeyedVectors.load_word2vec_format("../data/embeddings/GoogleNews-vectors-negative300.bin", binary=True)
 
     # Set the number of components and features for PCA
     n_dimensions = 2
@@ -40,11 +40,11 @@ def main():
 
     # Load the Green Apple cards to a Deck
     green_apple_deck = Deck()
-    green_apple_deck.load_deck("Green Apples", "../apples/green_apples.csv")
+    green_apple_deck.load_deck("Green Apples", "../data/apples/green_apples.csv")
 
     # Load the Red Apple cards to a Deck
     red_apple_deck = Deck()
-    red_apple_deck.load_deck("Red Apples", "../apples/red_apples.csv")
+    red_apple_deck.load_deck("Red Apples", "../data/apples/red_apples.csv")
 
     # Get the Green Apple adjective vectors
     green_apple_df = create_green_apple_df(green_apple_deck, model)

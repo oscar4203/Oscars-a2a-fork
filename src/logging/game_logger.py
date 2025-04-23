@@ -12,15 +12,15 @@ import numpy as np
 
 # Local Modules
 if TYPE_CHECKING:
-    from source.agent import Agent
-    from source.data_classes import GameState, GameLog
+    from src.agent_model.agent import Agent
+    from src.data_classes.data_classes import GameState, GameLog
 
 
 # Logging configuration
 LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s.%(funcName)s:%(lineno)d - %(message)s"
 LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 LOGGING_BASE_DIRECTORY = "./logs/"
-LOGGING_FILENAME = "apples_to_apples.log"
+LOGGING_FILENAME = "a2a_game.log"
 
 
 def configure_logging(debug_mode: bool) -> None:
@@ -58,7 +58,7 @@ def format_players_string(players: "list[Agent]") -> str:
     random_list = []
 
     # Runtime import to avoid circular dependency
-    from source.agent import AIAgent, HumanAgent, RandomAgent
+    from src.agent_model.agent import AIAgent, HumanAgent, RandomAgent
 
     # Abbreviate the player names to the first 3 characters
     for player in players:
@@ -140,7 +140,7 @@ def log_vectors(game_log: "GameLog", game_state: "GameState", judge: "Agent", pl
     filename = f"vectors-{naming_scheme}.csv"
 
     # Runtime import to avoid circular dependency
-    from source.data_classes import PreferenceUpdates
+    from src.data_classes.data_classes import PreferenceUpdates
 
     preference_updates = PreferenceUpdates(judge, player, game_log.get_current_game_number(), game_log.get_current_round_number(), date_time,
                                            game_state.get_current_round_chosen_apples().get_green_apple(),

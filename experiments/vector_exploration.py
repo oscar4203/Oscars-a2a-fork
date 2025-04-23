@@ -304,7 +304,7 @@ def main():
     word_meanings["quality"].tones["neutral"].add_word(Word("typical", ""))
 
     # Load vectors directly from the Google News dataset
-    model = KeyedVectors.load_word2vec_format("../apples/GoogleNews-vectors-negative300.bin", binary=True)
+    model = KeyedVectors.load_word2vec_format("../data/embeddings/GoogleNews-vectors-negative300.bin", binary=True)
 
     # Process the category of size
     process_category(word_meanings, "size", model)

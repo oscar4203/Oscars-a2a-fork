@@ -7,10 +7,10 @@ import numpy as np
 
 
 # Local Modules
-from source.embeddings import Embedding
-from source.model import Model, LRModel, NNModel
-from source.apples import GreenApple, RedApple, Deck
-from source.data_classes import ApplesInPlay, ChosenApples
+from src.embeddings.embeddings import Embedding
+from src.agent_model.model import Model, LRModel, NNModel
+from src.apples.apples import GreenApple, RedApple, Deck
+from src.data_classes.data_classes import ApplesInPlay, ChosenApples
 
 class Agent:
     """

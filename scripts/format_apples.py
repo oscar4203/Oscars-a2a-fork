@@ -112,8 +112,8 @@ def convert_apple_txt_to_csv(data, csv_file_path: str, apple: str, header: bool=
 # Main function
 def main():
     # Green apple file paths
-    green_txt_source_file_path = "../apples/green_apples_source.txt"
-    green_csv_file_path = "../apples/green_apples.csv"
+    green_txt_source_file_path = "../data/apples/green_apples_source.txt"
+    green_csv_file_path = "../data/apples/green_apples.csv"
 
     # Read the green apple data from the file
     data = read_file(green_txt_source_file_path)
@@ -122,8 +122,8 @@ def main():
     convert_apple_txt_to_csv(data, green_csv_file_path, "green", header=True, extra=True)
 
     # Red apple file paths
-    red_txt_source_file_path = "../apples/red_apples_source.txt"
-    red_csv_file_path = "../apples/red_apples.csv"
+    red_txt_source_file_path = "../data/apples/red_apples_source.txt"
+    red_csv_file_path = "../data/apples/red_apples.csv"
 
     # Read the red apple data from the file
     data = read_file(red_txt_source_file_path)

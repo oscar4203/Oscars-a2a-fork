@@ -20,9 +20,9 @@ from keras.callbacks import EarlyStopping
 
 # Local Modules
 if TYPE_CHECKING:
-    from source.agent import Agent
-from source.apples import GreenApple, RedApple
-from source.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
+    from src.agent_model.agent import Agent
+from src.apples.apples import GreenApple, RedApple
+from src.data_classes.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
 
 
 class Model():

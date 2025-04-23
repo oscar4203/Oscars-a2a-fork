@@ -10,9 +10,9 @@ from dataclasses import dataclass, field
 
 # Local Modules
 if TYPE_CHECKING:
-    from source.apples import GreenApple, RedApple
-    from source.agent import Agent
-from source.game_logger import format_naming_scheme, LOGGING_BASE_DIRECTORY
+    from src.apples.apples import GreenApple, RedApple
+    from src.agent_model.agent import Agent
+from src.logging.game_logger import format_naming_scheme, LOGGING_BASE_DIRECTORY
 
 
 @dataclass

@@ -10,7 +10,7 @@ import re
 # Third-party Libraries
 
 # Local Modules
-from source.embeddings import Embedding
+from src.embeddings.embeddings import Embedding
 
 
 class Apple:

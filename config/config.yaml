@@ -1,0 +1,28 @@
+# Configuration for Apples to Apples Agent
+
+# --- File Paths ---
+paths:
+  data_base: "./data"
+  embeddings: "./data/embeddings/GoogleNews-vectors-negative300.bin"
+  apples_data: "./data/apples"
+  model_archetypes: "./data/models/agent_archetypes"
+  analysis_output: "./analysis_results"
+
+# --- Game Settings ---
+game:
+  default_max_cards_in_hand: 7
+  training_max_cards_in_hand: 25
+  training_num_players: 2 # Override player count in training mode
+
+# --- Model Settings ---
+model:
+  use_extra_vectors_default: true # Default for the 'use_extra_vectors' prompt
+  # Add other model-specific defaults if needed, e.g., learning_rate
+
+# --- UI/Interaction ---
+interaction:
+  # Defaults for the y/n prompts (can be overridden by user input)
+  change_players_between_games_default: false
+  cycle_starting_judges_default: false
+  reset_models_between_games_default: false
+  reset_cards_between_games_default: false # For training mode

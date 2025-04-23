@@ -7,9 +7,9 @@
 *.code-workspace
 
 # Large files
-apples/GoogleNews-vectors-negative300.bin.gz
-apples/GoogleNews-vectors-negative300.bin
-apples/vectors.bin
+data/embeddings/GoogleNews-vectors-negative300.bin.gz
+data/embeddings/GoogleNews-vectors-negative300.bin
+data/embeddings/vectors.bin
 
 # Executables
 *.exe
@@ -23,7 +23,7 @@ winners.csv
 training.csv
 
 # Numpy tmp files in "agent_archetypes/tmp" directory
-agent_archetypes/tmp
+data/agent_archetypes/tmp
 
 ##########
 # Python #

@@ -23,9 +23,9 @@ from matplotlib.colors import to_rgba
 import matplotlib.patheffects as path_effects
 
 # Local Modules
-from source.agent import Agent, AIAgent
-from source.data_classes import GameLog
-from source.game_logger import LOGGING_BASE_DIRECTORY
+from src.agent_model.agent import Agent, AIAgent
+from src.data_classes.data_classes import GameLog
+from src.logging.game_logger import LOGGING_BASE_DIRECTORY
 
 
 def calculate_win_counts(game_log: GameLog) -> tuple[dict, dict]:
