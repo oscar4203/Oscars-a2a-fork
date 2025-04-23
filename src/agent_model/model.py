@@ -22,17 +22,24 @@ from keras.callbacks import EarlyStopping
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
 from src.apples.apples import GreenApple, RedApple
-from src.data_classes.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors
+from src.data_classes.data_classes import ApplesInPlay, ChosenApples, ChosenAppleVectors, PathsConfig
 
 
 class Model():
     """
     Base class for the AI models.
     """
-    def __init__(self, self_agent: "Agent", judge_to_model: "Agent", vector_size: int, pretrained_archetype: str,
-                 use_extra_vectors: bool = False, training_mode: bool = False) -> None:
+    def __init__(self,
+                 self_agent: "Agent",
+                 judge_to_model: "Agent",
+                 vector_size: int,
+                 paths_config: PathsConfig,
+                 pretrained_archetype: str,
+                 use_extra_vectors: bool = False,
+                 training_mode: bool = False
+                ) -> None:
         # Initialize the model attributes
-        self._vector_base_directory = "./agent_archetypes/"
+        self._vector_base_directory = paths_config.model_archetypes
         self._self_agent: "Agent" = self_agent
         self._judge_to_model: "Agent" = judge_to_model # The judge to be modeled
         self._vector_size = vector_size
@@ -86,7 +93,7 @@ class Model():
         directory = self._vector_base_directory
         if tmp_vectors:
             tmp_directory = "tmp/"
-            directory += tmp_directory
+            directory = os.path.join(directory, tmp_directory)
 
         # Ensure the formatted directory exists
         self._ensure_directory_exists(directory)
@@ -511,9 +518,16 @@ class LRModel(Model):
     """
     Linear Regression model for the AI agent.
     """
-    def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
-                 use_extra_vectors: bool = False, training_mode: bool = False) -> None:
-        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, training_mode)
+    def __init__(self,
+                 self_agent: "Agent",
+                 judge: "Agent",
+                 vector_size: int,
+                 paths_config: PathsConfig,
+                 pretrained_archetype: str,
+                 use_extra_vectors: bool = False,
+                 training_mode: bool = False
+                ) -> None:
+        super().__init__(self_agent, judge, vector_size, paths_config, pretrained_archetype, use_extra_vectors, training_mode)
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":
@@ -738,9 +752,16 @@ class NNModel(Model):
     """
     Neural Network model for the AI agent.
     """
-    def __init__(self, self_agent: "Agent", judge: "Agent", vector_size: int, pretrained_archetype: str,
-                 use_extra_vectors: bool = False, training_mode: bool = False) -> None:
-        super().__init__(self_agent, judge, vector_size, pretrained_archetype, use_extra_vectors, training_mode)
+    def __init__(self,
+                 self_agent: "Agent",
+                 judge: "Agent",
+                 vector_size: int,
+                 paths_config: PathsConfig,
+                 pretrained_archetype: str,
+                 use_extra_vectors: bool = False,
+                 training_mode: bool = False
+                ) -> None:
+        super().__init__(self_agent, judge, vector_size, paths_config, pretrained_archetype, use_extra_vectors, training_mode)
 
         # Initialize the slope and bias vectors
         if pretrained_archetype == "Literalist":

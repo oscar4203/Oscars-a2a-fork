@@ -14,7 +14,7 @@ from src.embeddings.embeddings import Embedding
 from src.apples_to_apples import ApplesToApples
 from src.logging.game_logger import configure_logging
 from src.data_analysis.data_analysis import main as data_analysis_main
-from src.data_classes.data_classes import GameLog
+from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
 from src.gui.gui_wrapper import GUIWrapper
 
 
@@ -23,34 +23,49 @@ class GameDriver:
         # Load configuration
         self.config = self._load_config(config_path)
 
-        # Get config values with defaults
-        game_config = self.config.get("game", {})
-        paths_config = self.config.get("paths", {})
-        interaction_config = self.config.get("interaction", {})
+        # --- Populate Dataclasses from Config ---
+        raw_paths_config = self.config.get("paths", {})
+        raw_game_config = self.config.get("game", {})
+        raw_model_config = self.config.get("model", {})
+        raw_interaction_config = self.config.get("interaction", {})
+        raw_logging_config = self.config.get("logging", {}) # Get logging specific section
+
+        self.paths_config = PathsConfig(
+            data_base=raw_paths_config.get("data_base", "./data"),
+            embeddings=raw_paths_config.get("embeddings", "./data/embeddings/GoogleNews-vectors-negative300.bin"),
+            apples_data=raw_paths_config.get("apples_data", "./data/apples"),
+            model_archetypes=raw_paths_config.get("model_archetypes", "./data/agent_archetypes"),
+            analysis_output=raw_paths_config.get("analysis_output", "./analysis_results")
+        )
+        self.game_config = GameConfig(
+            default_max_cards_in_hand=raw_game_config.get("default_max_cards_in_hand", 7),
+            training_max_cards_in_hand=raw_game_config.get("training_max_cards_in_hand", 25),
+            training_num_players=raw_game_config.get("training_num_players", 2)
+        )
+        self.model_config = ModelConfig(
+            use_extra_vectors=raw_model_config.get("use_extra_vectors_default", True)
+            # Add other model settings here
+        )
+        self.interaction_config = BetweenGameConfig(
+            change_players=raw_interaction_config.get("change_players_between_games_default", False),
+            cycle_starting_judges=raw_interaction_config.get("cycle_starting_judges_default", False),
+            reset_models=raw_interaction_config.get("reset_models_between_games_default", False),
+            reset_cards=raw_interaction_config.get("reset_cards_between_games_default", False)
+        )
+        # --- End Populate Dataclasses ---
 
         # Set the game state for training mode using config values
         if training_mode:
-            number_of_players = game_config.get("training_num_players", 2) # Override from config
-            max_cards_in_hand = game_config.get("training_max_cards_in_hand", 25) # From config
+            effective_number_of_players = self.game_config.training_num_players
+            effective_max_cards_in_hand = self.game_config.training_max_cards_in_hand
         else: # Set the game state for non-training mode
-            max_cards_in_hand = game_config.get("default_max_cards_in_hand", 7) # From config
-
-        # Store paths
-        self.embedding_path = paths_config.get("embeddings", "./data/embeddings/GoogleNews-vectors-negative300.bin")
-        self.log_path = paths_config.get("logs", "./logs")
-        self.log_filename = self.config.get("logging", {}).get("log_filename", "a2a_game.log")
-
-        # Store interaction defaults
-        self.change_players_default = interaction_config.get("change_players_between_games_default", False)
-        self.cycle_judges_default = interaction_config.get("cycle_starting_judges_default", False)
-        self.reset_models_default = interaction_config.get("reset_models_between_games_default", False)
-        self.reset_cards_default = interaction_config.get("reset_cards_between_games_default", False) # For training
-        self.use_extra_vectors_default = self.config.get("model", {}).get("use_extra_vectors_default", True)
-
+            effective_number_of_players = number_of_players # Use command line arg for non-training
+            effective_max_cards_in_hand = self.game_config.default_max_cards_in_hand
 
         # Initialize the GameLog
         self.game_log: GameLog = GameLog()
-        self.game_log.intialize_input_args(number_of_players, max_cards_in_hand, points_to_win, total_games)
+        # Use effective values determined above
+        self.game_log.intialize_input_args(effective_number_of_players, effective_max_cards_in_hand, points_to_win, total_games)
 
     def _load_config(self, config_path="config/config.yaml"):
         if not os.path.exists(config_path):
@@ -71,16 +86,25 @@ class GameDriver:
 
     def load_keyed_vectors(self, use_custom_loader: bool) -> None:
         print("Loading Vectors...")
-        logging.info(f"Loading word vectors from: {self.embedding_path}")
+        # --- Use path from dataclass ---
+        logging.info(f"Loading word vectors from: {self.paths_config.embeddings}")
         start = time.perf_counter()
         try:
-            self.embedding = Embedding(self.embedding_path, custom=use_custom_loader)
+            # --- Use path from dataclass ---
+            self.embedding = Embedding(self.paths_config.embeddings, custom=use_custom_loader)
             end = time.perf_counter()
-            print("Loaded Vectors in", end-start, "seconds.")
-            logging.info(f"Loaded Vectors in {end-start} seconds.")
+            load_time = end - start
+            print(f"Loaded Vectors in {load_time:.2f} seconds.")
+            logging.info(f"Successfully loaded vectors in {load_time:.2f} seconds.")
+        except FileNotFoundError:
+             # --- Use path from dataclass ---
+            logging.error(f"Embedding file not found at {self.paths_config.embeddings}. Please check the path in config.yaml.")
+            print(f"ERROR: Embedding file not found at {self.paths_config.embeddings}. Exiting.")
+            exit(1) # Exit if embeddings can't be loaded
         except Exception as e:
-            logging.error(f"Failed to load word vectors: {e}")
-            raise
+            logging.error(f"An error occurred while loading embeddings: {e}")
+            print(f"ERROR: Failed to load embeddings. Check logs for details. Exiting.")
+            exit(1)
 
 
 def range_type(min_value, max_value):
@@ -170,7 +194,10 @@ def main() -> None:
     logging.info(f"Print in terminal: {args.print_in_terminal}")
     logging.info(f"Training mode: {args.training_mode}")
     logging.info(f"Debug mode: {args.debug}")
-    logging.info(f"Using embedding path: {game_driver.embedding_path}")
+    # --- Log path from dataclass ---
+    logging.info(f"Using embedding path: {game_driver.paths_config.embeddings}")
+    # --- Log model archetype path from dataclass ---
+    logging.info(f"Using model archetypes path: {game_driver.paths_config.model_archetypes}")
 
 
     # Load the keyed vectors (using path from config stored in game_driver)
@@ -178,46 +205,40 @@ def main() -> None:
 
     # Create the game object
     # Pass embedding object from game_driver
-    a2a_game = ApplesToApples(game_driver.embedding, args.print_in_terminal, args.training_mode, args.load_all_packs, args.green_expansion, args.red_expansion)
+    a2a_game = ApplesToApples(
+        embedding=game_driver.embedding,
+        paths_config=game_driver.paths_config,
+        game_config=game_driver.game_config,
+        print_in_terminal=args.print_in_terminal,
+        training_mode=args.training_mode,
+        load_all_packs=args.load_all_packs,
+        green_expansion=args.green_expansion,
+        red_expansion=args.red_expansion
+    )
 
     # Set the static game log
     a2a_game.initalize_game_log(game_driver.game_log)
 
-    # The interaction variables are directly taken from the config defaults loaded in GameDriver
+    game_driver.interaction_config.cycle_starting_judges = game_driver.interaction_config.cycle_starting_judges \
+        if not game_driver.interaction_config.change_players else False
 
-    # Set the game options directly from the config defaults stored in game_driver
-    change_players = game_driver.change_players_default
-    cycle_judges = game_driver.cycle_judges_default
-    reset_models = game_driver.reset_models_default
-    use_extra_vectors = game_driver.use_extra_vectors_default
-    reset_cards = game_driver.reset_cards_default # This is relevant only in training mode
-
-    # Apply logic that depended on prompts directly to config values
-    # If players are not changed (based on config), then cycling judges (based on config) is relevant.
-    # If players *are* changed (based on config), cycling judges doesn't apply in the same way.
-    # The original logic was: if change_players_between_games == "n": prompt for cycle_starting_judges
-    # We'll keep the cycle_judges setting from config regardless, but log its effective state.
-    effective_cycle_judges = cycle_judges if not change_players else False # If players change, judge cycling is implicitly handled or irrelevant
-
+    # Set the game options
     a2a_game.set_game_options(
-        change_players,
-        effective_cycle_judges, # Use the potentially adjusted value
-        reset_models,
-        use_extra_vectors,
-        reset_cards # Pass the training-mode specific setting
+        game_driver.interaction_config,
+        game_driver.model_config
     )
 
     # Log the final game options being used (sourced from config)
-    logging.info(f"Option - Change players between games: {change_players}")
+    logging.info(f"Option - Change players between games: {game_driver.interaction_config.change_players}")
     # Log the effective judge cycling based on whether players change
-    if change_players:
+    if game_driver.interaction_config.change_players:
         logging.info(f"Option - Cycle starting judges: N/A (players change between games)")
     else:
-        logging.info(f"Option - Cycle starting judges: {cycle_judges}") # cycle_starting_judges
-    logging.info(f"Option - Reset models between games: {reset_models}")
-    logging.info(f"Option - Use extra vectors: {use_extra_vectors}")
+        logging.info(f"Option - Cycle starting judges: {game_driver.interaction_config.cycle_starting_judges}") # cycle_starting_judges
+    logging.info(f"Option - Reset models between games: {game_driver.interaction_config.reset_models}")
     if args.training_mode: # Only log reset_cards if in training mode
-        logging.info(f"Option - Reset training cards between games: {reset_cards}")
+        logging.info(f"Option - Reset training cards between games: {game_driver.interaction_config.reset_cards}")
+    logging.info(f"Option - Use extra vectors: {game_driver.model_config.use_extra_vectors}")
 
 
     # Start the game timer
@@ -246,14 +267,13 @@ def main() -> None:
 
     # Run the winner counter and plot the results, if not in training mode
     if not args.training_mode:
-        # Consider passing analysis output path from config if needed by data_analysis_main
-        analysis_output_path = game_driver.config.get('paths', {}).get('analysis_output', './analysis_results')
+        analysis_output_path = game_driver.paths_config.analysis_output
         data_analysis_main(
             game_driver.game_log,
-            change_players, # change_players_between_games
-            effective_cycle_judges, # Use the potentially adjusted value
-            reset_models, # reset_models_between_games
-            use_extra_vectors,
+            game_driver.interaction_config.change_players, # change_players_between_games
+            game_driver.interaction_config.cycle_starting_judges, # Use the potentially adjusted value
+            game_driver.interaction_config.reset_models, # reset_models_between_games
+            game_driver.model_config.use_extra_vectors,
             # output_dir=analysis_output_path # Example: Pass path if needed
         )
 

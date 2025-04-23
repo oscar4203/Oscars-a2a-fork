@@ -5,7 +5,7 @@ paths:
   data_base: "./data"
   embeddings: "./data/embeddings/GoogleNews-vectors-negative300.bin"
   apples_data: "./data/apples"
-  model_archetypes: "./data/models/agent_archetypes"
+  model_archetypes: "./data/agent_archetypes"
   analysis_output: "./analysis_results"
 
 # --- Game Settings ---

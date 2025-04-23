@@ -10,7 +10,7 @@ import numpy as np
 from src.embeddings.embeddings import Embedding
 from src.agent_model.model import Model, LRModel, NNModel
 from src.apples.apples import GreenApple, RedApple, Deck
-from src.data_classes.data_classes import ApplesInPlay, ChosenApples
+from src.data_classes.data_classes import ApplesInPlay, ChosenApples, PathsConfig
 
 class Agent:
     """
@@ -296,12 +296,21 @@ class AIAgent(Agent):
     """
     AI agent for the 'Apples to Apples' game using Word2Vec and Linear Regression.
     """
-    def __init__(self, name: str, ml_model_type: LRModel | NNModel, pretrained_archetype: str, use_extra_vectors: bool = False, training_mode: bool = False, print_in_terminal: bool = True) -> None:
+    def __init__(self,
+                 name: str,
+                 ml_model_type: LRModel | NNModel,
+                 paths_config: PathsConfig,
+                 pretrained_archetype: str,
+                 use_extra_vectors: bool = False,
+                 training_mode: bool = False,
+                 print_in_terminal: bool = True
+                ) -> None:
         super().__init__(name, print_in_terminal)
         self.__ml_model_type: LRModel | NNModel = ml_model_type
         self.__pretrained_archetype: str = pretrained_archetype
         self.__use_extra_vectors: bool = use_extra_vectors
         self.__training_mode: bool = training_mode
+        self._paths_config = paths_config
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}(name={self._name}, points={self._points}, judge_status={self._judge_status}"
@@ -319,7 +328,7 @@ class AIAgent(Agent):
         else:
             return self.__opponent_ml_models.get(agent_as_key)
 
-    def initialize_models(self, embedding: Embedding, all_players: list[Agent]) -> None:
+    def initialize_models(self, embedding: Embedding, paths_config: PathsConfig, all_players: list[Agent]) -> None:
         """
         Initialize the Linear Regression and/or Neural Network models for the AI agent.
         """
@@ -333,11 +342,11 @@ class AIAgent(Agent):
 
         # Initialize the self and opponent ml models
         if self.__ml_model_type is LRModel:
-            self.__self_ml_model: Model = LRModel(self, self, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(self, agent, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = LRModel(self, self, self.__embedding.vector_size, paths_config, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: LRModel(self, agent, self.__embedding.vector_size, paths_config, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode) for agent in self.__opponents}
         elif self.__ml_model_type is NNModel:
-            self.__self_ml_model: Model = NNModel(self, self, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode)
-            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(self, agent, self.__embedding.vector_size, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode) for agent in self.__opponents}
+            self.__self_ml_model: Model = NNModel(self, self, self.__embedding.vector_size, paths_config, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode)
+            self.__opponent_ml_models: dict[Agent, Model] = {agent: NNModel(self, agent, self.__embedding.vector_size, paths_config, self.__pretrained_archetype, self.__use_extra_vectors, self.__training_mode) for agent in self.__opponents}
         logging.debug(f"Self Model initialized - self_ml_model: {self.__self_ml_model}")
         logging.debug(f"Opponent Models initialized - opponent_ml_models: {self.__opponent_ml_models}")
 
@@ -428,6 +437,44 @@ class AIAgent(Agent):
                 if losing_red_apples:
                     message += f" Losing red apples: {losing_red_apples}."
                 logging.debug(message)
+
+    # def initialize_models(self, embedding: Embedding, players: list[Agent], paths_config: PathsConfig) -> None:
+    #     """Initialize opponent models for all other players."""
+    #     self._opponent_models = {} # Clear existing models if any
+    #     for opponent in players:
+    #         if opponent != self: # Don't create a model for self here
+    #             # Determine archetype/type for opponent model (you might need more sophisticated logic here)
+    #             opponent_archetype = "Literalist" # Example: Default or determine based on opponent type/name
+    #             opponent_model_type = "1" # Example: Default to LR
+    #             self._add_opponent_model(opponent, opponent_archetype, opponent_model_type, paths_config) # Pass paths_config
+
+    # def _create_model(self, judge_agent: "Agent", archetype: str, model_type_key: str) -> Model:
+    #     """Creates a model instance based on the type key."""
+    #     model_class = model_type_mapping.get(model_type_key)
+    #     if not model_class:
+    #         raise ValueError(f"Invalid model type key: {model_type_key}")
+
+    #     return model_class(
+    #         self_agent=self,
+    #         judge_to_model=judge_agent,
+    #         vector_size=self._vector_size,
+    #         pretrained_archetype=archetype,
+    #         use_extra_vectors=self._use_extra_vectors,
+    #         training_mode=self._training_mode,
+    #         # --- Pass PathsConfig ---
+    #         paths_config=self._paths_config
+    #     )
+
+    # def _add_opponent_model(self, opponent_agent: "Agent", model_archetype: str, model_type: str, paths_config: PathsConfig) -> None:
+    #      """Adds or updates a model for a specific opponent."""
+    #      if opponent_agent.get_name() not in self._opponent_models:
+    #          # _create_model will use self._paths_config stored during AIAgent init
+    #          self._opponent_models[opponent_agent.get_name()] = self._create_model(
+    #              judge_agent=opponent_agent,
+    #              archetype=model_archetype,
+    #              model_type_key=model_type
+    #          )
+    #          logging.info(f"Agent '{self.get_name()}' created model for opponent '{opponent_agent.get_name()}'.")
 
 
 if __name__ == "__main__":

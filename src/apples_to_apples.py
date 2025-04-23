@@ -3,6 +3,7 @@
 # Standard Libraries
 import logging
 import time
+import os
 
 # Third-party Libraries
 
@@ -12,13 +13,26 @@ from src.apples.apples import GreenApple, RedApple, Deck
 from src.agent_model.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from src.agent_model.model import model_type_mapping, Model
 from src.logging.game_logger import log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
-from src.data_classes.data_classes import RoundState, GameState, GameLog, ApplesInPlay
+from src.data_classes.data_classes import (
+    RoundState, GameState, GameLog, ApplesInPlay,
+    PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
+)
 
 
 class ApplesToApples:
-    def __init__(self, embedding: Embedding, print_in_terminal: bool, training_mode: bool,
-                 load_all_packs: bool = False, green_expansion: str = '', red_expansion: str = '') -> None:
+    def __init__(self,
+                 embedding: Embedding,
+                 paths_config: PathsConfig = PathsConfig(),
+                 game_config: GameConfig = GameConfig(),
+                 print_in_terminal: bool = True,
+                 training_mode: bool = False,
+                 load_all_packs: bool = False,
+                 green_expansion: str = '',
+                 red_expansion: str = '',
+            ) -> None:
         self.embedding: Embedding = embedding
+        self.__paths_config = paths_config
+        self.__game_config = game_config
         self.__print_in_terminal = print_in_terminal
         self.__training_mode: bool = training_mode
         self.__load_all_packs: bool = load_all_packs
@@ -30,13 +44,15 @@ class ApplesToApples:
     def initalize_game_log(self, game_log: GameLog) -> None:
         self.__game_log = game_log
 
-    def set_game_options(self, change_players: bool, cycle_starting_judges: bool, reset_models: bool,
-                         use_extra_vectors: bool, reset_cards_between_games: bool) -> None:
-        self.__change_players_between_games = change_players
-        self.__cycle_starting_judges_between_games = cycle_starting_judges
-        self.__reset_models_between_games = reset_models
-        self.__use_extra_vectors = use_extra_vectors
-        self.__reset_cards_between_games = reset_cards_between_games
+    def set_game_options(self,
+                         between_game_config: BetweenGameConfig = BetweenGameConfig(),
+                         model_config: ModelConfig = ModelConfig()
+                        ) -> None:
+        self.__between_game_config = between_game_config
+        self.__model_config = model_config
+        logging.info(f"ApplesToApples using options: change_players={self.__between_game_config.change_players}, "
+                     f"cycle_judges={self.__between_game_config.cycle_starting_judges}, reset_models={self.__between_game_config.reset_models}, "
+                     f"reset_cards={self.__between_game_config.reset_cards}, use_extra_vectors={self.__model_config.use_extra_vectors}")
 
     def new_game(self) -> None:
         """
@@ -75,7 +91,7 @@ class ApplesToApples:
             self.__initialize_players()
         elif self.__game_log.get_current_game_number() > 1:
             # Prompt the user on whether to keep the same players, if applicable
-            if self.__change_players_between_games:
+            if self.__between_game_config.change_players:
                 from game_driver import get_user_input_y_or_n
                 keep_players = get_user_input_y_or_n("Do you want to keep the same players as last game? (y/n): ")
                 if keep_players == "n":
@@ -98,16 +114,16 @@ class ApplesToApples:
             self.__reset_player_points_and_judge_status()
 
             # Reset the opponent models for the AI agents, if applicable
-            if self.__reset_models_between_games:
+            if self.__between_game_config.reset_models:
                 self.__reset_opponent_models()
 
             # Reset the red apples in hand for all players, if applicable
-            if self.__training_mode and self.__reset_cards_between_games:
+            if self.__training_mode and self.__between_game_config.reset_cards:
                 # Reset the red apples in hand for all players
                 for player in self.__game_log.get_game_players():
                     if isinstance(player, HumanAgent):
                         player.reset_red_apples()
-                        player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+                        player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__model_config.use_extra_vectors)
 
         # Start the game loop
         self.__game_loop()
@@ -228,13 +244,13 @@ class ApplesToApples:
 
             # Create a new AI agent
             new_agent_name = f"AI Agent - {model_type_class.__name__} - {pretrained_model_string}"
-            new_agent = AIAgent(new_agent_name, model_type_class, pretrained_model_string, self.__use_extra_vectors, True)
+            new_agent = AIAgent(new_agent_name, model_type_class, self.__paths_config, pretrained_model_string, self.__model_config.use_extra_vectors, True)
 
             # Create the human agent
             human_agent = HumanAgent("Human Agent", self.__print_in_terminal)
 
             # Have the human agent pick up max red apples in hand
-            human_agent.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+            human_agent.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__model_config.use_extra_vectors)
 
             # Add the human agent and AI agent to the current game and game log
             self.__game_log.add_player_to_current_game(human_agent) # NOTE - APPEND HUMAN AGENT FIRST!!!
@@ -302,7 +318,7 @@ class ApplesToApples:
 
                     # Create the AI agent
                     new_agent_name = self.__generate_unique_agent_name(f"AI Agent - {ml_model_type_class.__name__} - {pretrained_archetype_string}")
-                    new_agent = AIAgent(new_agent_name, ml_model_type_class, pretrained_archetype_string, self.__use_extra_vectors,
+                    new_agent = AIAgent(new_agent_name, ml_model_type_class, self.__paths_config, pretrained_archetype_string, self.__model_config.use_extra_vectors,
                                         training_mode=False, print_in_terminal=self.__print_in_terminal)
 
                 # Append the player object to the current game and game log
@@ -311,7 +327,7 @@ class ApplesToApples:
                 logging.info(f"Added new player {self.__game_log.get_game_players()[i]}")
 
                 # Have each player pick up max red apples in hand
-                self.__game_log.get_game_players()[i].draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+                self.__game_log.get_game_players()[i].draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__model_config.use_extra_vectors)
 
         # Sort the players alphabetically by name
         self.__game_log.sort_players_by_name()
@@ -319,7 +335,7 @@ class ApplesToApples:
         # Initialize the models for the AI agents
         for player in self.__game_log.get_game_players():
             if isinstance(player, AIAgent):
-                player.initialize_models(self.embedding, self.__game_log.get_game_players())
+                player.initialize_models(self.embedding, self.__paths_config, self.__game_log.get_game_players())
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
         # Format the naming scheme when new players are initialized
@@ -338,11 +354,11 @@ class ApplesToApples:
                     break
         else:
             # If cycle starting judge is True, choose the starting judge automatically
-            if self.__cycle_starting_judges_between_games:
+            if self.__between_game_config.cycle_starting_judges:
                 # Cycle through the judges to get the judge index
                 judge_index = ((self.__game_log.get_current_game_number() - 1) % self.__game_log.total_number_of_players) # Subtract 1 since 0-based index and current_game starts at 1
             else: # If cycle starting judge is False, prompt the user to choose the starting judge
-                if self.__change_players_between_games:
+                if self.__between_game_config.change_players:
                     # Choose the starting judge
                     choice = input(f"\nPlease choose the starting judge (1-{self.__game_log.get_number_of_players()}): ")
                     logging.info(f"Please choose the starting judge (1-{self.__game_log.get_number_of_players()}): {choice}")
@@ -430,7 +446,7 @@ class ApplesToApples:
         logging.info(message)
 
         # Set the green card in play
-        green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__use_extra_vectors)
+        green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(self.embedding, self.__green_apples_deck, self.__model_config.use_extra_vectors)
         self.__game_log.set_green_apple_in_play(green_apple_dict)
         self.__game_log.set_chosen_green_apple(green_apple_dict)
 
@@ -482,7 +498,7 @@ class ApplesToApples:
 
             # Prompt the player to pick up a new red apple
             if len(player.get_red_apples()) < self.__game_log.max_cards_in_hand:
-                player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__use_extra_vectors)
+                player.draw_red_apples(self.embedding, self.__red_apples_deck, self.__game_log.max_cards_in_hand, self.__model_config.use_extra_vectors)
 
     def __determine_round_winner(self) -> None:
             # Extract the current judge and apples in play

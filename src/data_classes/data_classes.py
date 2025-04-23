@@ -524,5 +524,40 @@ class PreferenceUpdates:
         }
 
 
+# Configuration classes
+@dataclass
+class PathsConfig:
+    """Configuration settings related to file paths."""
+    data_base: str = "./data"
+    embeddings: str = f"{data_base}/embeddings/GoogleNews-vectors-negative300.bin"
+    apples_data: str = f"{data_base}/apples"
+    model_archetypes: str = f"{data_base}/agent_archetypes"
+    # logs: str = "./logs"
+    # log_filename: str = "a2a_game.log"
+    analysis_output: str = "./analysis_results"
+
+@dataclass
+class GameConfig:
+    """Configuration settings related to general game rules."""
+    default_max_cards_in_hand: int = 7
+    training_max_cards_in_hand: int = 25
+    training_num_players: int = 2
+
+@dataclass
+class ModelConfig:
+    """Configuration settings related to AI models."""
+    use_extra_vectors: bool = True
+    # Add other model-specific settings here if needed
+    # learning_rate: float = 0.01
+
+@dataclass
+class BetweenGameConfig:
+    """Configuration settings for between game options."""
+    change_players: bool = False
+    cycle_starting_judges: bool = False
+    reset_models: bool = False
+    reset_cards: bool = False # For training mode
+
+
 if __name__ == "__main__":
     pass
