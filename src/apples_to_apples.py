@@ -43,8 +43,21 @@ class ApplesToApples:
         self.__green_apples_deck: Deck = Deck()
         self.__red_apples_deck: Deck = Deck()
 
+    def get_game_log(self) -> GameLog:
+        """Returns the current GameLog instance. Raises RuntimeError if not initialized."""
+        if self.__game_log is None:
+            # Handle the case where the log hasn't been initialized yet
+            # Raise an error because the GameLog is essential for subsequent operations
+            message = "GameLog has not been initialized yet. Call initalize_game_log() first."
+            logging.error(message)
+            raise RuntimeError(message)
+        # If self.__game_log is not None, return it (type hint is satisfied)
+        return self.__game_log
+
     def initalize_game_log(self, game_log: GameLog) -> None:
+        """Sets the GameLog instance for the game."""
         self.__game_log = game_log
+        logging.info("GameLog initialized in ApplesToApples.")
 
     def set_game_options(self,
                          between_game_config: BetweenGameConfig = BetweenGameConfig(),

@@ -6,8 +6,16 @@ import argparse
 import time
 import yaml
 import os
+import sys # Import sys (needed if you using streamlit)
 
-# Third-party Libraries
+# # Third-party Libraries
+# try:
+#     import streamlit.web.cli as stcli # Import streamlit cli runner
+#     import streamlit as st # Import streamlit for session state
+# except ImportError:
+#     stcli = None
+#     st = None
+
 
 # Local Modules
 from src.embeddings.embeddings import Embedding
@@ -15,9 +23,18 @@ from src.apples_to_apples import ApplesToApples
 from src.logging.game_logger import configure_logging
 from src.data_analysis.data_analysis import main as data_analysis_main
 from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
-from src.gui.gui_wrapper import GUIWrapper
+
+# --- Import the Pygame Wrapper ---
+try:
+    from src.gui.gui_wrapper_pygame import PygameGUIWrapper
+    import pygame
+except ImportError:
+    PygameGUIWrapper = None
+    pygame = None
+# --- End Import ---
 
 
+# --- Standalone Config Loader ---
 def load_config(config_path="config/config.yaml") -> dict:
     """Loads configuration from a YAML file."""
     if not os.path.exists(config_path):
@@ -37,7 +54,6 @@ def load_config(config_path="config/config.yaml") -> dict:
         # Use print for other errors during initial load.
         print(f"ERROR: Failed to load config file {config_path}: {e}. Using default settings.")
         return {}
-# --- End Standalone Config Loader ---
 
 
 class GameDriver:
@@ -111,6 +127,7 @@ class GameDriver:
 
 
 def range_type(min_value, max_value):
+    """Function for creating a range-limited integer type for argparse."""
     def range_checker(value):
         try:
             ivalue = int(value)
@@ -123,8 +140,9 @@ def range_type(min_value, max_value):
 
 
 def get_user_input_y_or_n(prompt: str) -> str:
+    """Prompts the user for a 'y' or 'n' response."""
     while True:
-        response = input(prompt)
+        response = input(prompt).lower().strip()
         if response in ["y", "n"]:
             return response
         print("Invalid input. Type in either 'y' or 'n'.")
@@ -140,11 +158,12 @@ def main() -> None:
               "\nFor help: python3 game_driver.py -h",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
                     "points to win, and total games to play. Include optional green and red apple expansions. "\
+                    "The game runs in terminal mode by default. "\
                     "Use the -A flag to load all available card packs. "\
                     "Use the -V flag to use the custom vector loader (may not work on all systems). "\
-                    "Use the -G flag to use the GUI wrapper for the game. "\
-                    "Use the -P flag to print the game info and results in the terminal. "\
-                    "Use the -T flag to run the program in training mode. "\
+                    "Use the -G flag to run the game in GUI mode (using Pygame). "\
+                    "Use the -P flag to print the game info and results in the terminal (terminal mode only). "\
+                    "Use the -T flag to run the program in training mode (forces terminal execution). "\
                     "Use the -D flag to enable debug mode for detailed logging."
     )
 
@@ -156,9 +175,9 @@ def main() -> None:
     parser.add_argument("red_expansion", type=str, nargs='?', default='', help="Filename to a red apple expansion (optional).")
     parser.add_argument("-A", "--load_all_packs", action="store_true", help="Load all available card packs")
     parser.add_argument("-V", "--vector_loader", action="store_true", help="Use the custom vector loader")
-    parser.add_argument("-G", "--gui_wrapper", action="store_true", help="Use the GUI wrapper for the game")
-    parser.add_argument("-P", "--print_in_terminal", action="store_true", help="Print the game info and prompts in the terminal")
-    parser.add_argument("-T", "--training_mode", action="store_true", help="Train a user specified model archetype")
+    parser.add_argument("-G", "--gui_wrapper", action="store_true", help="Use the GUI wrapper (Pygame) for the game")
+    parser.add_argument("-P", "--print_in_terminal", action="store_true", help="Print the game info and prompts in the terminal (terminal mode only)")
+    parser.add_argument("-T", "--training_mode", action="store_true", help="Run in training mode (forces terminal execution)")
     parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode for detailed logging")
 
     # Parse the command line arguments
@@ -179,7 +198,6 @@ def main() -> None:
         analysis_output=raw_paths_config.get("analysis_output", "./analysis_results")
     )
 
-    # Now configure_logging gets the correct paths before anything else uses logging
     configure_logging(args.debug, paths_config)
     logging.info("--- Logging configured ---")
     logging.info(f"Logging to: {os.path.join(paths_config.logging_base_directory, paths_config.logging_filename)}")
@@ -198,7 +216,6 @@ def main() -> None:
 
     # Log the command line arguments
     logging.info(f"Command line arguments: {args}")
-    # Log effective game settings after considering config and training mode
     logging.info(f"Effective number of players: {game_driver.game_log.total_number_of_players}")
     logging.info(f"Effective max cards in hand: {game_driver.game_log.max_cards_in_hand}")
     logging.info(f"Points to win: {game_driver.game_log.points_to_win}")
@@ -211,11 +228,8 @@ def main() -> None:
     logging.info(f"Print in terminal: {args.print_in_terminal}")
     logging.info(f"Training mode: {args.training_mode}")
     logging.info(f"Debug mode: {args.debug}")
-    # --- Log path from dataclass ---
     logging.info(f"Using embedding path: {game_driver.paths_config.embeddings}")
-    # --- Log model archetype path from dataclass ---
     logging.info(f"Using model archetypes path: {game_driver.paths_config.model_archetypes}")
-    # --- Log logging path ---
     logging.info(f"Logging base directory: {game_driver.paths_config.logging_base_directory}")
     logging.info(f"Log filename: {game_driver.paths_config.logging_filename}")
 
@@ -229,7 +243,7 @@ def main() -> None:
         embedding=game_driver.embedding,
         paths_config=game_driver.paths_config,
         game_config=game_driver.game_config,
-        print_in_terminal=args.print_in_terminal,
+        print_in_terminal=(not args.gui_wrapper and args.print_in_terminal),
         training_mode=args.training_mode,
         load_all_packs=args.load_all_packs,
         green_expansion=args.green_expansion,
@@ -239,67 +253,145 @@ def main() -> None:
     # Set the static game log
     a2a_game.initalize_game_log(game_driver.game_log)
 
-    game_driver.interaction_config.cycle_starting_judges = game_driver.interaction_config.cycle_starting_judges \
-        if not game_driver.interaction_config.change_players else False
+    # Adjust cycle_starting_judges based on change_players
+    # Create adjusted interaction config if needed, or modify the existing one (possible side effects)
+    adjusted_interaction_config = BetweenGameConfig(
+        change_players=game_driver.interaction_config.change_players,
+        cycle_starting_judges=game_driver.interaction_config.cycle_starting_judges if not game_driver.interaction_config.change_players else False,
+        reset_models=game_driver.interaction_config.reset_models,
+        reset_cards=game_driver.interaction_config.reset_cards
+    )
 
     # Set the game options
     a2a_game.set_game_options(
-        game_driver.interaction_config,
+        adjusted_interaction_config,
         game_driver.model_config
     )
 
     # Log the final game options being used (sourced from config)
-    logging.info(f"Option - Change players between games: {game_driver.interaction_config.change_players}")
+    logging.info(f"Option - Change players between games: {adjusted_interaction_config.change_players}")
     # Log the effective judge cycling based on whether players change
-    if game_driver.interaction_config.change_players:
+    if adjusted_interaction_config.change_players:
         logging.info(f"Option - Cycle starting judges: N/A (players change between games)")
     else:
-        logging.info(f"Option - Cycle starting judges: {game_driver.interaction_config.cycle_starting_judges}") # cycle_starting_judges
-    logging.info(f"Option - Reset models between games: {game_driver.interaction_config.reset_models}")
+        logging.info(f"Option - Cycle starting judges: {adjusted_interaction_config.cycle_starting_judges}")
+    logging.info(f"Option - Reset models between games: {adjusted_interaction_config.reset_models}")
     if args.training_mode: # Only log reset_cards if in training mode
-        logging.info(f"Option - Reset training cards between games: {game_driver.interaction_config.reset_cards}")
+        logging.info(f"Option - Reset training cards between games: {adjusted_interaction_config.reset_cards}")
     logging.info(f"Option - Use extra vectors: {game_driver.model_config.use_extra_vectors}")
 
 
-    # Start the game timer
-    start = time.perf_counter()
+    # Determine Execution Mode
+    # Prioritize Training Mode (forces terminal)
+    if args.training_mode:
+        if args.gui_wrapper:
+            logging.warning("Both -T (training_mode) and -G (gui_wrapper) specified. Prioritizing terminal mode for training.")
+        # Fall through to the 'else' block for terminal execution
 
-    # Start the first game
-    a2a_game.new_game()
+    # Check for GUI Mode (if not training)
+    elif args.gui_wrapper:
+        # --- GUI Mode ---
+        if not pygame or not PygameGUIWrapper:
+            print("ERROR: Pygame is required for GUI mode (-G). Please install it (`pip install pygame`).")
+            logging.error("Pygame or PygameGUIWrapper not found, cannot start GUI mode.")
+            exit(1)
 
-    # Continue playing games until the total number of games is reached
-    while game_driver.game_log.get_current_game_number() < game_driver.game_log.total_games:
-        # Start the next game
+        print("Starting GUI mode...")
+        logging.info("Starting GUI mode.")
+        try:
+            # # Store the fully initialized game object in session state for the GUI script
+            # st.session_state['a2a_game_instance'] = a2a_game
+            # logging.info("Stored a2a_game instance in Streamlit session state.")
+
+            # # Construct the absolute path to the GUI wrapper script
+            # # Assumes game_driver.py is in the project root
+            # gui_script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src', 'gui', 'gui_wrapper.py'))
+
+            # # Check if the script exists before trying to run it
+            # if not os.path.exists(gui_script_path):
+            #      print(f"ERROR: GUI script not found at expected path: {gui_script_path}")
+            #      logging.error(f"GUI script not found at: {gui_script_path}")
+            #      exit(1)
+
+            # # Overwrite sys.argv to make Streamlit run the target script
+            # sys.argv = ["streamlit", "run", gui_script_path]
+            # logging.info(f"Running Streamlit with command: {' '.join(sys.argv)}")
+
+            # # Execute Streamlit's main function
+            # stcli.main()
+
+            # --- Instantiate and run the Pygame wrapper ---
+            gui_wrapper = PygameGUIWrapper(game=a2a_game)
+            gui_wrapper.run()
+
+            # Code here will run after the Pygame window is closed
+            logging.info("Pygame GUI finished.")
+
+        except Exception as e:
+            print(f"ERROR: Failed during GUI execution: {e}")
+            logging.error(f"Failed during GUI execution: {e}", exc_info=True)
+            exit(1)
+        # Note: Shutdown logging happens after this block finishes
+
+    # Default to Terminal Mode if not Training or GUI
+    if not args.gui_wrapper or args.training_mode:
+        # Terminal Mode
+        if args.training_mode:
+            print("Starting terminal mode (forced by -T/training_mode)...")
+            logging.info("Starting terminal mode (forced by -T/training_mode).")
+        else:
+            print("Starting terminal mode (default)...")
+            logging.info("Starting terminal mode (default).")
+
+        # Start the game timer
+        start = time.perf_counter()
+
+        # Start the first game
+        # Note: new_game() now handles player/deck initialization internally
         a2a_game.new_game()
 
-    # End the game timer
-    end = time.perf_counter()
+        # Continue playing games until the total number of games is reached
+        # The game loop logic is now primarily inside a2a_game.play_game() or similar
+        # This external loop might only be needed if managing multiple game instances/resets here
+        # Assuming a2a_game.new_game() plays one full game until a winner is found:
+        while game_driver.game_log.get_current_game_number() < game_driver.game_log.total_games:
+            # Start the next game (which includes its own internal round loop)
+            a2a_game.new_game()
 
-    # Format the total elapsed time
-    total_time = end - start
-    hours = int(total_time // 3600)
-    minutes = int((total_time % 3600) // 60)
-    seconds = int(total_time % 60)
+        # End the game timer
+        end = time.perf_counter()
 
-    # Print and log the total time elapsed
-    print(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
-    logging.info(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
+        # Format the total elapsed time
+        total_time = end - start
+        hours = int(total_time // 3600)
+        minutes = int((total_time % 3600) // 60)
+        seconds = int(total_time % 60)
 
-    # Run the winner counter and plot the results, if not in training mode
-    if not args.training_mode:
-        analysis_output_path = game_driver.paths_config.analysis_output
-        data_analysis_main(
-            game_driver.paths_config,
-            game_driver.game_log,
-            game_driver.interaction_config.change_players, # change_players_between_games
-            game_driver.interaction_config.cycle_starting_judges, # Use the potentially adjusted value
-            game_driver.interaction_config.reset_models, # reset_models_between_games
-            game_driver.model_config.use_extra_vectors,
-            # output_dir=analysis_output_path # Example: Pass path if needed
-        )
+        # Print and log the total time elapsed
+        print(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
+        logging.info(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
 
+
+        # Data analysis (Run if in terminal mode, regardless of training flag?)
+        # Decide if analysis should run *only* if not training, or always in terminal mode.
+        # Current logic runs analysis if in terminal mode AND NOT training mode.
+        if not args.training_mode:
+            logging.info("Starting data analysis.")
+            data_analysis_main(
+                paths_config=game_driver.paths_config,
+                game_log=game_driver.game_log,
+                change_players_between_games=adjusted_interaction_config.change_players,
+                cycle_starting_judges=adjusted_interaction_config.cycle_starting_judges,
+                reset_models_between_games=adjusted_interaction_config.reset_models,
+                use_extra_vectors=game_driver.model_config.use_extra_vectors,
+            )
+            logging.info("Data analysis finished.")
+        else:
+            logging.info("Skipping data analysis in training mode.")
+    # Shutdown Logging (Common to both modes if GUI exits cleanly)
     logging.info("Game simulation finished. Shutting down logging.")
     logging.shutdown()
+
 
 if __name__ == "__main__":
     main()
