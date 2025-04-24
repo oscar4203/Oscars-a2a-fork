@@ -2,8 +2,10 @@
 
 # Standard Libraries
 from typing import TYPE_CHECKING # Type hinting to avoid circular imports
+import os
 import logging
 import numpy as np
+from datetime import datetime
 from dataclasses import dataclass, field
 
 # Third-party Libraries
@@ -12,7 +14,7 @@ from dataclasses import dataclass, field
 if TYPE_CHECKING:
     from src.apples.apples import GreenApple, RedApple
     from src.agent_model.agent import Agent
-from src.logging.game_logger import format_naming_scheme, LOGGING_BASE_DIRECTORY
+    from src.data_classes.data_classes import PathsConfig
 
 
 @dataclass
@@ -360,12 +362,79 @@ class GameLog:
         self.points_to_win = points_to_win
         self.total_games = total_games
 
-    def format_naming_scheme(self) -> None:
-        self.naming_scheme = format_naming_scheme(
-                self.get_game_players(),
-                self.total_games,
-                self.points_to_win
-            )
+    def __format_players_string(self, players: "list[Agent]") -> str:
+        # Initialize the abbreviations lists
+        ai_abbrev_list = []
+        human_abbrev_list = []
+        random_list = []
+
+        # Runtime import to avoid circular dependency
+        from src.agent_model.agent import AIAgent, HumanAgent, RandomAgent
+
+        # Abbreviate the player names to the first 3 characters
+        for player in players:
+            if isinstance(player, AIAgent):
+                name: str = player.get_name().lower()
+                name_parts: list[str] = name.split("-")
+                last_part: str = name_parts[-1].strip()
+                ai_abbrev_list.append(last_part[:3])
+                # # Example: Extract archetype like 'Lit', 'Com', 'Con'
+                # name_parts = player.get_name().split('-')
+                # archetype = name_parts[0].strip()[:3] if name_parts else 'AI' # Fallback
+                # ai_abbrev_list.append(archetype)
+            elif isinstance(player, HumanAgent):
+                human_abbrev_list.append("hum")
+            elif isinstance(player, RandomAgent):
+                random_list.append("rnd")
+
+        # Join the lists into a single string
+        ai_abbrev = "_".join(sorted(ai_abbrev_list)) # Sort for consistency
+
+        # Count the number of human players
+        human_abbrev = ""
+        if len(human_abbrev_list) > 0:
+            human_abbrev = f"hum_{len(human_abbrev_list)}"
+
+        # Count the number of random players
+        random_abbrev = ""
+        if len(random_list) > 0:
+            random_abbrev = f"rnd_{len(random_list)}"
+
+        # Join the strings, filtering empty parts
+        final_string: str = "-".join(filter(None, [ai_abbrev, human_abbrev, random_abbrev]))
+        return final_string
+
+    def __create_final_naming_scheme_string(self, date_string: str, total_games: int, points_to_win: int, players_string: str = "", num: int | None = None) -> str:
+        num_string = f"{num}-" if num else ""
+        # Ensure players_string is included
+        return f"{date_string}{num_string}{total_games}_games-{points_to_win}_pts-{players_string}"
+
+    def format_naming_scheme(self, paths_config: "PathsConfig") -> None:
+        """Formats the naming scheme for logging based on game parameters."""
+        # Get the current date
+        date = datetime.now().strftime("%Y_%m_%d")
+
+        # Get the list of players and format the players string using the internal method
+        # Use all_game_players which should be populated before this is called
+        if not self.all_game_players:
+             logging.warning("Attempting to format naming scheme before all_game_players is populated.")
+             players_string = "UNKNOWN_PLAYERS"
+        else:
+             players_string = self.__format_players_string(self.all_game_players)
+
+        # Format the initial naming scheme
+        date_string = f"{date}-"
+        num = 1
+        final_string = self.__create_final_naming_scheme_string(date_string, self.total_games, self.points_to_win, players_string, num)
+
+        # Check if there already exists a directory with the same naming scheme
+        while os.path.exists(os.path.join(paths_config.logging_base_directory, final_string)):
+            num += 1
+            final_string = self.__create_final_naming_scheme_string(date_string, self.total_games, self.points_to_win, players_string, num)
+
+        # Assign the generated string to the instance variable
+        self.naming_scheme = final_string
+        logging.info(f"Generated GameLog naming scheme: {self.naming_scheme}")
 
     def add_game(self, game_state: GameState) -> None:
         # Automatically increment the current game number
@@ -529,11 +598,11 @@ class PreferenceUpdates:
 class PathsConfig:
     """Configuration settings related to file paths."""
     data_base: str = "./data"
-    embeddings: str = f"{data_base}/embeddings/GoogleNews-vectors-negative300.bin"
-    apples_data: str = f"{data_base}/apples"
-    model_archetypes: str = f"{data_base}/agent_archetypes"
-    # logs: str = "./logs"
-    # log_filename: str = "a2a_game.log"
+    embeddings: str = "./data/embeddings/GoogleNews-vectors-negative300.bin"
+    apples_data: str = "./data/apples"
+    model_archetypes: str = "./data/agent_archetypes"
+    logging_base_directory: str = "./logs"
+    logging_filename: str = "a2a_game.log"
     analysis_output: str = "./analysis_results"
 
 @dataclass

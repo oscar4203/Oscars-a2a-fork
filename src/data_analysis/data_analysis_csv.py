@@ -18,8 +18,7 @@ from matplotlib.colors import to_rgba
 import matplotlib.patheffects as path_effects
 
 # Local Modules
-from src.data_classes.data_classes import GameLog
-from src.logging.game_logger import LOGGING_BASE_DIRECTORY
+from src.data_classes.data_classes import GameLog, PathsConfig
 from src.data_analysis.data_analysis import abbreviate_name, save_plot, print_table, create_legend, create_game_settings_box, \
     create_bar_plot, create_pie_chart, create_box_plot, create_line_graph
 

@@ -24,8 +24,7 @@ import matplotlib.patheffects as path_effects
 
 # Local Modules
 from src.agent_model.agent import Agent, AIAgent
-from src.data_classes.data_classes import GameLog
-from src.logging.game_logger import LOGGING_BASE_DIRECTORY
+from src.data_classes.data_classes import GameLog, PathsConfig
 
 
 def calculate_win_counts(game_log: GameLog) -> tuple[dict, dict]:
@@ -787,7 +786,7 @@ def save_plot(plot_figure: Figure, output_filepath: str) -> None:
         raise e
 
 
-def main(game_log: GameLog, change_players_between_games: bool,
+def main(paths_config: PathsConfig, game_log: GameLog, change_players_between_games: bool,
             cycle_starting_judges: bool, reset_models_between_games: bool,
             use_extra_vectors: bool) -> None:
     # Print the game info
@@ -808,15 +807,15 @@ def main(game_log: GameLog, change_players_between_games: bool,
     print_table(game_table_data, game_headers, "\nGAME WINNERS TABLE")
 
     # Generate csv output filepaths
-    round_stats_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/round_win_stats-{game_log.naming_scheme}.csv"
-    game_stats_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/game_win_stats-{game_log.naming_scheme}.csv"
+    round_stats_output_filepath = f"{paths_config.logging_base_directory}/{game_log.naming_scheme}/round_win_stats-{game_log.naming_scheme}.csv"
+    game_stats_output_filepath = f"{paths_config.logging_base_directory}/{game_log.naming_scheme}/game_win_stats-{game_log.naming_scheme}.csv"
 
     # Save to CSV
     save_to_csv(round_table_data, round_headers, round_stats_output_filepath)
     save_to_csv(game_table_data, game_headers, game_stats_output_filepath)
 
     # Generate round winners output filepath
-    round_winners_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/round_winners-{game_log.naming_scheme}.png"
+    round_winners_output_filepath = f"{paths_config.logging_base_directory}/{game_log.naming_scheme}/round_winners-{game_log.naming_scheme}.png"
 
     # Create a plot of the round winners
     round_winners_plot = create_round_winners_plot(
@@ -831,7 +830,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
     plt.show()
 
     # Generate game winners output filepath
-    game_winners_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/game_winners-{game_log.naming_scheme}.png"
+    game_winners_output_filepath = f"{paths_config.logging_base_directory}/{game_log.naming_scheme}/game_winners-{game_log.naming_scheme}.png"
 
     # Create a plot of the game winners
     game_winners_plot = create_game_winners_plot(
@@ -846,7 +845,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
     plt.show()
 
     # Generate judge heatmap output filepath
-    judge_heatmap_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/judge_heatmap-{game_log.naming_scheme}.png"
+    judge_heatmap_output_filepath = f"{paths_config.logging_base_directory}/{game_log.naming_scheme}/judge_heatmap-{game_log.naming_scheme}.png"
 
     # Create a plot of the judge heatmap
     judge_heatmap_plot = create_heatmap(game_log)
@@ -858,7 +857,7 @@ def main(game_log: GameLog, change_players_between_games: bool,
     plt.show()
 
     # Generate vector history output filepath
-    vector_history_output_filepath = f"{LOGGING_BASE_DIRECTORY}{game_log.naming_scheme}/vector_history-{game_log.naming_scheme}.png"
+    vector_history_output_filepath = f"{paths_config.logging_base_directory}/{game_log.naming_scheme}/vector_history-{game_log.naming_scheme}.png"
 
 
     # Create a plot of the vector history
@@ -876,6 +875,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Count round winners and game winners from the resulting game log.")
 
     # Add an argument for the filename as input
+    parser.add_argument("paths_config", help="PathsConfig object with all paths.")
     parser.add_argument("game_log", help="GameLog object with all GameState and RoundState data.")
     parser.add_argument("change_players_between_games", help="Change players between games (y/n).")
     parser.add_argument("cycle_starting_judges", help="Cycle starting judges between games (y/n).")
@@ -885,6 +885,7 @@ if __name__ == "__main__":
     # Parse the arguments and call the main function
     args = parser.parse_args()
     main(
+        args.paths_config,
         args.game_log,
         args.change_players_between_games,
         args.cycle_starting_judges,

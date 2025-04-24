@@ -6,6 +6,8 @@ paths:
   embeddings: "./data/embeddings/GoogleNews-vectors-negative300.bin"
   apples_data: "./data/apples"
   model_archetypes: "./data/agent_archetypes"
+  logging_base_directory: "./logs"
+  logging_filename: "a2a_game.log"
   analysis_output: "./analysis_results"
 
 # --- Game Settings ---

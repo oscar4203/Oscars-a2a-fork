@@ -18,25 +18,46 @@ from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, Mode
 from src.gui.gui_wrapper import GUIWrapper
 
 
-class GameDriver:
-    def __init__(self, training_mode: bool, number_of_players: int, points_to_win: int, total_games: int, config_path="config/config.yaml") -> None:
-        # Load configuration
-        self.config = self._load_config(config_path)
+def load_config(config_path="config/config.yaml") -> dict:
+    """Loads configuration from a YAML file."""
+    if not os.path.exists(config_path):
+        # Use print because logging isn't configured yet.
+        print(f"Warning: Config file not found at {config_path}. Using default settings.")
+        return {} # Return empty dict, defaults will be handled by .get()
+    try:
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        # Config loaded successfully, no need to print here.
+        return config if config else {} # Return empty dict if file is empty
+    except yaml.YAMLError as e:
+        # Use print for errors during initial load.
+        print(f"ERROR: Error parsing YAML config file {config_path}: {e}. Using default settings.")
+        return {} # Return empty dict on error
+    except Exception as e:
+        # Use print for other errors during initial load.
+        print(f"ERROR: Failed to load config file {config_path}: {e}. Using default settings.")
+        return {}
+# --- End Standalone Config Loader ---
 
-        # --- Populate Dataclasses from Config ---
-        raw_paths_config = self.config.get("paths", {})
+
+class GameDriver:
+    def __init__(self,
+                 config: dict,
+                 paths_config: PathsConfig,
+                 training_mode: bool,
+                 number_of_players: int,
+                 points_to_win: int,
+                 total_games: int) -> None:
+
+        # Store the passed config and paths
+        self.config = config
+        self.paths_config = paths_config
+
+        # Populate remaining config dataclasses
         raw_game_config = self.config.get("game", {})
         raw_model_config = self.config.get("model", {})
         raw_interaction_config = self.config.get("interaction", {})
-        raw_logging_config = self.config.get("logging", {}) # Get logging specific section
 
-        self.paths_config = PathsConfig(
-            data_base=raw_paths_config.get("data_base", "./data"),
-            embeddings=raw_paths_config.get("embeddings", "./data/embeddings/GoogleNews-vectors-negative300.bin"),
-            apples_data=raw_paths_config.get("apples_data", "./data/apples"),
-            model_archetypes=raw_paths_config.get("model_archetypes", "./data/agent_archetypes"),
-            analysis_output=raw_paths_config.get("analysis_output", "./analysis_results")
-        )
         self.game_config = GameConfig(
             default_max_cards_in_hand=raw_game_config.get("default_max_cards_in_hand", 7),
             training_max_cards_in_hand=raw_game_config.get("training_max_cards_in_hand", 25),
@@ -44,7 +65,6 @@ class GameDriver:
         )
         self.model_config = ModelConfig(
             use_extra_vectors=raw_model_config.get("use_extra_vectors_default", True)
-            # Add other model settings here
         )
         self.interaction_config = BetweenGameConfig(
             change_players=raw_interaction_config.get("change_players_between_games_default", False),
@@ -66,23 +86,6 @@ class GameDriver:
         self.game_log: GameLog = GameLog()
         # Use effective values determined above
         self.game_log.intialize_input_args(effective_number_of_players, effective_max_cards_in_hand, points_to_win, total_games)
-
-    def _load_config(self, config_path="config/config.yaml"):
-        if not os.path.exists(config_path):
-            # Handle missing config file (e.g., raise error, use defaults)
-            logging.warning(f"Config file not found at {config_path}. Using default settings.")
-            return {} # Return empty dict, defaults will be handled by .get()
-        try:
-            with open(config_path, 'r') as f:
-                config = yaml.safe_load(f)
-            logging.info(f"Loaded configuration from {config_path}")
-            return config if config else {} # Return empty dict if file is empty
-        except yaml.YAMLError as e:
-            logging.error(f"Error parsing YAML config file {config_path}: {e}")
-            return {} # Return empty dict on error
-        except Exception as e:
-            logging.error(f"Failed to load config file {config_path}: {e}")
-            return {}
 
     def load_keyed_vectors(self, use_custom_loader: bool) -> None:
         print("Loading Vectors...")
@@ -117,16 +120,6 @@ def range_type(min_value, max_value):
         except ValueError:
              raise argparse.ArgumentTypeError(f"Value must be an integer.")
     return range_checker
-
-
-def load_config(config_path="config/config.yaml"):
-    if not os.path.exists(config_path):
-        # Handle missing config file (e.g., raise error, use defaults)
-        print(f"Warning: Config file not found at {config_path}")
-        return {}
-    with open(config_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
 
 
 def get_user_input_y_or_n(prompt: str) -> str:
@@ -171,13 +164,37 @@ def main() -> None:
     # Parse the command line arguments
     args = parser.parse_args()
 
-    # Create the game driver object (this will load the config)
-    print("Initializing 'Apples to Apples' game driver...")
-    game_driver = GameDriver(args.training_mode, args.number_of_players, args.points_to_win, args.total_games)
+    # Load Config and Create PathsConfig EARLY
+    print("Loading configuration...")
+    config = load_config()
+    raw_paths_config = config.get("paths", {})
+    raw_logging_config = config.get("logging", {})
+    paths_config = PathsConfig(
+        data_base=raw_paths_config.get("data_base", "./data"),
+        embeddings=raw_paths_config.get("embeddings", "./data/embeddings/GoogleNews-vectors-negative300.bin"),
+        apples_data=raw_paths_config.get("apples_data", "./data/apples"),
+        model_archetypes=raw_paths_config.get("model_archetypes", "./data/agent_archetypes"),
+        logging_base_directory=raw_paths_config.get("logs", "./logs"),
+        logging_filename=raw_logging_config.get("log_filename", "a2a_game.log"),
+        analysis_output=raw_paths_config.get("analysis_output", "./analysis_results")
+    )
 
-    # Configure and initialize the logging module
-    configure_logging(args.debug)
+    # Now configure_logging gets the correct paths before anything else uses logging
+    configure_logging(args.debug, paths_config)
+    logging.info("--- Logging configured ---")
+    logging.info(f"Logging to: {os.path.join(paths_config.logging_base_directory, paths_config.logging_filename)}")
+
+    # Create the GameDriver object
+    print("Initializing 'Apples to Apples' game driver...")
     logging.info("Starting 'Apples to Apples' game driver.")
+    game_driver = GameDriver(
+        config=config,
+        paths_config=paths_config,
+        training_mode=args.training_mode,
+        number_of_players=args.number_of_players,
+        points_to_win=args.points_to_win,
+        total_games=args.total_games
+    )
 
     # Log the command line arguments
     logging.info(f"Command line arguments: {args}")
@@ -198,6 +215,9 @@ def main() -> None:
     logging.info(f"Using embedding path: {game_driver.paths_config.embeddings}")
     # --- Log model archetype path from dataclass ---
     logging.info(f"Using model archetypes path: {game_driver.paths_config.model_archetypes}")
+    # --- Log logging path ---
+    logging.info(f"Logging base directory: {game_driver.paths_config.logging_base_directory}")
+    logging.info(f"Log filename: {game_driver.paths_config.logging_filename}")
 
 
     # Load the keyed vectors (using path from config stored in game_driver)
@@ -269,6 +289,7 @@ def main() -> None:
     if not args.training_mode:
         analysis_output_path = game_driver.paths_config.analysis_output
         data_analysis_main(
+            game_driver.paths_config,
             game_driver.game_log,
             game_driver.interaction_config.change_players, # change_players_between_games
             game_driver.interaction_config.cycle_starting_judges, # Use the potentially adjusted value
@@ -276,6 +297,9 @@ def main() -> None:
             game_driver.model_config.use_extra_vectors,
             # output_dir=analysis_output_path # Example: Pass path if needed
         )
+
+    logging.info("Game simulation finished. Shutting down logging.")
+    logging.shutdown()
 
 if __name__ == "__main__":
     main()

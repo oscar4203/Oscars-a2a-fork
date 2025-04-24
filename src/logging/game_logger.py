@@ -14,105 +14,55 @@ import numpy as np
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.data_classes.data_classes import GameState, GameLog
+from src.data_classes.data_classes import PathsConfig
 
 
 # Logging configuration
 LOGGING_FORMAT = "[%(levelname)s] %(asctime)s (%(name)s) %(module)s.%(funcName)s:%(lineno)d - %(message)s"
 LOGGING_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
-LOGGING_BASE_DIRECTORY = "./logs/"
-LOGGING_FILENAME = "a2a_game.log"
 
 
-def configure_logging(debug_mode: bool) -> None:
+def configure_logging(debug_mode: bool, paths_config: PathsConfig) -> None:
     """
     Configure logging parameters for the application.
-
-    Example usage:
-    ```python
-    def main() -> None:
-        # Configure and initialize the logging module
-        configure_logging()
-    ```
     """
-    file_path = os.path.join(LOGGING_BASE_DIRECTORY, LOGGING_FILENAME)
+    try: # Add try block for better error visibility
+        log_dir = paths_config.logging_base_directory
+        log_filename = paths_config.logging_filename
+        file_path = os.path.join(log_dir, log_filename)
 
-    # Check that the logging file and directory exist
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        if debug_mode:
+            print(f"[DEBUG] configure_logging: Attempting to use log file path: {os.path.abspath(file_path)}") # Show absolute path
 
-    # Set the logging level
-    logging_level = logging.DEBUG if debug_mode else logging.INFO
+        # Check that the logging directory can be created
+        # os.makedirs will raise an error if it fails and exist_ok is False,
+        # but with exist_ok=True, we might want to check writability if needed.
+        # For now, let's assume makedirs works or the dir exists.
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        if debug_mode:
+            print(f"[DEBUG] configure_logging: Ensured directory exists: {os.path.abspath(os.path.dirname(file_path))}")
 
-    # Configure logging
-    logging.basicConfig(
-        level=logging_level,
-        format=LOGGING_FORMAT,
-        datefmt=LOGGING_DATE_FORMAT,
-        filename=file_path
-    )
+        # Set the logging level
+        logging_level = logging.DEBUG if debug_mode else logging.INFO
+        if debug_mode:
+            print(f"[DEBUG] configure_logging: Setting logging level to: {logging_level} ({'DEBUG' if debug_mode else 'INFO'})")
 
+        # Configure logging
+        logging.basicConfig(
+            level=logging_level,
+            format=LOGGING_FORMAT,
+            datefmt=LOGGING_DATE_FORMAT,
+            filename=file_path,
+            filemode='w' # Force overwrite mode for debugging
+        )
+        if debug_mode:
+            print(f"[DEBUG] configure_logging: logging.basicConfig called for file: {os.path.abspath(file_path)}")
 
-def format_players_string(players: "list[Agent]") -> str:
-    # Initialize the abbreviations lists
-    ai_abbrev_list = []
-    human_abbrev_list = []
-    random_list = []
-
-    # Runtime import to avoid circular dependency
-    from src.agent_model.agent import AIAgent, HumanAgent, RandomAgent
-
-    # Abbreviate the player names to the first 3 characters
-    for player in players:
-        if isinstance(player, AIAgent):
-            name: str = player.get_name().lower()
-            name_parts: list[str] = name.split("-")
-            last_part: str = name_parts[-1].strip()
-            ai_abbrev_list.append(last_part[:3])
-        elif isinstance(player, HumanAgent):
-            human_abbrev_list.append("hum")
-        elif isinstance(player, RandomAgent):
-            random_list.append("rnd")
-
-    # Join the lists into a single string
-    ai_abbrev = "_".join(ai_abbrev_list)
-
-    # Count the number of human players
-    human_abbrev = ""
-    if len(human_abbrev_list) > 0:
-        human_abbrev = f"hum_{len(human_abbrev_list)}"
-
-    # Count the number of random players
-    random_abbrev = ""
-    if len(random_list) > 0:
-        random_abbrev = f"rnd_{len(random_list)}"
-
-    # Join the strings
-    final_string: str = "-".join(filter(None, [ai_abbrev, human_abbrev, random_abbrev]))
-    return final_string
-
-
-def create_final_naming_scheme_string(date_string: str, total_games: int | None = None, points_to_win: int | None = None, players_string: str = "", num: int | None = None) -> str:
-    num_string = f"{num}-" if num else ""
-    return f"{date_string}{num_string}{total_games}_games-{points_to_win}_pts-{players_string}"
-
-
-def format_naming_scheme(players: "list[Agent]", total_games: int | None = None, points_to_win: int | None = None) -> str:
-    # Get the current date
-    date = datetime.now().strftime("%Y_%m_%d")
-
-    # Format the players string
-    players_string = format_players_string(players)
-
-    # Format the initial naming scheme
-    date_string = f"{date}-"
-    num = 1
-    final_string = create_final_naming_scheme_string(date_string, total_games, points_to_win, players_string, num)
-
-    # Check if there already exists a directory with the same naming scheme
-    while os.path.exists(os.path.join(LOGGING_BASE_DIRECTORY, final_string)):
-        num += 1
-        final_string = create_final_naming_scheme_string(date_string, total_games, points_to_win, players_string, num)
-
-    return final_string
+    except Exception as e:
+        if debug_mode:
+            print(f"[ERROR] configure_logging: Failed during logging setup: {e}")
+        # Optionally re-raise or handle differently
+        raise
 
 
 def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict, header: bool = True) -> None:
@@ -133,11 +83,10 @@ def log_to_csv(directory: str, filename: str, fieldnames: list[str], data: dict,
         writer.writerow(data)
 
 
-def log_vectors(game_log: "GameLog", game_state: "GameState", judge: "Agent", player: "Agent", slope: np.ndarray, bias: np.ndarray, header: bool) -> None:
+def log_vectors(paths_config: PathsConfig, game_log: "GameLog", game_state: "GameState", judge: "Agent", player: "Agent", slope: np.ndarray, bias: np.ndarray, header: bool) -> None:
     date_time = datetime.now().strftime("%Y-%m-%d-%H-%M")
-    naming_scheme = game_log.naming_scheme
-    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"vectors-{naming_scheme}.csv"
+    directory = os.path.join(paths_config.logging_base_directory, game_log.naming_scheme)
+    filename = f"vectors-{game_log.naming_scheme}.csv"
 
     # Runtime import to avoid circular dependency
     from src.data_classes.data_classes import PreferenceUpdates
@@ -149,27 +98,27 @@ def log_vectors(game_log: "GameLog", game_state: "GameState", judge: "Agent", pl
     log_to_csv(directory, filename, list(preference_updates.to_dict().keys()), preference_updates.to_dict(), header)
 
 
-def log_game_state(naming_scheme: str, game_log: "GameLog", header: bool) -> None:
-    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"game_state-{naming_scheme}.csv"
+def log_game_state(paths_config: PathsConfig, game_log: "GameLog", header: bool) -> None:
+    directory = os.path.join(paths_config.logging_base_directory, game_log.naming_scheme)
+    filename = f"game_state-{game_log.naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_log.game_log_to_dict().keys()), game_log.game_log_to_dict(), header)
 
 
-def log_round_winner(naming_scheme: str, game_state: "GameState", header: bool) -> None:
-    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"round_winners-{naming_scheme}.csv"
+def log_round_winner(paths_config: PathsConfig, game_log: "GameLog", game_state: "GameState", header: bool) -> None:
+    directory = os.path.join(paths_config.logging_base_directory, game_log.naming_scheme)
+    filename = f"round_winners-{game_log.naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_state.round_winner_to_dict().keys()), game_state.round_winner_to_dict(), header)
 
 
-def log_game_winner(naming_scheme: str, game_state: "GameState", header: bool) -> None:
-    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"game_winners-{naming_scheme}.csv"
+def log_game_winner(paths_config: PathsConfig, game_log: "GameLog", game_state: "GameState", header: bool) -> None:
+    directory = os.path.join(paths_config.logging_base_directory, game_log.naming_scheme)
+    filename = f"game_winners-{game_log.naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_state.game_winner_to_dict().keys()), game_state.game_winner_to_dict(), header)
 
 
-def log_training_mode(naming_scheme: str, game_state: "GameState", header: bool) -> None:
-    directory = os.path.join(LOGGING_BASE_DIRECTORY, naming_scheme)
-    filename = f"training-{naming_scheme}.csv"
+def log_training_mode(paths_config: PathsConfig, game_log: "GameLog", game_state: "GameState", header: bool) -> None:
+    directory = os.path.join(paths_config.logging_base_directory, game_log.naming_scheme)
+    filename = f"training-{game_log.naming_scheme}.csv"
     log_to_csv(directory, filename, list(game_state.training_to_dict().keys()), game_state.training_to_dict(), header)
 
 

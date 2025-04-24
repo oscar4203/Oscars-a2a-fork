@@ -12,7 +12,9 @@ from src.embeddings.embeddings import Embedding
 from src.apples.apples import GreenApple, RedApple, Deck
 from src.agent_model.agent import Agent, HumanAgent, RandomAgent, AIAgent
 from src.agent_model.model import model_type_mapping, Model
-from src.logging.game_logger import log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
+from src.logging.game_logger import (
+    log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
+)
 from src.data_classes.data_classes import (
     RoundState, GameState, GameLog, ApplesInPlay,
     PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
@@ -338,8 +340,9 @@ class ApplesToApples:
                 player.initialize_models(self.embedding, self.__paths_config, self.__game_log.get_game_players())
                 logging.info(f"Initialized models for {new_agent.get_name()}.")
 
-        # Format the naming scheme when new players are initialized
-        self.__game_log.format_naming_scheme()
+        # --- Format the naming scheme AFTER players are initialized and sorted ---
+        self.__game_log.format_naming_scheme(self.__paths_config)
+        logging.info(f"Generated logging naming scheme: {self.__game_log.naming_scheme}")
 
     def __choose_starting_judge(self) -> Agent:
         # Clear the judge status for all players
@@ -554,6 +557,10 @@ class ApplesToApples:
             # Set the round winner and award the additional point
             self.__game_log.set_round_winner(round_winner)
 
+            # Log the round winner (pass paths_config)
+            if not self.__training_mode:
+                log_round_winner(self.__paths_config, self.__game_log, self.__game_log.get_current_game_state(), True)
+
     def __train_ai_agents(self) -> None:
         # Train all AI agents (if applicable)
         for player in self.__game_log.get_game_players():
@@ -576,7 +583,7 @@ class ApplesToApples:
                                 raise ValueError("The opponent judge model is None.")
 
                             slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
-                            log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
+                            log_vectors(self.__paths_config, self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
 
                             # Add the slope and bias to the game log
                             self.__game_log.get_current_game_state().add_slope_and_bias(player, self.__game_log.get_current_judge(), slope, bias)
@@ -597,7 +604,7 @@ class ApplesToApples:
                             raise ValueError("The opponent judge model is None.")
 
                         slope, bias = opponent_judge_model.get_slope_and_bias_vectors()
-                        log_vectors(self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
+                        log_vectors(self.__paths_config, self.__game_log, self.__game_log.get_current_game_state(), self.__game_log.get_current_judge(), player, slope, bias, True)
 
                         # Add the slope and bias to the game log
                         self.__game_log.get_current_game_state().add_slope_and_bias(player, self.__game_log.get_current_judge(), slope, bias)
@@ -637,16 +644,19 @@ class ApplesToApples:
 
             # Log the round winner
             if not self.__training_mode:
-                log_round_winner(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                log_round_winner(self.__paths_config, self.__game_log, self.__game_log.get_current_game_state(), True)
+                # log_round_winner(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
 
             # Check if the game is over
             self.__is_game_over()
 
             # Log the gameplay or training results
             if self.__training_mode:
-                log_training_mode(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                log_training_mode(self.__paths_config, self.__game_log, self.__game_log.get_current_game_state(), True)
+                # log_training_mode(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
             else:
-                log_game_state(self.__game_log.naming_scheme, self.__game_log, True)
+                log_game_state(self.__paths_config, self.__game_log, True)
+                # log_game_state(self.__game_log.naming_scheme, self.__game_log, True)
 
             # Train the AI agents
             self.__train_ai_agents()
@@ -670,7 +680,8 @@ class ApplesToApples:
 
                 # Log the winner if not in training mode
                 if not self.__training_mode:
-                    log_game_winner(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
+                    log_game_winner(self.__paths_config, self.__game_log, self.__game_log.get_current_game_state(), True)
+                    # log_game_winner(self.__game_log.naming_scheme, self.__game_log.get_current_game_state(), True)
 
 
 if __name__ == "__main__":
