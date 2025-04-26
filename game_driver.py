@@ -151,7 +151,6 @@ def range_type(min_value, max_value):
 #             return response
 #         print("Invalid input. Type in either 'y' or 'n'.")
 
-
 def main() -> None:
     # Define the command line arguments
     parser = argparse.ArgumentParser(
@@ -269,8 +268,6 @@ def main() -> None:
     #     # Create terminal interface with print setting from args
     #     game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
 
-    # Always use TerminalUI for now, regardless of args.gui_mode
-    game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
 
     # Create the game object with the selected interface
     a2a_game = ApplesToApples(
