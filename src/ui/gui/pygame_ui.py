@@ -32,7 +32,7 @@ FONT_SIZE_NORMAL = 24
 FONT_SIZE_LARGE = 36
 FONT_SIZE_SMALL = 18
 
-class PygameGUIWrapper:
+class PygameUI:
     def __init__(self, game: "ApplesToApples"):
         """Initializes the Pygame GUI wrapper."""
         self.game: "ApplesToApples" = game

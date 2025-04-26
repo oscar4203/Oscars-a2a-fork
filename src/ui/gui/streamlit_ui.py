@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     # Import GameLog for type hinting if needed
     from src.data_classes.data_classes import GameLog
 
-class GUIWrapper:
+class StreamlitUI:
     # --- Modify __init__ to get game from session_state ---
     def __init__(self):
         """Initializes the GUI wrapper, retrieving the game instance from Streamlit's session state."""
@@ -95,7 +95,7 @@ class GUIWrapper:
             # Use get_apples_in_play() which should return the ApplesInPlay object
             apples_in_play = game_log.get_apples_in_play()
             if apples_in_play:
-                green_apple_in_play: "GreenApple" = apples_in_play.get_green_apple()
+                green_apple_in_play: GreenApple = apples_in_play.get_green_apple()
                 if green_apple_in_play:
                     st.markdown(f"**{green_apple_in_play.get_adjective()}**")
                     st.caption(green_apple_in_play.get_synonyms())
@@ -254,7 +254,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='[GUI Main] %(levelname)s: %(message)s')
     logging.info("gui_wrapper.py executed as main script.")
     # Instantiate the wrapper, which will get the game object from session state
-    gui = GUIWrapper()
+    gui = StreamlitUI()
     # Run the main display logic
     gui.run()
 # --- End Main Execution Block ---

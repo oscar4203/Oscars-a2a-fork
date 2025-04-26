@@ -1,28 +1,36 @@
 # Description: AI agent logic for the 'Apples to Apples' game.
 
 # Standard Libraries
+from typing import TYPE_CHECKING
 import logging
 import random
 import numpy as np
 
+# Third-party Libraries
 
 # Local Modules
 from src.embeddings.embeddings import Embedding
 from src.agent_model.model import Model, LRModel, NNModel
 from src.apples.apples import GreenApple, RedApple, Deck
 from src.data_classes.data_classes import ApplesInPlay, ChosenApples, PathsConfig
+from src.interface.input_handler import TerminalInputHandler
+
+# Type Checking to prevent circular imports
+if TYPE_CHECKING:
+    from src.interface.input_handler import InputHandler
+
 
 class Agent:
     """
     Base class for the agents in the 'Apples to Apples' game
     """
-    def __init__(self, name: str, print_in_terminal: bool) -> None:
-        self._print_in_terminal: bool = print_in_terminal
+    def __init__(self, name: str) -> None:
         self._name: str = name
         self._points: int = 0
         self._judge_status: bool = False
         self._green_apple: GreenApple | None = None
         self._red_apples: list[RedApple] = []
+        self._input_handler: "InputHandler" = TerminalInputHandler()
 
     def __str__(self) -> str:
         # Retrieve the green apple
@@ -113,21 +121,18 @@ class Agent:
             logging.error(f"{self._name} is not the judge.")
             raise ValueError(f"{self._name} is not the judge.")
 
-        # Display the green apple drawn
-        message = f"{self._name} drew the green apple '{self._green_apple}'."
-        if self._print_in_terminal:
-            print(message)
-        logging.info(message)
-
         # Initialize the green apple dict
         green_apple_dict: dict["Agent", GreenApple] = {self: self._green_apple}
 
         return green_apple_dict
 
-    def draw_red_apples(self, embedding: Embedding, red_apple_deck: Deck, cards_in_hand: int, extra_vectors: bool) -> Deck | None:
+    def draw_red_apples(self, embedding: Embedding, red_apple_deck: Deck, cards_in_hand: int, extra_vectors: bool) -> int:
         """
         Draw red apples from the deck, ensuring the agent has enough red apples.
         The vectors are set as soon as the new red apples are drawn.
+
+        Returns:
+            int: Number of cards drawn (can be used by UI layer to display appropriate message)
         """
         # Calculate the number of red apples to pick up
         diff = cards_in_hand - len(self._red_apples)
@@ -147,21 +152,17 @@ class Agent:
 
                 # Append the red apple to the agent's hand
                 self._red_apples.append(new_red_apple)
+
+            # Log the operation but don't print it directly
             if diff == 1:
-                message = f"{self._name} picked up 1 red apple."
-                if self._print_in_terminal:
-                    print(message)
-                logging.info(message)
+                logging.info(f"{self._name} picked up 1 red apple.")
             else:
-                message = f"{self._name} picked up {diff} red apples."
-                if self._print_in_terminal:
-                    print(message)
-                logging.info(message)
+                logging.info(f"{self._name} picked up {diff} red apples.")
+
+            return diff  # Return the number of cards drawn
         else:
-            message = f"{self._name} cannot pick up any more red apples. Agent already has enough red apples."
-            if self._print_in_terminal:
-                print(message)
-            logging.info(message)
+            logging.info(f"{self._name} already has enough red apples.")
+            return 0  # No cards drawn
 
     def choose_red_apple(self, current_judge: "Agent", green_apple: GreenApple) -> dict["Agent", RedApple]:
         """
@@ -177,11 +178,9 @@ class Agent:
 
 
 class HumanAgent(Agent):
-    """
-    Human agent for the 'Apples to Apples' game.
-    """
-    def __init__(self, name: str, print_in_terminal: bool) -> None:
-        super().__init__(name, print_in_terminal)
+    """Human agent for the 'Apples to Apples' game."""
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
@@ -189,37 +188,12 @@ class HumanAgent(Agent):
             logging.error(f"{self._name} is the judge.")
             raise ValueError(f"{self._name} is the judge.")
 
-        # Choose a red apple
-        red_apple: RedApple | None = None
-
-        # Display the red apples in the agent's hand
-        print(f"{self._name}'s red apples:")
-        for i, red_apple in enumerate(self._red_apples):
-            print(f"{i + 1}. {red_apple}")
-
-        # Prompt the agent to choose a red apple
-        red_apple_len = len(self._red_apples)
-        red_apple_index = input(f"Choose a red apple (1 - {red_apple_len}): ")
-
-        # Validate the input
-        while not red_apple_index.isdigit() or int(red_apple_index) not in range(1, red_apple_len + 1):
-            print(f"Invalid input. Please choose a valid red apple (1 - {red_apple_len}).")
-            red_apple_index = input("Choose a red apple: ")
-
         # Convert the input to an index
-        red_apple_index = int(red_apple_index) - 1
+        red_apple_index = self._input_handler.prompt_human_agent_choose_red_apple(self, self.get_red_apples(), green_apple)
+        chosen_red_apple = self._red_apples.pop(red_apple_index)
+        chosen_red_apple_dict: dict["Agent", RedApple] = {self: chosen_red_apple}
 
-        # Remove the red apple from the agent's hand
-        red_apple = self._red_apples.pop(red_apple_index)
-
-        # Display the red apple chosen
-        print(f"{self._name} chose a red apple.")
-        logging.info(f"{self._name} chose the red apple '{red_apple}'.")
-
-        # Put the red apple in a dictionary
-        red_apple_dict: dict["Agent", RedApple] = {self: red_apple}
-
-        return red_apple_dict
+        return chosen_red_apple_dict
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
@@ -255,11 +229,9 @@ class HumanAgent(Agent):
 
 
 class RandomAgent(Agent):
-    """
-    Random agent for the 'Apples to Apples' game.
-    """
-    def __init__(self, name: str, print_in_terminal: bool) -> None:
-        super().__init__(name, print_in_terminal)
+    """Random agent for the 'Apples to Apples' game."""
+    def __init__(self, name: str) -> None:
+        super().__init__(name)
 
     def choose_red_apple(self, current_judge: Agent, green_apple: GreenApple) -> dict["Agent", RedApple]:
         # Check if the agent is a judge
@@ -268,17 +240,11 @@ class RandomAgent(Agent):
             raise ValueError(f"{self._name} is the judge.")
 
         # Choose a random red apple
-        red_apple = self._red_apples.pop(random.choice(range(len(self._red_apples))))
+        index = random.choice(range(len(self._red_apples)))
+        chosen_red_apple = self._red_apples.pop(index)
+        chosen_red_apple_dict: dict["Agent", RedApple] = {self: chosen_red_apple}
 
-        # Display the red apple chosen
-        if self._print_in_terminal:
-            print(f"{self._name} chose a red apple.")
-        logging.info(f"{self._name} chose the red apple '{red_apple}'.")
-
-        # Put the red apple in a dictionary
-        red_apple_dict: dict["Agent", RedApple] = {self: red_apple}
-
-        return red_apple_dict
+        return chosen_red_apple_dict
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         # Check if the agent is a judge
@@ -302,10 +268,9 @@ class AIAgent(Agent):
                  paths_config: PathsConfig,
                  pretrained_archetype: str,
                  use_extra_vectors: bool = False,
-                 training_mode: bool = False,
-                 print_in_terminal: bool = True
+                 training_mode: bool = False
                 ) -> None:
-        super().__init__(name, print_in_terminal)
+        super().__init__(name)
         self.__ml_model_type: LRModel | NNModel = ml_model_type
         self.__pretrained_archetype: str = pretrained_archetype
         self.__use_extra_vectors: bool = use_extra_vectors
@@ -380,18 +345,11 @@ class AIAgent(Agent):
             raise ValueError(f"{self._name} is the judge.")
 
         # Run the AI model to choose a red apple based on current judge
-        red_apple: RedApple = self.__opponent_ml_models[current_judge].choose_red_apple(green_apple, self._red_apples)
-        self._red_apples.remove(red_apple)
+        chosen_red_apple: RedApple = self.__opponent_ml_models[current_judge].choose_red_apple(green_apple, self._red_apples)
+        self._red_apples.remove(chosen_red_apple)
+        chosen_red_apple_dict: dict["Agent", RedApple] = {self: chosen_red_apple}
 
-        # Display the red apple chosen
-        if self._print_in_terminal:
-            print(f"{self._name} chose a red apple.")
-        logging.info(f"{self._name} chose the red apple '{red_apple}'.")
-
-        # Put the red apple in a dictionary
-        red_apple_dict: dict["Agent", RedApple] = {self: red_apple}
-
-        return red_apple_dict
+        return chosen_red_apple_dict
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         # Choose a winning red apple
