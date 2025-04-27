@@ -269,6 +269,9 @@ def main() -> None:
     #     game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
 
 
+    # Always use TerminalUI for now, regardless of args.gui_mode
+    game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
+
     # Create the game object with the selected interface
     a2a_game = ApplesToApples(
         embedding=game_driver.embedding,
