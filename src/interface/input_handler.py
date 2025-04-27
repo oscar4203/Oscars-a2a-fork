@@ -1,17 +1,25 @@
-# Description: Abstract input handling for Apples to Apples game.
+# Description: Abstract input handling for Apples to Apples game. Terminal-based and Tkinter-based implementations.
 
 # Standard Libraries
 from abc import ABC, abstractmethod
 from typing import List, Dict, TYPE_CHECKING
 
 # Third-party Libraries
+import tkinter as tk
+from tkinter import simpledialog, messagebox
 
 # Local Modules
+from src.ui.gui.tkinter_dialogs import (
+    PlayerTypeDialog, ModelTypeDialog, ArchetypeDialog, StartingJudgeDialog,
+    RedAppleSelectionDialog, JudgeSelectionDialog, TrainingModelTypeDialog,
+    TrainingPretrainedTypeDialog
+)
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
+    from src.ui.gui.tkinter_ui import TkinterUI
 
 
 class InputHandler(ABC):
@@ -263,3 +271,72 @@ class TerminalInputHandler(InputHandler):
             if pretrained_type in ['1', '2', '3']:
                 return pretrained_type
             print("Invalid input. Please enter '1', '2', or '3'.")
+
+
+class TkinterInputHandler(InputHandler):
+    """Implementation of InputHandler for Tkinter GUI interface."""
+
+    def __init__(self, root: tk.Tk, ui: 'TkinterUI'):
+        """
+        Initialize the Tkinter input handler.
+
+        Args:
+            root: The Tkinter root window
+            ui: The TkinterUI instance
+        """
+        self.root = root
+        self.ui = ui
+
+    def prompt_yes_no(self, prompt: str) -> bool:
+        """Prompt the user for a yes/no answer via dialog box."""
+        return messagebox.askyesno("Question", prompt)
+
+    def prompt_player_type(self, player_number: int) -> str:
+        """Prompt for the type of player via dialog box."""
+        dialog = PlayerTypeDialog(self.root, player_number)
+        return dialog.result
+
+    def prompt_human_player_name(self) -> str:
+        """Prompt for a human player's name via dialog box."""
+        name = simpledialog.askstring("Input", "Please enter your name:", parent=self.root)
+        while not name:
+            messagebox.showerror("Error", "Name cannot be empty.")
+            name = simpledialog.askstring("Input", "Please enter your name:", parent=self.root)
+        return name
+
+    def prompt_ai_model_type(self) -> str:
+        """Prompt for the AI model type via dialog box."""
+        dialog = ModelTypeDialog(self.root)
+        return dialog.result
+
+    def prompt_ai_archetype(self) -> str:
+        """Prompt for the AI archetype via dialog box."""
+        dialog = ArchetypeDialog(self.root)
+        return dialog.result
+
+    def prompt_starting_judge(self, player_count: int) -> int:
+        """Prompt for the selection of the starting judge via dialog box."""
+        dialog = StartingJudgeDialog(self.root, player_count)
+        return dialog.result
+
+    def prompt_human_agent_choose_red_apple(self, player: "Agent", red_apples: List["RedApple"],
+                               green_apple: "GreenApple") -> int:
+        """Prompt a player to select a red apple via dialog box."""
+        dialog = RedAppleSelectionDialog(self.root, player, red_apples, green_apple)
+        return dialog.result
+
+    def prompt_judge_select_winner(self, judge: "Agent", submissions: Dict["Agent", "RedApple"],
+                                 green_apple: "GreenApple") -> "Agent":
+        """Prompt the judge to select the winning red apple via dialog box."""
+        dialog = JudgeSelectionDialog(self.root, judge, submissions, green_apple)
+        return dialog.result
+
+    def prompt_training_model_type(self) -> str:
+        """Prompt for the model type in training mode via dialog box."""
+        dialog = TrainingModelTypeDialog(self.root)
+        return dialog.result
+
+    def prompt_training_pretrained_type(self) -> str:
+        """Prompt for the pretrained model type in training mode via dialog box."""
+        dialog = TrainingPretrainedTypeDialog(self.root)
+        return dialog.result

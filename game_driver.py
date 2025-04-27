@@ -27,11 +27,11 @@ from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, Mode
 # Import the UI implementations
 from src.ui.terminal.terminal_ui import TerminalUI
 try:
-    from src.ui.gui.pygame_ui import PygameUI
-    import pygame
+    from src.ui.gui.tkinter_ui import TkinterUI
+    import tkinter as tk
 except ImportError:
-    PygameUI = None
-    pygame = None
+    TkinterUI = None
+    tk = None
 
 # Always set these to None for now
 PygameUI = None
@@ -239,38 +239,34 @@ def main() -> None:
     # Load the keyed vectors (using path from config stored in game_driver)
     game_driver.load_keyed_vectors(args.vector_loader)
 
-    # # Initialize the appropriate user interface based on args
-    # # Training mode forces terminal interface
-    # use_gui = args.gui_mode and not args.training_mode
+    # Initialize the appropriate user interface based on args
+    # Training mode forces terminal interface
+    use_gui = args.gui_mode and not args.training_mode
 
-    # if use_gui:
-    #     # Check if Pygame is available
-    #     if not pygame or not PygameUI:
-    #         print("ERROR: Pygame is required for GUI mode (-G). Please install it (`pip install pygame`).")
-    #         logging.error("Pygame or PygameUI not found, cannot start GUI mode.")
-    #         exit(1)
+    if use_gui:
+        # Check if Tkinter is available
+        if not tk or not TkinterUI:
+            print("ERROR: Tkinter is required for GUI mode (-G). Please make sure it's installed.")
+            logging.error("Tkinter or TkinterUI not found, cannot start GUI mode.")
+            exit(1)
 
-    #     print("Starting GUI mode...")
-    #     logging.info("Starting GUI mode.")
-    #     game_interface = PygameUI()
-    # else:
-    #     # Terminal mode (default or forced by training mode)
-    #     if args.training_mode and args.gui_mode:
-    #         print("NOTE: GUI mode (-G) ignored in training mode (-T). Using terminal interface.")
-    #         logging.warning("GUI mode (-G) ignored in training mode (-T). Using terminal interface.")
-    #     elif not args.gui_mode:
-    #         print("Starting terminal mode (default)...")
-    #         logging.info("Starting terminal mode (default).")
-    #     else:
-    #         print("Starting terminal mode (forced by -T/training_mode)...")
-    #         logging.info("Starting terminal mode (forced by -T/training_mode).")
+        print("Starting GUI mode...")
+        logging.info("Starting GUI mode.")
+        game_interface = TkinterUI()
+    else:
+        # Terminal mode (default or forced by training mode)
+        if args.training_mode and args.gui_mode:
+            print("NOTE: GUI mode (-G) ignored in training mode (-T). Using terminal interface.")
+            logging.warning("GUI mode (-G) ignored in training mode (-T). Using terminal interface.")
+        elif not args.gui_mode:
+            print("Starting terminal mode (default)...")
+            logging.info("Starting terminal mode (default).")
+        else:
+            print("Starting terminal mode (forced by -T/training_mode)...")
+            logging.info("Starting terminal mode (forced by -T/training_mode).")
 
-    #     # Create terminal interface with print setting from args
-    #     game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
-
-
-    # Always use TerminalUI for now, regardless of args.gui_mode
-    game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
+        # Create terminal interface with print setting from args
+        game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
 
     # Create the game object with the selected interface
     a2a_game = ApplesToApples(
