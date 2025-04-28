@@ -639,11 +639,22 @@ class TkinterOutputHandler(OutputHandler):
         # List to track submitted red apples for UI display purposes
         self._submitted_red_apples: List[Tuple["Agent", "RedApple"]] = []
 
+    def set_ui(self, ui: "TkinterUI") -> None:
+        """Set the UI reference after initialization."""
+        self.ui = ui
+
     def display_message(self, message: str) -> None:
         """Display a general message in the UI."""
-        self.ui.status_label.config(text=message)
-        logging.info(message)
-        self.root.update_idletasks()
+        if self.ui and hasattr(self.ui, 'status_label'): # Check if UI and widget exist
+            self.ui.status_label.config(text=message)
+            logging.info(message)
+            try:
+                # Use update() to ensure status messages appear promptly
+                self.root.update()
+            except tk.TclError as e:
+                 logging.warning(f"Ignoring TclError during root.update() in display_message: {e}")
+        else:
+            logging.warning("TkinterOutputHandler: UI or status_label not available for display_message.")
 
     def display_error(self, message: str) -> None:
         """Display an error message in the UI."""
@@ -759,15 +770,48 @@ class TkinterOutputHandler(OutputHandler):
         # Get red apples from player
         red_apples = player.get_red_apples()
 
-        # Create card widgets
+        # Reset tracking lists
+        self.ui.active_cards = []
+        self.ui.selected_card_index = None
+
+        # Remove confirm button if it exists
+        if self.ui.confirm_button is not None:
+            self.ui.confirm_button.destroy()
+            self.ui.confirm_button = None
+
+        # Create card widgets with click handlers for human players
         for i, apple in enumerate(red_apples):
+            # Only add click handlers for human players
+            command = None
+            if player.is_human():
+                command = lambda idx=i: self._handle_card_selection(idx)
+
             card = RedAppleCard.from_red_apple(
                 cards_frame,
-                apple
+                apple,
+                command=command
             )
             card.grid(row=i//7, column=i%7, padx=5, pady=5)
+            self.ui.active_cards.append(card)
 
         self.root.update_idletasks()
+
+    def _handle_card_selection(self, index: int) -> None:
+        """Handle a card being selected by clicking."""
+        # Deselect previously selected card if any
+        if self.ui.selected_card_index is not None and self.ui.active_cards:
+            prev_card = self.ui.active_cards[self.ui.selected_card_index]
+            prev_card.config(highlightthickness=0)
+
+        # Select new card
+        self.ui.selected_card_index = index
+        if index < len(self.ui.active_cards):
+            card = self.ui.active_cards[index]
+            card.config(highlightbackground="blue", highlightthickness=3)
+
+            # Immediately call the confirmation callback
+            if self.ui.on_card_confirm is not None:
+                self.ui.on_card_confirm()
 
     def display_red_apple_chosen(self, player: "Agent", red_apple: "RedApple") -> None:
         """Display that a player has chosen a red apple."""
