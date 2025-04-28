@@ -27,13 +27,13 @@ from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, Mode
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
-    from src.interface.input_handler import TerminalInputHandler, TkinterInputHandler
-    from src.interface.output_handler import TerminalOutputHandler, TkinterOutputHandler
+    from src.interface.input_handler import TerminalInputHandler
+    from src.interface.output_handler import TerminalOutputHandler
 
 # Import the UI implementations
 from src.ui.terminal.terminal_ui import TerminalUI
 try:
-    from src.ui.gui.tkinter_ui import TkinterUI
+    from src.ui.gui.tkinter.tkinter_ui import TkinterUI
     import tkinter as tk
 except ImportError:
     TkinterUI = None

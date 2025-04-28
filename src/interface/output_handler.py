@@ -10,13 +10,13 @@ import tkinter as tk
 from tkinter import messagebox
 
 # Local Modules
-from src.ui.gui.tkinter_widgets import GreenAppleCard, RedAppleCard
+from src.ui.gui.tkinter.tkinter_widgets import GreenAppleCard, RedAppleCard
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
-    from src.ui.gui.tkinter_ui import TkinterUI
+    from src.ui.gui.tkinter.tkinter_ui import TkinterUI
 
 
 class OutputHandler(ABC):

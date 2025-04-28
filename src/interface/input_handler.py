@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import simpledialog, messagebox
 
 # Local Modules
-from src.ui.gui.tkinter_dialogs import (
+from src.ui.gui.tkinter.tkinter_dialogs import (
     PlayerTypeDialog, ModelTypeDialog, ArchetypeDialog, StartingJudgeDialog,
     RedAppleSelectionDialog, JudgeSelectionDialog, TrainingModelTypeDialog,
     TrainingPretrainedTypeDialog
@@ -20,7 +20,7 @@ from src.ui.gui.tkinter_dialogs import (
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
-    from src.ui.gui.tkinter_ui import TkinterUI
+    from src.ui.gui.tkinter.tkinter_ui import TkinterUI
 
 
 class InputHandler(ABC):

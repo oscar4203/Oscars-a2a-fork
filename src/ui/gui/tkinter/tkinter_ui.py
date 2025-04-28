@@ -9,15 +9,13 @@ from typing import List, Tuple, Dict, Optional, Callable, TYPE_CHECKING
 from src.interface.game_interface import GameInterface
 from src.interface.input_handler import TkinterInputHandler
 from src.interface.output_handler import TkinterOutputHandler
-from src.ui.gui.tkinter_widgets import PlayerInfoWidget, RedAppleCard
+from src.ui.gui.tkinter.tkinter_widgets import PlayerInfoWidget, RedAppleCard
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
     from src.core.state import GameStateManager
-    from src.interface.input_handler import InputHandler
-    from src.interface.output_handler import OutputHandler
 
 
 class TkinterUI(GameInterface):

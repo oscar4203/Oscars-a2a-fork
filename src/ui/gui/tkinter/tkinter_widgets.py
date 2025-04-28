@@ -2,7 +2,6 @@
 
 # Standard Libraries
 import tkinter as tk
-from tkinter import ttk
 from typing import Optional, Callable, TYPE_CHECKING
 
 # Type Checking
