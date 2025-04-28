@@ -6,16 +6,8 @@ import argparse
 import time
 import yaml
 import os
-from typing import TYPE_CHECKING
 
-# # Third-party Libraries
-# try:
-#     import streamlit.web.cli as stcli # Import streamlit cli runner
-#     import streamlit as st # Import streamlit for session state
-# except ImportError:
-#     stcli = None
-#     st = None
-
+# Third-Party Libraries
 
 # Local Modules
 from src.embeddings.embeddings import Embedding

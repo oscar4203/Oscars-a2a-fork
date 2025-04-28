@@ -5,8 +5,6 @@ from typing import List, Tuple, TYPE_CHECKING
 
 # Local Modules
 from src.interface.game_interface import GameInterface
-from src.interface.input.terminal_input_handler import TerminalInputHandler
-from src.interface.output.terminal_output_handler import TerminalOutputHandler
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
@@ -28,14 +26,6 @@ class TerminalUI(GameInterface):
         """
         self.input_handler = input_handler
         self.output_handler = output_handler
-
-    # @property
-    # def input_handler(self) -> "InputHandler":
-    #     return self.input_handler
-
-    # @property
-    # def output_handler(self) -> "OutputHandler":
-    #     return self.output_handler
 
     # === Display Methods ===
 

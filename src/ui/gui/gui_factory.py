@@ -1,7 +1,7 @@
 """Factory for creating GUI instances based on configuration."""
 
 import logging
-from typing import Dict, Any, Optional, TYPE_CHECKING
+from typing import Dict, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.interface.game_interface import GameInterface

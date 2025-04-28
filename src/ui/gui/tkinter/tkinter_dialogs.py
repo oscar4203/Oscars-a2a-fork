@@ -3,13 +3,7 @@
 # Standard Libraries
 import tkinter as tk
 from tkinter import ttk
-from typing import List, Dict, TYPE_CHECKING
 from src.ui.gui.tkinter.tkinter_widgets import GreenAppleCard, RedAppleCard
-
-# Type Checking to prevent circular imports
-if TYPE_CHECKING:
-    from src.agent_model.agent import Agent
-    from src.apples.apples import GreenApple, RedApple
 
 
 class PlayerTypeDialog(tk.Toplevel):

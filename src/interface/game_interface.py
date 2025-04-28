@@ -39,16 +39,6 @@ class GameInterface(ABC):
         """Set the output handler for this interface."""
         self._output_handler = output_handler
 
-    # @abstractmethod
-    # def run(self) -> None:
-    #     """Start the main loop for the UI (relevant for GUI)."""
-    #     pass
-
-    # @abstractmethod
-    # def teardown(self) -> None:
-    #     """Clean up UI resources."""
-    #     pass
-
     @abstractmethod
     def display_new_game_message(self) -> None:
         """Display a message indicating a new game is starting."""
