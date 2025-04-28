@@ -3,6 +3,7 @@
 # Standard Libraries
 from abc import ABC, abstractmethod
 from typing import List, Dict, TYPE_CHECKING
+import logging
 
 # Third-party Libraries
 import tkinter as tk
@@ -353,10 +354,23 @@ class TkinterInputHandler(InputHandler):
         return index
 
     def prompt_judge_select_winner(self, judge: "Agent", submissions: Dict["Agent", "RedApple"],
-                                 green_apple: "GreenApple") -> "Agent":
+                              green_apple: "GreenApple") -> "Agent":
         """Prompt the judge to select the winning red apple via dialog box."""
-        dialog = JudgeSelectionDialog(self.root, judge, submissions, green_apple)
-        return dialog.result
+        try:
+            logging.debug(f"Opening JudgeSelectionDialog for {judge.get_name()}")
+            dialog = JudgeSelectionDialog(self.root, judge, submissions, green_apple)
+            selected_player = dialog.result
+            logging.debug(f"Judge {judge.get_name()} selected: {selected_player.get_name()}")
+
+            # Make sure the root window gets focus after dialog closes
+            self.root.focus_force()
+            self.root.update()
+
+            return selected_player
+        except Exception as e:
+            logging.error(f"Error in prompt_judge_select_winner: {e}")
+            # Return first player as fallback
+            return list(submissions.keys())[0]
 
     def prompt_training_model_type(self) -> str:
         """Prompt for the model type in training mode via dialog box."""

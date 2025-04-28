@@ -826,51 +826,72 @@ class TkinterOutputHandler(OutputHandler):
 
     def display_winning_red_apple(self, judge: "Agent", red_apple: "RedApple") -> None:
         """Display the winning red apple card."""
+        logging.debug(f"Displaying winning red apple: {red_apple.get_noun()} chosen by {judge.get_name()}")
         message = f"{judge.get_name()} chose the winning red apple '{red_apple.get_noun()}'."
         self.display_message(message)
 
-        # Highlight the winning card in the submitted cards area
-        for widget in self.ui.submitted_cards_container.winfo_children():
-            widget.destroy()
+        try:
+            # Highlight the winning card in the submitted cards area
+            for widget in self.ui.submitted_cards_container.winfo_children():
+                widget.destroy()
 
-        # Display submitted cards with winner highlighted
-        winner_found = False
-        for player, apple in self._submitted_red_apples:
-            is_winner = (apple == red_apple)
-            frame = tk.Frame(self.ui.submitted_cards_container)
-            frame.pack(side=tk.LEFT, padx=5, pady=5)
+            # Display submitted cards with winner highlighted
+            winner_found = False
+            for player, apple in self._submitted_red_apples:
+                is_winner = (apple == red_apple)
+                frame = tk.Frame(self.ui.submitted_cards_container)
+                frame.pack(side=tk.LEFT, padx=5, pady=5)
 
-            if is_winner:
-                winner_found = True
-                # Create card with special styling for winner
-                card = RedAppleCard.from_red_apple(
-                    frame,
-                    apple
-                )
-                card.config(highlightbackground="gold", highlightthickness=3)
-                card.pack()
+                if is_winner:
+                    winner_found = True
+                    # Create card with special styling for winner
+                    card = RedAppleCard.from_red_apple(
+                        frame,
+                        apple
+                    )
+                    card.config(highlightbackground="gold", highlightthickness=3)
+                    card.pack()
 
-                # Add winner label
-                winner_label = tk.Label(frame, text="WINNER", foreground="green", font=("Arial", 10, "bold"))
-                winner_label.pack()
-            else:
-                # Regular card for non-winners
-                card = RedAppleCard.from_red_apple(
-                    frame,
-                    apple
-                )
-                card.pack()
+                    # Add winner label
+                    winner_label = tk.Label(frame, text="WINNER", foreground="green", font=("Arial", 10, "bold"))
+                    winner_label.pack()
+                else:
+                    # Regular card for non-winners
+                    card = RedAppleCard.from_red_apple(
+                        frame,
+                        apple
+                    )
+                    card.pack()
 
-        # Clear submitted red apples after a winner is chosen
-        self._submitted_red_apples = []
+            # Process UI events BEFORE clearing data
+            self.root.update()
+        except tk.TclError as e:
+            logging.warning(f"TclError in display_winning_red_apple: {e}")
 
-        self.root.update_idletasks()
+        # Don't clear submitted red apples yet - leave them visible for round winner announcement
 
     def display_round_winner(self, winner: "Agent") -> None:
         """Display the round winner."""
+        logging.debug(f"Display round winner: {winner.get_name()}")
         message = f"{winner.get_name()} has won the round!"
         self.display_message(message)
-        messagebox.showinfo("Round Winner", message)
+
+        try:
+            # Process pending events before showing dialog
+            self.root.update()
+
+            # Show dialog - this blocks until user acknowledges
+            messagebox.showinfo("Round Winner", message)
+
+            # NOW clear the submitted cards after user has seen the results
+            self._submitted_red_apples = []
+
+            # Final update to refresh UI
+            self.root.update()
+        except tk.TclError as e:
+            logging.warning(f"TclError in display_round_winner: {e}")
+            # Make sure to clear submitted cards even if error occurs
+            self._submitted_red_apples = []
 
     def display_game_winner(self, winner: "Agent") -> None:
         """Display the game winner."""
