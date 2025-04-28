@@ -1,7 +1,7 @@
 # Description: AI agent logic for the 'Apples to Apples' game.
 
 # Standard Libraries
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 import logging
 import random
 import numpy as np
@@ -21,16 +21,14 @@ if TYPE_CHECKING:
 
 
 class Agent:
-    """
-    Base class for the agents in the 'Apples to Apples' game
-    """
+    """Base class for the agents in the 'Apples to Apples' game"""
     def __init__(self, name: str) -> None:
         self._name: str = name
         self._points: int = 0
         self._judge_status: bool = False
         self._green_apple: GreenApple | None = None
         self._red_apples: list[RedApple] = []
-        self._input_handler: "InputHandler" = TerminalInputHandler()
+        self._input_handler: Optional["InputHandler"] = None
 
     def __str__(self) -> str:
         # Retrieve the green apple
@@ -62,6 +60,16 @@ class Agent:
 
         return f"Agent(name={self._name}, points={self._points}, judge_status={self._judge_status}, " \
             f"green_apple={green_apple}, red_apples={red_apples})"
+
+    def set_input_handler(self, input_handler: "InputHandler") -> None:
+        """Set the input handler for this agent."""
+        self._input_handler = input_handler
+
+    def is_human(self) -> bool:
+        """
+        Check if the agent is a human player.
+        """
+        return isinstance(self, HumanAgent)
 
     def get_name(self) -> str:
         return self._name
@@ -188,6 +196,11 @@ class HumanAgent(Agent):
             logging.error(f"{self._name} is the judge.")
             raise ValueError(f"{self._name} is the judge.")
 
+        # Check if the input handler is set
+        if self._input_handler is None:
+            logging.error("Input handler is not set.")
+            raise ValueError("Input handler is not set.")
+
         # Convert the input to an index
         red_apple_index = self._input_handler.prompt_human_agent_choose_red_apple(self, self.get_red_apples(), green_apple)
         chosen_red_apple = self._red_apples.pop(red_apple_index)
@@ -197,35 +210,42 @@ class HumanAgent(Agent):
 
     def choose_winning_red_apple(self, apples_in_play: ApplesInPlay) -> dict[Agent, RedApple]:
         """
-        This method refers to the existing chosen red apple object from the list of red apples in play.
-        This is done to avoid duplicating the red apple object in memory.
+        Prompt the human judge to choose the winning red apple using the assigned input handler.
         """
         # Check if the agent is a judge
         if not self._judge_status:
             logging.error(f"{self._name} is not the judge.")
             raise ValueError(f"{self._name} is not the judge.")
 
-        # Display the red apples submitted by the other agents
-        print("Red cards submitted by the other agents:")
-        for i, red_apple in enumerate(apples_in_play.red_apples):
-            print(f"{i + 1}. {red_apple[list(red_apple.keys())[0]]}")
+        # Check if the input handler is set
+        if self._input_handler is None:
+            logging.error("Input handler is not set for HumanAgent.")
+            raise ValueError("Input handler is not set.")
 
-        # Prompt the agent to choose a red apple
-        red_apple_len = len(apples_in_play.red_apples)
-        red_apple_index = input(f"Choose a winning red apple (1 - {red_apple_len}): ")
+        # Get the green apple from the apples_in_play object
+        green_apple = apples_in_play.get_green_apple()
+        if not green_apple:
+             logging.error("Green apple not found in apples_in_play.")
+             # Handle error appropriately, maybe raise or return a default
+             raise ValueError("Green apple missing for judge selection.")
 
-        # Validate the input
-        while not red_apple_index.isdigit() or int(red_apple_index) not in range(1, red_apple_len + 1):
-            print(f"Invalid input. Please choose a valid red apple (1 - {red_apple_len}).")
-            red_apple_index = input("Choose a winning red apple: ")
+        # Use the input handler to prompt the judge
+        # The prompt_judge_select_winner method returns the winning Agent
+        winning_agent = self._input_handler.prompt_judge_select_winner(
+            self,
+            apples_in_play.get_red_apples_dicts(),
+            green_apple
+        )
 
-        # Convert the input to an index
-        red_apple_index = int(red_apple_index) - 1
+        # Get the corresponding winning red apple from the submissions
+        winning_red_apple = apples_in_play.get_red_apple_by_agent(winning_agent)
+        if winning_red_apple is None:
+            logging.error(f"Could not find submitted red apple for winning agent {winning_agent.get_name()}.")
+            # Handle error appropriately
+            raise ValueError("Winning red apple not found in submissions.")
 
-        # Refer to the existing red apple object
-        winning_red_apple = apples_in_play.red_apples[red_apple_index]
-
-        return winning_red_apple
+        # Return the dictionary {winning_agent: winning_red_apple}
+        return {winning_agent: winning_red_apple}
 
 
 class RandomAgent(Agent):

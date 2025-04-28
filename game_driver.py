@@ -7,6 +7,7 @@ import time
 import yaml
 import os
 import sys # Import sys (needed if you using streamlit)
+from typing import TYPE_CHECKING
 
 # # Third-party Libraries
 # try:
@@ -23,6 +24,11 @@ from src.core.game import ApplesToApples
 from src.logging.game_logger import configure_logging
 from src.data_analysis.data_analysis import main as data_analysis_main
 from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
+
+# Type Checking to prevent circular imports
+if TYPE_CHECKING:
+    from src.interface.input_handler import TerminalInputHandler, TkinterInputHandler
+    from src.interface.output_handler import TerminalOutputHandler, TkinterOutputHandler
 
 # Import the UI implementations
 from src.ui.terminal.terminal_ui import TerminalUI
@@ -253,6 +259,8 @@ def main() -> None:
         print("Starting GUI mode...")
         logging.info("Starting GUI mode.")
         game_interface = TkinterUI()
+        # game_interface.set_input_handler(TkinterInputHandler())
+        # game_interface.set_output_handler(TkinterOutputHandler())
     else:
         # Terminal mode (default or forced by training mode)
         if args.training_mode and args.gui_mode:
@@ -266,7 +274,10 @@ def main() -> None:
             logging.info("Starting terminal mode (forced by -T/training_mode).")
 
         # Create terminal interface with print setting from args
-        game_interface = TerminalUI(print_in_terminal=args.print_in_terminal)
+        game_interface = TerminalUI(
+            TerminalInputHandler(args.print_in_terminal),
+            TerminalOutputHandler(args.print_in_terminal)
+        )
 
     # Create the game object with the selected interface
     a2a_game = ApplesToApples(

@@ -42,6 +42,27 @@ class ApplesInPlay:
     def get_red_apples(self) -> list["RedApple"]:
         return list(self.red_apples[0].values())
 
+    def get_green_apple_dict(self) -> dict["Agent", "GreenApple"]:
+        if self.green_apple is None:
+            raise ValueError("Green apple is not in play.")
+        return self.green_apple
+
+    def get_red_apples_dicts(self) -> dict["Agent", "RedApple"]:
+        if self.red_apples is None:
+            raise ValueError("Red apples are not in play.")
+        final_dict = {}
+        for red_apple_dict in self.red_apples:
+            for agent, red_apple in red_apple_dict.items():
+                final_dict[agent] = red_apple
+        return final_dict
+
+
+    def get_red_apple_by_agent(self, agent: "Agent") -> "RedApple | None":
+        for red_apple_dict in self.red_apples:
+            if agent in red_apple_dict:
+                return red_apple_dict[agent]
+        return None
+
 
 @dataclass
 class ChosenApples:

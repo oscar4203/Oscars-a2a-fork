@@ -276,7 +276,7 @@ class TerminalInputHandler(InputHandler):
 class TkinterInputHandler(InputHandler):
     """Implementation of InputHandler for Tkinter GUI interface."""
 
-    def __init__(self, root: tk.Tk, ui: 'TkinterUI'):
+    def __init__(self, root: tk.Tk, ui: "TkinterUI"):
         """
         Initialize the Tkinter input handler.
 
@@ -320,10 +320,37 @@ class TkinterInputHandler(InputHandler):
         return dialog.result
 
     def prompt_human_agent_choose_red_apple(self, player: "Agent", red_apples: List["RedApple"],
-                               green_apple: "GreenApple") -> int:
-        """Prompt a player to select a red apple via dialog box."""
-        dialog = RedAppleSelectionDialog(self.root, player, red_apples, green_apple)
-        return dialog.result
+                       green_apple: "GreenApple") -> int:
+        """Prompt a player to select a red apple."""
+        # Reset any previous selection
+        self.ui.selected_card_index = None
+
+        # Display the player's cards first
+        self.ui.output_handler.display_player_red_apples(player)
+
+        # Create a variable to track if selection is complete
+        selection_complete = False
+
+        # Define a callback for the card selection
+        def on_selection_complete():
+            nonlocal selection_complete
+            selection_complete = True
+
+        # Set the confirmation callback - will be called directly when a card is clicked
+        self.ui.on_card_confirm = on_selection_complete
+
+        # Wait for user to select a card
+        while not selection_complete:
+            self.root.update()
+
+        # Get the final selection
+        index = self.ui.selected_card_index
+
+        # If somehow we don't have a selection, default to first card
+        if index is None:
+            index = 0
+
+        return index
 
     def prompt_judge_select_winner(self, judge: "Agent", submissions: Dict["Agent", "RedApple"],
                                  green_apple: "GreenApple") -> "Agent":

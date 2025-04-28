@@ -12,20 +12,30 @@ from src.interface.output_handler import TerminalOutputHandler
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
+    from src.interface.input_handler import InputHandler
+    from src.interface.output_handler import OutputHandler
 
 
 class TerminalUI(GameInterface):
     """Terminal-based user interface implementation for Apples to Apples."""
 
-    def __init__(self, print_in_terminal: bool = True):
+    def __init__(self, input_handler: "InputHandler", output_handler: "OutputHandler"):
         """
         Initialize the terminal UI.
 
         Args:
             print_in_terminal: Whether to print output to the terminal
         """
-        self.input_handler = TerminalInputHandler(print_in_terminal)
-        self.output_handler = TerminalOutputHandler(print_in_terminal)
+        self.input_handler = input_handler
+        self.output_handler = output_handler
+
+    # @property
+    # def input_handler(self) -> "InputHandler":
+    #     return self.input_handler
+
+    # @property
+    # def output_handler(self) -> "OutputHandler":
+    #     return self.output_handler
 
     # === Display Methods ===
 

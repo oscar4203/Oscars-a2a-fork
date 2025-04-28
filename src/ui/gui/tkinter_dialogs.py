@@ -182,10 +182,10 @@ class JudgeSelectionDialog(tk.Toplevel):
     def __init__(self, parent, judge, submissions, green_apple):
         super().__init__(parent)
         self.title(f"{judge.get_name()}'s Judge Selection")
+        self.players = list(submissions.keys())
         self.result = self.players[0] # Default to first player
         self.protocol("WM_DELETE_WINDOW", self.cancel)
         self.submissions = submissions
-        self.players = list(submissions.keys())
 
         frame = ttk.Frame(self, padding="10")
         frame.pack(fill=tk.BOTH, expand=True)

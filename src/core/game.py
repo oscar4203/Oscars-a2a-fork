@@ -45,11 +45,13 @@ class ApplesToApples:
             game_config: Configuration for game rules
             training_mode: Whether the game is in training mode
             load_all_packs: Whether to load all card packs
-            green_expansion: Filename for green apple expansion
-            red_expansion: Filename for red apple expansion
+            green_expansion_filename: Filename for green apple expansion
+            red_expansion_filename: Filename for red apple expansion
+            green_apples_deck: Deck of green apples
+            red_apples_deck: Deck of red apples
         """
-        self.embedding = embedding
-        self.interface = interface
+        self.__embedding = embedding
+        self.__interface = interface
         self.__paths_config = paths_config
         self.__game_config = game_config
         self.__training_mode = training_mode
@@ -100,7 +102,7 @@ class ApplesToApples:
         Start a new game of 'Apples to Apples' and reset the game state.
         Optionally, initialize new players.
         """
-        self.interface.display_new_game_message()
+        self.__interface.display_new_game_message()
 
         # Start the game timer
         logging.info("Starting the game timer.")
@@ -112,7 +114,7 @@ class ApplesToApples:
         total_games = self.__game_log.total_games
 
         # Display game information
-        self.interface.display_game_header(game_number, total_games)
+        self.__interface.display_game_header(game_number, total_games)
 
         # Initialize the decks
         self.__initialize_decks()
@@ -123,7 +125,7 @@ class ApplesToApples:
         elif game_number > 1:
             # Handle player management for subsequent games
             if self.__between_game_config.change_players:
-                keep_players = self.interface.prompt_keep_players_between_games()
+                keep_players = self.__interface.prompt_keep_players_between_games()
                 if not keep_players:
                     self.__initialize_players()
                 else:
@@ -146,7 +148,7 @@ class ApplesToApples:
                 for player in self.__game_log.get_game_players():
                     if isinstance(player, HumanAgent):
                         player.reset_red_apples()
-                        player.draw_red_apples(self.embedding, self.__red_apples_deck,
+                        player.draw_red_apples(self.__embedding, self.__red_apples_deck,
                                               self.__game_log.max_cards_in_hand,
                                               self.__model_config.use_extra_vectors)
 
@@ -161,12 +163,12 @@ class ApplesToApples:
         minutes = int(total_time // 60)
         seconds = int(total_time % 60)
 
-        self.interface.display_game_time(minutes, seconds)
+        self.__interface.display_game_time(minutes, seconds)
 
     def __initialize_decks(self) -> None:
         """Initialize the green and red apple decks."""
         logging.info("Initializing decks.")
-        self.interface.display_initializing_decks()
+        self.__interface.display_initializing_decks()
 
         # Clear the decks
         self.__green_apples_deck.clear_deck()
@@ -187,7 +189,7 @@ class ApplesToApples:
                                         self.__red_expansion_filename)
 
         # Display deck sizes
-        self.interface.display_deck_sizes(
+        self.__interface.display_deck_sizes(
             len(self.__green_apples_deck.get_apples()),
             len(self.__red_apples_deck.get_apples())
         )
@@ -198,14 +200,14 @@ class ApplesToApples:
         deck.load_deck(deck_name, base_file)
         count = len(deck.get_apples())
         logging.info(f"Loaded {count} {deck_name.lower()}.")
-        self.interface.display_deck_loaded(deck_name, count)
+        self.__interface.display_deck_loaded(deck_name, count)
 
         # Load the expansion deck, if applicable
         if expansion_file:
             deck.load_deck(f"{deck_name} Expansion", expansion_file)
             expansion_count = len(deck.get_apples()) - count
             logging.info(f"Loaded {expansion_count} {deck_name.lower()} from the expansion.")
-            self.interface.display_expansion_deck_loaded(deck_name, expansion_count)
+            self.__interface.display_expansion_deck_loaded(deck_name, expansion_count)
 
         # Shuffle the deck
         deck.shuffle()
@@ -223,10 +225,10 @@ class ApplesToApples:
 
     def __initialize_players(self) -> None:
         """Initialize the players for the game."""
-        self.interface.display_initializing_players()
+        self.__interface.display_initializing_players()
 
         player_count = self.__game_log.total_number_of_players
-        self.interface.display_player_count(player_count)
+        self.__interface.display_player_count(player_count)
 
         if self.__training_mode:
             # For training mode - specific initialization
@@ -241,20 +243,26 @@ class ApplesToApples:
         # Initialize the models for the AI agents
         for player in self.__game_log.get_game_players():
             if isinstance(player, AIAgent):
-                player.initialize_models(self.embedding, self.__paths_config, self.__game_log.get_game_players())
+                player.initialize_models(self.__embedding, self.__paths_config, self.__game_log.get_game_players())
                 logging.info(f"Initialized models for {player.get_name()}.")
 
         # Format the naming scheme AFTER players are initialized and sorted
         self.__game_log.format_naming_scheme(self.__paths_config)
         logging.info(f"Generated logging naming scheme: {self.__game_log.naming_scheme}")
 
+        # After players are created and added to the game_log
+        # Set the input handler for all agents
+        for player in self.__game_log.get_game_players():
+            # Pass the interface's input handler to each agent
+            player.set_input_handler(self.__interface.input_handler)
+
     def __initialize_training_players(self) -> None:
         """Initialize players specifically for training mode."""
         # Get model type from interface
-        model_type = self.interface.prompt_training_model_type()
+        model_type = self.__interface.prompt_training_model_type()
 
         # Get pretrained model type from interface
-        pretrained_model_type = self.interface.prompt_training_pretrained_type()
+        pretrained_model_type = self.__interface.prompt_training_pretrained_type()
 
         # Map the selected model type to its class
         model_type_class = model_type_mapping[model_type]
@@ -284,7 +292,7 @@ class ApplesToApples:
 
         # Have the human agent pick up cards
         human_agent.draw_red_apples(
-            self.embedding,
+            self.__embedding,
             self.__red_apples_deck,
             self.__game_log.max_cards_in_hand,
             self.__model_config.use_extra_vectors
@@ -303,11 +311,11 @@ class ApplesToApples:
         """Initialize players for a regular (non-training) game."""
         for i in range(self.__game_log.total_number_of_players):
             # Get player type from interface
-            player_type = self.interface.prompt_player_type(i + 1)
+            player_type = self.__interface.prompt_player_type(i + 1)
 
             if player_type == '1':  # Human
                 # Get player name from interface
-                name = self.interface.prompt_human_player_name()
+                name = self.__interface.prompt_human_player_name()
                 new_agent = HumanAgent(f"Human Agent - {name}")
 
             elif player_type == '2':  # Random
@@ -316,10 +324,10 @@ class ApplesToApples:
 
             elif player_type == '3':  # AI
                 # Get machine learning model type
-                ml_model_type = self.interface.prompt_ai_model_type()
+                ml_model_type = self.__interface.prompt_ai_model_type()
 
                 # Get pretrained archetype
-                pretrained_archetype = self.interface.prompt_ai_archetype()
+                pretrained_archetype = self.__interface.prompt_ai_archetype()
 
                 # Map selections to appropriate types
                 ml_model_type_class = model_type_mapping[ml_model_type]
@@ -349,7 +357,7 @@ class ApplesToApples:
 
             # Draw initial cards
             new_agent.draw_red_apples(
-                self.embedding,
+                self.__embedding,
                 self.__red_apples_deck,
                 self.__game_log.max_cards_in_hand,
                 self.__model_config.use_extra_vectors
@@ -378,7 +386,7 @@ class ApplesToApples:
                 # Let the interface choose the judge
                 if self.__between_game_config.change_players:
                     player_count = self.__game_log.get_number_of_players()
-                    judge_index = self.interface.prompt_starting_judge(player_count) - 1
+                    judge_index = self.__interface.prompt_starting_judge(player_count) - 1
                 else:
                     judge_index = 0
 
@@ -392,7 +400,7 @@ class ApplesToApples:
             next_judge = self.__choose_starting_judge()
             next_judge.set_judge_status(True)
 
-            self.interface.display_starting_judge(next_judge.get_name())
+            self.__interface.display_starting_judge(next_judge.get_name())
             logging.info(f"{next_judge.get_name()} is the starting judge.")
         else:
             # Determine the next judge (in training mode, judge stays the same)
@@ -410,7 +418,7 @@ class ApplesToApples:
                 next_judge = self.__game_log.get_game_players()[next_index]
                 next_judge.set_judge_status(True)
 
-                self.interface.display_next_judge(next_judge.get_name())
+                self.__interface.display_next_judge(next_judge.get_name())
                 logging.info(f"{next_judge.get_name()} is the next judge.")
 
         return next_judge
@@ -425,7 +433,7 @@ class ApplesToApples:
         round_number = self.__game_log.get_current_round_number()
 
         # Display round header
-        self.interface.display_round_header(round_number)
+        self.__interface.display_round_header(round_number)
 
         # Display player points
         if not self.__training_mode:
@@ -434,18 +442,18 @@ class ApplesToApples:
                 player_points.append((player.get_name(), player.get_points()))
                 logging.info(f"{player.get_name()}: {player.get_points()} points")
 
-            self.interface.display_player_points(player_points)
+            self.__interface.display_player_points(player_points)
 
     def __prompt_judge_draw_green_apple(self) -> None:
         """Prompt the judge to draw a green apple."""
         current_judge = self.__game_log.get_current_judge()
 
         # Prompt through the interface
-        self.interface.prompt_judge_draw_green_apple(current_judge)
+        self.__interface.prompt_judge_draw_green_apple(current_judge)
 
         # Draw the green apple
         green_apple_dict: dict[Agent, GreenApple] = current_judge.draw_green_apple(
-            self.embedding,
+            self.__embedding,
             self.__green_apples_deck,
             self.__model_config.use_extra_vectors
         )
@@ -455,7 +463,7 @@ class ApplesToApples:
 
         # Display the drawn green apple
         green_apple = list(green_apple_dict.values())[0]
-        self.interface.display_green_apple(current_judge, green_apple)
+        self.__interface.display_green_apple(current_judge, green_apple)
 
     def __prompt_players_select_red_apples(self) -> None:
         """Prompt players to select red apples to play."""
@@ -470,34 +478,34 @@ class ApplesToApples:
 
             # Prompt player to select a red apple
             if self.__training_mode:
-                self.interface.display_training_green_apple(green_apple.get_adjective())
-                self.interface.display_player_red_apples(player)
-                self.interface.prompt_training_select_red_apple(player, green_apple)
+                self.__interface.display_training_green_apple(green_apple.get_adjective())
+                self.__interface.display_player_red_apples(player)
+                self.__interface.prompt_training_select_red_apple(player, green_apple)
             else:
-                self.interface.display_green_apple(current_judge, green_apple)
-                self.interface.display_player_red_apples(player)
-                self.interface.prompt_select_red_apple(player, green_apple)
+                self.__interface.display_green_apple(current_judge, green_apple)
+                self.__interface.display_player_red_apples(player)
+                self.__interface.prompt_select_red_apple(player, green_apple)
 
             # Let the player choose a red card from their hand
             chosen_red_apple_dict: dict[Agent, RedApple] = player.choose_red_apple(current_judge, green_apple)
             self.__state_manager.add_red_apple_in_play(chosen_red_apple_dict)
-            self.interface.display_red_apple_chosen(player, chosen_red_apple_dict[player])
+            self.__interface.display_red_apple_chosen(player, chosen_red_apple_dict[player])
 
             # For training mode, prompt for a bad red apple too
             if self.__training_mode:
-                self.interface.display_training_green_apple(green_apple.get_adjective())
-                self.interface.display_player_red_apples(player)
-                self.interface.prompt_training_select_bad_red_apple(player, green_apple)
+                self.__interface.display_training_green_apple(green_apple.get_adjective())
+                self.__interface.display_player_red_apples(player)
+                self.__interface.prompt_training_select_bad_red_apple(player, green_apple)
 
                 # Choose a bad red apple
                 bad_red_apple_dict: dict[Agent, RedApple] = player.choose_red_apple(current_judge, green_apple)
                 self.__state_manager.add_red_apple_in_play(bad_red_apple_dict)
-                self.interface.display_red_apple_chosen(player, chosen_red_apple_dict[player])
+                self.__interface.display_red_apple_chosen(player, chosen_red_apple_dict[player])
 
             # Draw new cards if needed
             if len(player.get_red_apples()) < self.__game_log.max_cards_in_hand:
                 player.draw_red_apples(
-                    self.embedding,
+                    self.__embedding,
                     self.__red_apples_deck,
                     self.__game_log.max_cards_in_hand,
                     self.__model_config.use_extra_vectors
@@ -510,7 +518,7 @@ class ApplesToApples:
 
         # In regular mode, prompt judge to select winner
         if not self.__training_mode:
-            self.interface.prompt_judge_select_winner(current_judge)
+            self.__interface.prompt_judge_select_winner(current_judge)
 
         # Determine the winning red apple
         if self.__training_mode:
@@ -528,7 +536,7 @@ class ApplesToApples:
             winning_player = self.__game_log.get_chosen_apples().get_red_apple_winner()
             winning_red_apple = self.__game_log.get_chosen_apples().get_winning_red_apple()
 
-            self.interface.display_winning_red_apple(
+            self.__interface.display_winning_red_apple(
                 current_judge,
                 winning_red_apple
             )
@@ -536,7 +544,7 @@ class ApplesToApples:
         # Display the round winner
         round_winner = self.__game_log.get_round_winner()
         if round_winner and not self.__training_mode:
-            self.interface.display_round_winner(round_winner)
+            self.__interface.display_round_winner(round_winner)
 
     def __train_ai_agents(self) -> None:
         """Train AI agents based on the current round's results."""
@@ -614,7 +622,7 @@ class ApplesToApples:
         """Reset the opponent models for all AI agents."""
         # TODO - check if need to skip for training mode
         logging.info("Resetting opponent models for all AI agents.")
-        self.interface.display_resetting_models()
+        self.__interface.display_resetting_models()
 
         for player in self.__game_log.get_game_players():
             if isinstance(player, AIAgent):
@@ -675,7 +683,7 @@ class ApplesToApples:
             # If game over, display the winner
             winner = self.__game_log.get_game_winner()
             if winner:
-                self.interface.display_game_winner(winner)
+                self.__interface.display_game_winner(winner)
 
                 # Log the winner if not in training mode
                 if not self.__training_mode:

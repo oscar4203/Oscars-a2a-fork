@@ -184,7 +184,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def display_winning_red_apple(self, judge_name: str, red_apple: "RedApple") -> None:
+    def display_winning_red_apple(self, judge: "Agent", red_apple: "RedApple") -> None:
         """
         Display the winning red apple card.
 
@@ -195,7 +195,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def display_round_winner(self, winner_name: str) -> None:
+    def display_round_winner(self, winner: "Agent") -> None:
         """
         Display the round winner.
 
@@ -205,7 +205,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def display_game_winner(self, winner_name: str) -> None:
+    def display_game_winner(self, winner: "Agent") -> None:
         """
         Display the game winner.
 
@@ -231,7 +231,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def display_training_green_apple(self, adjective: str) -> None:
+    def display_training_green_apple(self, green_apple: "GreenApple") -> None:
         """
         Display the green apple card in training mode.
 
@@ -241,7 +241,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def prompt_judge_draw_green_apple(self, judge_name: str) -> None:
+    def prompt_judge_draw_green_apple(self, judge: "Agent") -> None:
         """
         Display prompt for the judge to draw a green apple.
 
@@ -251,7 +251,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def prompt_select_red_apple(self, player_name: str) -> None:
+    def prompt_select_red_apple(self, player: "Agent", green_apple: "GreenApple") -> None:
         """
         Display prompt for a player to select a red apple.
 
@@ -261,7 +261,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def prompt_training_select_red_apple(self, player: "Agent") -> None:
+    def prompt_training_select_red_apple(self, player: "Agent", green_apple: "GreenApple") -> None:
         """
         Display prompt for a player to select a good red apple in training mode.
 
@@ -271,7 +271,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def prompt_training_select_bad_red_apple(self, player_name: str) -> None:
+    def prompt_training_select_bad_red_apple(self, player: "Agent", green_apple: "GreenApple") -> None:
         """
         Display prompt for a player to select a bad red apple in training mode.
 
@@ -281,7 +281,7 @@ class OutputHandler(ABC):
         pass
 
     @abstractmethod
-    def prompt_judge_select_winner(self, judge_name: str) -> None:
+    def prompt_judge_select_winner(self, judge: "Agent") -> None:
         """
         Display prompt for the judge to select the winning red apple.
 

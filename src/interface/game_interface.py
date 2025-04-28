@@ -2,22 +2,52 @@
 
 # Standard Libraries
 from abc import ABC, abstractmethod
-from typing import List, Tuple, TYPE_CHECKING
-
-# Third-party Libraries
-
-# Local Modules
+from typing import List, Tuple, Optional, TYPE_CHECKING
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
+    from src.interface.input_handler import InputHandler
+    from src.interface.output_handler import OutputHandler
 
 
 class GameInterface(ABC):
-    """Abstract base class for game interfaces in Apples to Apples."""
+    """Abstract interface providing handlers for user interactions."""
+    def __init__(self, input_handler: "InputHandler", output_handler: "OutputHandler") -> None:
+        """Initialize the GameInterface."""
+        self._input_handler: "InputHandler" = input_handler
+        self._output_handler: "OutputHandler" = output_handler
 
-    # === Display Methods ===
+    @property
+    def input_handler(self) -> "InputHandler":
+        """Return the input handler for this interface."""
+        return self._input_handler
+
+    @property
+    def output_handler(self) -> "OutputHandler":
+        """Return the output handler for this interface."""
+        return self._output_handler
+
+    @input_handler.setter
+    def input_handler(self, input_handler: "InputHandler") -> None:
+        """Set the input handler for this interface."""
+        self._input_handler = input_handler
+
+    @output_handler.setter
+    def output_handler(self, output_handler: "OutputHandler") -> None:
+        """Set the output handler for this interface."""
+        self._output_handler = output_handler
+
+    # @abstractmethod
+    # def run(self) -> None:
+    #     """Start the main loop for the UI (relevant for GUI)."""
+    #     pass
+
+    # @abstractmethod
+    # def teardown(self) -> None:
+    #     """Clean up UI resources."""
+    #     pass
 
     @abstractmethod
     def display_new_game_message(self) -> None:

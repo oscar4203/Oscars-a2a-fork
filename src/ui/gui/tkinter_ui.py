@@ -3,25 +3,36 @@
 # Standard Libraries
 import tkinter as tk
 from tkinter import ttk
-from typing import List, Tuple, Dict, Optional, TYPE_CHECKING
+from typing import List, Tuple, Dict, Optional, Callable, TYPE_CHECKING
 
 # Local Modules
 from src.interface.game_interface import GameInterface
 from src.interface.input_handler import TkinterInputHandler
 from src.interface.output_handler import TkinterOutputHandler
-from src.ui.gui.tkinter_widgets import PlayerInfoWidget
+from src.ui.gui.tkinter_widgets import PlayerInfoWidget, RedAppleCard
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
     from src.core.state import GameStateManager
+    from src.interface.input_handler import InputHandler
+    from src.interface.output_handler import OutputHandler
 
 
 class TkinterUI(GameInterface):
     """Tkinter-based user interface implementation for Apples to Apples."""
 
-    def __init__(self, state_manager: Optional["GameStateManager"] = None):
+    # @property
+    # def input_handler(self) -> "InputHandler":
+    #     return self.input_handler
+
+    # @property
+    # def output_handler(self) -> "OutputHandler":
+    #     return self.output_handler
+
+    def __init__(self, #input_handler: "InputHandler", output_handler: "OutputHandler",
+                 state_manager: Optional["GameStateManager"] = None):
         """Initialize the Tkinter UI."""
         self.root = tk.Tk()
         self.root.title("Apples to Apples")
@@ -29,6 +40,12 @@ class TkinterUI(GameInterface):
 
         # Reference to the state manager
         self.state_manager = state_manager
+
+        # Card selection tracking - fix type annotations
+        self.selected_card_index: Optional[int] = None
+        self.active_cards: List[RedAppleCard] = []
+        self.confirm_button: Optional[tk.Button] = None
+        self.on_card_confirm: Optional[Callable[[], None]] = None
 
         # Set up the main UI structure
         self.setup_ui()
@@ -161,14 +178,6 @@ class TkinterUI(GameInterface):
     def run(self):
         """Run the Tkinter main loop."""
         self.root.mainloop()
-
-    def get_input_handler(self):
-        """Get the input handler for this UI."""
-        return self.input_handler
-
-    def get_output_handler(self):
-        """Get the output handler for this UI."""
-        return self.output_handler
 
     # === GameInterface implementation methods ===
     # These methods just delegate to the appropriate handler
