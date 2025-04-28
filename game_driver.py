@@ -147,7 +147,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="'Apples to Apples' card game",
         usage="python3 game_driver.py <number_of_players> <points_to_win> <total_games> "\
-              "[green_expansion] [red_expansion] [-A] [-V] [-G] [-P] [-T] [-D]"\
+              "[green_expansion] [red_expansion] [-A] [-V] [-G] [-P] [-S] [-T] [-D]"\
               "\n\nExample: python3 game_driver.py 4 5 10 green_apples_extension.csv red_apples_extension.csv -A -V -T -D"\
               "\nFor help: python3 game_driver.py -h",
         description="Configure and run the 'Apples to Apples' game. Specify the number of players, "\
@@ -157,8 +157,9 @@ def main() -> None:
                     "Use the -V flag to use the custom vector loader (may not work on all systems). "\
                     "Use the -G flag to run the game in GUI mode (using Pygame). "\
                     "Use the -P flag to print the game info and results in the terminal (terminal mode only). "\
+                    "Use the -S flag to run statistical data analysis after the game. "\
                     "Use the -T flag to run the program in training mode (forces terminal execution). "\
-                    "Use the -D flag to enable debug mode for detailed logging."
+                    "Use the -D flag to enable debug mode for detailed logging. "
     )
 
     # Add the command line arguments
@@ -171,6 +172,7 @@ def main() -> None:
     parser.add_argument("-V", "--vector_loader", action="store_true", help="Use the custom vector loader")
     parser.add_argument("-G", "--gui_mode", action="store_true", help="Use GUI mode for the game")
     parser.add_argument("-P", "--print_in_terminal", action="store_true", help="Print game info and prompts in terminal (for terminal mode)")
+    parser.add_argument("-S", "--statistical_analysis", action="store_true", help="Run statistical data analysis after the game")
     parser.add_argument("-T", "--training_mode", action="store_true", help="Run in training mode (forces terminal execution)")
     parser.add_argument("-D", "--debug", action="store_true", help="Enable debug mode for detailed logging")
 
@@ -323,8 +325,8 @@ def main() -> None:
     print(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
     logging.info(f"Total time elapsed: {hours} hour(s), {minutes} minute(s), {seconds} second(s)")
 
-    # Run data analysis if appropriate (only for terminal mode, not in training)
-    if not args.training_mode and not args.gui_mode:
+    # Run data analysis if -S flag and not in training mode
+    if args.statistical_analysis and not args.training_mode:
         logging.info("Starting data analysis.")
         data_analysis_main(
             paths_config=game_driver.paths_config,
@@ -337,8 +339,8 @@ def main() -> None:
         logging.info("Data analysis finished.")
     elif args.training_mode:
         logging.info("Skipping data analysis in training mode.")
-    elif args.gui_mode:
-        logging.info("Skipping data analysis in GUI mode.")
+    else:
+        logging.info("Skipping data analysis. Use -S flag to run statistical analysis.")
 
     # Shutdown Logging
     logging.info("Game simulation finished. Shutting down logging.")
