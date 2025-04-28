@@ -7,8 +7,8 @@ from typing import List, Tuple, Dict, Optional, Callable, TYPE_CHECKING
 
 # Local Modules
 from src.interface.game_interface import GameInterface
-from src.interface.input_handler import TkinterInputHandler
-from src.interface.output_handler import TkinterOutputHandler
+from src.interface.input.tkinter_input_handler import TkinterInputHandler
+from src.interface.output.tkinter_output_handler import TkinterOutputHandler
 from src.ui.gui.tkinter.tkinter_widgets import PlayerInfoWidget, RedAppleCard
 
 # Type Checking to prevent circular imports

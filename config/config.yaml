@@ -28,3 +28,15 @@ interaction:
   cycle_starting_judges_default: false
   reset_models_between_games_default: false
   reset_cards_between_games_default: false # For training mode
+
+# --- GUI Settings ---
+gui:
+  framework: "tkinter"  # Options: "tkinter", "customtkinter", "pygame"
+  # Framework-specific settings
+  tkinter:
+    theme: "default"
+  customtkinter:
+    theme: "dark-blue"  # Options: "blue", "dark-blue", "green"
+  pygame:
+    resolution: [1024, 768]
+    fps: 60

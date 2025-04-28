@@ -10,9 +10,10 @@ from src.data_classes.data_classes import (
     PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
 )
 
-# if TYPE_CHECKING:
-from src.agent_model.agent import Agent
-from src.apples.apples import GreenApple, RedApple
+if TYPE_CHECKING:
+    from src.agent_model.agent import Agent
+    from src.apples.apples import GreenApple, RedApple
+
 
 class GameStateManager:
     """Manages the state of the Apples to Apples game."""

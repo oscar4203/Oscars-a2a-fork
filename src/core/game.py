@@ -3,14 +3,12 @@
 # Standard Libraries
 import logging
 import time
-import os
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 
 # Local Modules
-from src.embeddings.embeddings import Embedding
 from src.apples.apples import GreenApple, RedApple, Deck
 from src.agent_model.agent import Agent, HumanAgent, RandomAgent, AIAgent
-from src.agent_model.model import model_type_mapping, Model
+from src.agent_model.model import model_type_mapping
 from src.logging.game_logger import (
     log_vectors, log_game_state, log_round_winner, log_game_winner, log_training_mode
 )
@@ -20,15 +18,17 @@ from src.data_classes.data_classes import (
 )
 from src.core.state import GameStateManager
 
-# if TYPE_CHECKING:
-from src.interface.game_interface import GameInterface
+if TYPE_CHECKING:
+    from src.embeddings.embeddings import Embedding
+    from src.interface.game_interface import GameInterface
+
 
 class ApplesToApples:
     """Core game logic for Apples to Apples, UI-agnostic."""
 
     def __init__(self,
-                 embedding: Embedding,
-                 interface: GameInterface,
+                 embedding: "Embedding",
+                 interface: "GameInterface",
                  paths_config: PathsConfig = PathsConfig(),
                  game_config: GameConfig = GameConfig(),
                  training_mode: bool = False,

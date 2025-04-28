@@ -6,7 +6,6 @@ import argparse
 import time
 import yaml
 import os
-import sys # Import sys (needed if you using streamlit)
 from typing import TYPE_CHECKING
 
 # # Third-party Libraries
@@ -24,24 +23,10 @@ from src.core.game import ApplesToApples
 from src.logging.game_logger import configure_logging
 from src.data_analysis.data_analysis import main as data_analysis_main
 from src.data_classes.data_classes import GameLog, PathsConfig, GameConfig, ModelConfig, BetweenGameConfig
-
-# Type Checking to prevent circular imports
-if TYPE_CHECKING:
-    from src.interface.input_handler import TerminalInputHandler
-    from src.interface.output_handler import TerminalOutputHandler
-
-# Import the UI implementations
+from src.ui.gui.gui_factory import GUIFactory
 from src.ui.terminal.terminal_ui import TerminalUI
-try:
-    from src.ui.gui.tkinter.tkinter_ui import TkinterUI
-    import tkinter as tk
-except ImportError:
-    TkinterUI = None
-    tk = None
-
-# Always set these to None for now
-PygameUI = None
-pygame = None
+from src.interface.input.terminal_input_handler import TerminalInputHandler
+from src.interface.output.terminal_output_handler import TerminalOutputHandler
 
 
 # Standalone Config Loader
@@ -245,22 +230,18 @@ def main() -> None:
     # Load the keyed vectors (using path from config stored in game_driver)
     game_driver.load_keyed_vectors(args.vector_loader)
 
-    # Initialize the appropriate user interface based on args
-    # Training mode forces terminal interface
-    use_gui = args.gui_mode and not args.training_mode
-
-    if use_gui:
-        # Check if Tkinter is available
-        if not tk or not TkinterUI:
-            print("ERROR: Tkinter is required for GUI mode (-G). Please make sure it's installed.")
-            logging.error("Tkinter or TkinterUI not found, cannot start GUI mode.")
-            exit(1)
-
+    # Initialize appropriate UI
+    if args.gui_mode and not args.training_mode:
+        # Create GUI using factory
         print("Starting GUI mode...")
         logging.info("Starting GUI mode.")
-        game_interface = TkinterUI()
-        # game_interface.set_input_handler(TkinterInputHandler())
-        # game_interface.set_output_handler(TkinterOutputHandler())
+        gui_config = config.get("gui", {})
+        try:
+            game_interface = GUIFactory.create_gui(gui_config)
+        except ImportError as e:
+            print(f"ERROR: Failed to initialize GUI: {e}")
+            logging.error(f"Failed to initialize GUI: {e}")
+            exit(1)
     else:
         # Terminal mode (default or forced by training mode)
         if args.training_mode and args.gui_mode:

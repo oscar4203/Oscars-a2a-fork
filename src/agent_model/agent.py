@@ -13,11 +13,10 @@ from src.embeddings.embeddings import Embedding
 from src.agent_model.model import Model, LRModel, NNModel
 from src.apples.apples import GreenApple, RedApple, Deck
 from src.data_classes.data_classes import ApplesInPlay, ChosenApples, PathsConfig
-from src.interface.input_handler import TerminalInputHandler
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
-    from src.interface.input_handler import InputHandler
+    from src.interface.input.input_handler import InputHandler
 
 
 class Agent:

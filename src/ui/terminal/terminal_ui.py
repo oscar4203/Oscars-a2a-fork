@@ -5,15 +5,15 @@ from typing import List, Tuple, TYPE_CHECKING
 
 # Local Modules
 from src.interface.game_interface import GameInterface
-from src.interface.input_handler import TerminalInputHandler
-from src.interface.output_handler import TerminalOutputHandler
+from src.interface.input.terminal_input_handler import TerminalInputHandler
+from src.interface.output.terminal_output_handler import TerminalOutputHandler
 
 # Type Checking to prevent circular imports
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
-    from src.interface.input_handler import InputHandler
-    from src.interface.output_handler import OutputHandler
+    from src.interface.input.input_handler import InputHandler
+    from src.interface.output.output_handler import OutputHandler
 
 
 class TerminalUI(GameInterface):
