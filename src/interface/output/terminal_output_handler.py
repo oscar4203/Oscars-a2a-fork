@@ -13,6 +13,7 @@ from src.interface.output.output_handler import OutputHandler
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
+    from src.core.state import GameStateManager
 
 
 class TerminalOutputHandler(OutputHandler):
@@ -26,6 +27,12 @@ class TerminalOutputHandler(OutputHandler):
             print_in_terminal: Whether to print output to the terminal
         """
         self.print_in_terminal = print_in_terminal
+
+    def set_state_manager(self, state_manager: "GameStateManager") -> None:
+        """Set the reference to the game state manager."""
+        # Terminal handler might not need to store this, but must implement the method
+        pass
+
 
     def display_message(self, message: str) -> None:
         """Display a general message via terminal output."""

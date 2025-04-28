@@ -471,6 +471,7 @@ class GameLog:
         self.get_current_game_state().add_round(round_state)
 
     def get_current_game_state(self) -> GameState:
+        """Get the current game state."""
         return self.game_states[-1]
 
     def get_previous_game_state(self) -> GameState:

@@ -12,10 +12,21 @@ from typing import List, Tuple, TYPE_CHECKING
 if TYPE_CHECKING:
     from src.agent_model.agent import Agent
     from src.apples.apples import GreenApple, RedApple
+    from src.core.state import GameStateManager
 
 
 class OutputHandler(ABC):
     """Abstract class for handling output in various UIs."""
+
+    @abstractmethod
+    def set_state_manager(self, state_manager: "GameStateManager") -> None:
+        """
+        Set the reference to the game state manager.
+
+        Args:
+            state_manager: The game state manager instance
+        """
+        pass
 
     @abstractmethod
     def display_message(self, message: str) -> None:

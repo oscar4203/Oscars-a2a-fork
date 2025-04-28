@@ -3,6 +3,7 @@
 # Standard Libraries
 import logging
 import time
+import os
 from typing import Dict, List, Optional, Any, TYPE_CHECKING
 
 # Local Modules
@@ -71,6 +72,13 @@ class ApplesToApples:
         logging.info("GameLog initialized in ApplesToApples.")
         # Initialize the state manager
         self.__state_manager = GameStateManager(game_log)
+
+        # Connect the state manager to the output handler
+        if hasattr(self.__interface, "output_handler"):
+            output_handler = self.__interface.output_handler
+            if hasattr(output_handler, "set_state_manager"):
+                output_handler.set_state_manager(self.__state_manager)
+                logging.info("Set state manager reference in output handler")
 
     def get_game_log(self) -> GameLog:
         """Returns the current GameLog instance. Raises RuntimeError if not initialized."""
