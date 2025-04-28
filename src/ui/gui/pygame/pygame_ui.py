@@ -180,6 +180,15 @@ class PygameUI(GameInterface):
     def delay_for_visibility(self, seconds: float = DELAY_TIME):
         """Pause execution while keeping the UI responsive."""
         start_time = time.time()
+
+        # Special case handling: if this is a player selection dialog, don't auto-advance
+        if self.notification and any(phrase in self.notification for phrase in [
+                "Select Player", "Enter Human Player", "Select AI model", "Select AI archetype"]):
+            # For these special notifications, we don't auto-advance
+            # They will be cleared by their respective dialogs
+            return
+
+        # Regular delay with UI updates
         while time.time() - start_time < seconds:
             if not self.process_events():
                 break
@@ -190,7 +199,12 @@ class PygameUI(GameInterface):
             # Draw game state
             from src.interface.output.pygame_output_handler import PygameOutputHandler
             if isinstance(self._output_handler, PygameOutputHandler):
-                self._output_handler.draw_game_state()
+                try:
+                    self._output_handler.draw_game_state()
+                except Exception as e:
+                    # Just draw a simple message if game state can't be drawn yet
+                    self.draw_text("Loading Game...", self.font_large, (230, 230, 230),
+                                self.width // 2, self.height // 2, center=True)
 
             self.draw_notification()
 
@@ -201,6 +215,14 @@ class PygameUI(GameInterface):
         """Start the main pygame event loop."""
         self.running = True
         logging.info("Starting Pygame main loop")
+
+        # Create initial screen with "game is starting" message
+        self.screen.fill(BACKGROUND_COLOR)
+        self.draw_text("Apples to Apples - Starting Game", self.font_large, (230, 230, 230),
+                    self.width // 2, self.height // 2 - 50, center=True)
+        self.draw_text("Please follow the prompts to set up the game...", self.font_normal, (200, 200, 200),
+                    self.width // 2, self.height // 2, center=True)
+        pygame.display.flip()
 
         while self.running:
             # Process events
@@ -213,7 +235,13 @@ class PygameUI(GameInterface):
             # Draw game state
             from src.interface.output.pygame_output_handler import PygameOutputHandler
             if isinstance(self._output_handler, PygameOutputHandler):
-                self._output_handler.draw_game_state()
+                try:
+                    self._output_handler.draw_game_state()
+                except Exception as e:
+                    # Just draw a simple screen
+                    logging.debug(f"Error drawing game state: {e}")
+                    self.draw_text("Initializing Game...", self.font_large, (230, 230, 230),
+                                self.width // 2, self.height // 2, center=True)
 
             # Draw notifications on top of everything
             self.draw_notification()

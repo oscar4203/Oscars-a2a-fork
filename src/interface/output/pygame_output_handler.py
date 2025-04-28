@@ -368,7 +368,7 @@ class PygameOutputHandler(OutputHandler):
         message = "Initializing players..."
         self.display_message(message)
         self.ui.show_notification(message)
-        self.ui.delay_for_visibility(1.0)  # Shorter delay
+        self.ui.delay_for_visibility(3.0)
 
     def display_player_count(self, count: int) -> None:
         """Display the number of players in the game."""
