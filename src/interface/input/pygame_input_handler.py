@@ -146,71 +146,16 @@ class PygameInputHandler(InputHandler):
         return 1
 
     def prompt_human_agent_choose_red_apple(self, player: "Agent", red_apples: List["RedApple"],
-                                         green_apple: "GreenApple") -> int:
-        """Prompt a player to select a red apple."""
-        self.ui.show_notification(f"Select a red apple to match: {green_apple.get_adjective()}")
+                                     green_apple: "GreenApple") -> int:
+        """Prompt a human player to select a red apple."""
+        from src.ui.gui.pygame.pygame_dialogs import RedCardSelectionDialog
 
-        # Create card options
-        options = [apple.get_noun() for apple in red_apples]
+        # Run the red card selection dialog
+        dialog = RedCardSelectionDialog(self.ui.screen, player, red_apples, green_apple)
+        result = dialog.run()
 
-        # Show cards and wait for selection
-        self.card_buttons = []
-        card_width = 150
-        card_height = 100
-        spacing = 20
-
-        # Calculate layout
-        cards_per_row = min(5, len(options))
-        total_width = cards_per_row * (card_width + spacing) - spacing
-        start_x = (self.ui.width - total_width) // 2
-        start_y = 300
-
-        # Create card buttons
-        for i, option in enumerate(options):
-            row = i // cards_per_row
-            col = i % cards_per_row
-            x = start_x + col * (card_width + spacing)
-            y = start_y + row * (card_height + spacing)
-            rect = pygame.Rect(x, y, card_width, card_height)
-            self.card_buttons.append((rect, option))
-
-        # Wait for selection
-        self.waiting_for_input = True
-        self.selected_index = None
-
-        while self.waiting_for_input and self.ui.running:
-            # Process events
-            if not self.ui.process_events():
-                return 0
-
-            # Draw background
-            self.ui.screen.fill(BACKGROUND_COLOR)
-
-            # Draw green apple
-            green_text = f"Green Apple: {green_apple.get_adjective()}"
-            self.ui.draw_text(green_text, self.ui.font_large, (100, 200, 100),
-                          self.ui.width // 2, 150, center=True)
-
-            # Draw prompt
-            self.ui.draw_text(f"Select a red apple to match", self.ui.font_normal,
-                          (230, 230, 230), self.ui.width // 2, 200, center=True)
-
-            # Draw cards
-            for rect, text in self.card_buttons:
-                # Draw card background
-                pygame.draw.rect(self.ui.screen, (80, 20, 20), rect, border_radius=5)
-                pygame.draw.rect(self.ui.screen, (150, 50, 50), rect, width=2, border_radius=5)
-
-                # Draw card text
-                self.ui.draw_text(text, self.ui.font_normal, (230, 230, 230),
-                              rect.centerx, rect.centery, center=True)
-
-            # Update display
-            self.ui.update_display()
-            pygame.time.wait(50)  # Reduce CPU usage
-
-        # Return selected index or 0 if none
-        return self.selected_index if self.selected_index is not None else 0
+        # If dialog was closed without selection, default to first card
+        return result if result is not None else 0
 
     def prompt_judge_select_winner(self, judge: "Agent", submissions: Dict["Agent", "RedApple"],
                                 green_apple: "GreenApple") -> "Agent":

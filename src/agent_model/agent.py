@@ -246,6 +246,11 @@ class HumanAgent(Agent):
         # Return the dictionary {winning_agent: winning_red_apple}
         return {winning_agent: winning_red_apple}
 
+    # def remove_red_apple(self, apple: "RedApple") -> None:
+    #     """Remove a specific red apple from the player's hand."""
+    #     if apple in self._red_apples:
+    #         self._red_apples.remove(apple)
+
 
 class RandomAgent(Agent):
     """Random agent for the 'Apples to Apples' game."""

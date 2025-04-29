@@ -27,6 +27,7 @@ class Dialog:
 
         # Initialize fonts
         self.font_title = pygame.font.Font(None, 36)
+        self.font_large = pygame.font.Font(None, 32)
         self.font_normal = pygame.font.Font(None, 24)
         self.font_small = pygame.font.Font(None, 18)
 
@@ -466,3 +467,82 @@ class TrainingPretrainedTypeDialog(ArchetypeDialog):
     def __init__(self, screen):
         super().__init__(screen)
         self.title = "Select Training Pretrained Type"
+
+
+class RedCardSelectionDialog(Dialog):
+    """Dialog for human player to select a red card from their hand."""
+
+    def __init__(self, screen, player: "Agent", red_apples: List["RedApple"],
+                green_apple: "GreenApple"):
+        """Initialize dialog for red card selection."""
+        super().__init__(screen, f"{player.get_name()}, Select a Red Apple")
+        self.player = player
+        self.red_apples = red_apples
+        self.green_apple = green_apple
+        self.card_rects = []
+
+    def draw(self):
+        """Draw the red card selection dialog."""
+        super().draw()
+
+        # Draw green apple at the top
+        green_text = f"Green Apple: {self.green_apple.get_adjective()}"
+        self.draw_text(green_text, self.font_large, (100, 200, 100),
+                     self.width // 2, 100, center=True)
+
+        # Draw instructions
+        self.draw_text(f"Select a red apple that best matches '{self.green_apple.get_adjective()}':",
+                     self.font_normal, self.COLOR_TEXT,
+                     self.width // 2, 140, center=True)
+
+        # Reset card rectangles
+        self.card_rects = []
+
+        # Draw red apple cards
+        card_width = 160
+        card_height = 140
+        spacing = 20
+        cards_per_row = min(4, len(self.red_apples))
+
+        # Calculate layout
+        total_width = cards_per_row * (card_width + spacing) - spacing
+        start_x = (self.width - total_width) // 2
+        start_y = 180
+
+        for i, apple in enumerate(self.red_apples):
+            row = i // cards_per_row
+            col = i % cards_per_row
+            x = start_x + col * (card_width + spacing)
+            y = start_y + row * (card_height + spacing) + 20
+
+            # Draw card background
+            card_rect = pygame.Rect(x, y, card_width, card_height)
+            pygame.draw.rect(self.screen, (80, 20, 20), card_rect, border_radius=8)
+            pygame.draw.rect(self.screen, (150, 50, 50), card_rect, width=2, border_radius=8)
+
+            # Draw card title
+            self.draw_text("RED APPLE", self.font_small, (200, 100, 100),
+                         card_rect.centerx, y + 20, center=True)
+
+            # Draw noun
+            self.draw_text(apple.get_noun(), self.font_normal, (255, 200, 200),
+                         card_rect.centerx, card_rect.centery - 20, center=True)
+
+            # Draw description (truncated)
+            if hasattr(apple, "get_description"):
+                description = apple.get_description()
+                if description:
+                    if len(description) > 25:
+                        description = description[:22] + "..."
+                    self.draw_text(description, self.font_small, (200, 150, 150),
+                                 card_rect.centerx, card_rect.centery + 15, center=True)
+
+            # Store card rectangle and associated apple
+            self.card_rects.append((card_rect, i))  # Store index instead of apple
+
+    def on_click(self, pos):
+        """Handle mouse clicks on red apple cards."""
+        for rect, index in self.card_rects:
+            if rect.collidepoint(pos):
+                self.close(index)
+                break
